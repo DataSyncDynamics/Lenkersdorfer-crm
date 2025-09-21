@@ -1,0 +1,366 @@
+name: 'QA-GUARDIAN: Luxury CRM Testing Pipeline'
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run tests every 4 hours to catch any issues
+    - cron: '0 */4 * * *'
+
+jobs:
+  # Critical Performance Testing - Must Pass
+  performance-testing:
+    name: 'Performance Benchmarks (Non-Negotiable)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: npm start &
+        env:
+          NODE_ENV: production
+
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Performance Benchmarks
+        run: npm run test:performance
+        env:
+          CI: true
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-results
+          path: |
+            test-results/
+            coverage/
+
+  # Mobile Device Testing - iPhone Focus
+  mobile-testing:
+    name: 'Mobile Device Testing (iPhone Priority)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chrome for Puppeteer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+
+      - name: Start application
+        run: npm run dev &
+        env:
+          NODE_ENV: test
+
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Mobile Tests (iPhone 12 Pro Focus)
+        run: npm run test:mobile
+        env:
+          CI: true
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+
+      - name: Upload mobile test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: mobile-test-results
+          path: |
+            test-results/
+            screenshots/
+
+  # Critical Sales Scenarios - $100K+ Transaction Tests
+  critical-scenarios:
+    name: 'Critical Sales Scenarios (High-Value Transactions)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chrome for Puppeteer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+
+      - name: Start application
+        run: npm run dev &
+        env:
+          NODE_ENV: test
+
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Critical Sales Scenarios
+        run: npm run test:critical
+        env:
+          CI: true
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+
+      - name: Upload critical test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: critical-test-results
+          path: |
+            test-results/
+            screenshots/
+            error-logs/
+
+  # End-to-End Testing with Playwright
+  e2e-testing:
+    name: 'E2E Testing (VIP Customer Journeys)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start application
+        run: npm run dev &
+        env:
+          NODE_ENV: test
+
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run E2E Tests
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload E2E results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+
+  # Unit Testing with Coverage
+  unit-testing:
+    name: 'Unit Tests & Coverage'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Unit Tests with Coverage
+        run: npm run test:coverage
+        env:
+          CI: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: luxury-crm-coverage
+
+  # Security & Accessibility Testing
+  security-accessibility:
+    name: 'Security & Accessibility'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start application
+        run: npm run dev &
+        env:
+          NODE_ENV: test
+
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Accessibility Tests
+        run: npx playwright test --grep="accessibility"
+
+      - name: Security Audit
+        run: npm audit --audit-level moderate
+
+  # Lighthouse Performance Audit
+  lighthouse-audit:
+    name: 'Lighthouse Performance Audit'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: npm start &
+        env:
+          NODE_ENV: production
+
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun
+
+  # Quality Gate - All Tests Must Pass
+  quality-gate:
+    name: 'QA-GUARDIAN Quality Gate'
+    runs-on: ubuntu-latest
+    needs: [performance-testing, mobile-testing, critical-scenarios, e2e-testing, unit-testing]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "Performance Testing: ${{ needs.performance-testing.result }}"
+          echo "Mobile Testing: ${{ needs.mobile-testing.result }}"
+          echo "Critical Scenarios: ${{ needs.critical-scenarios.result }}"
+          echo "E2E Testing: ${{ needs.e2e-testing.result }}"
+          echo "Unit Testing: ${{ needs.unit-testing.result }}"
+
+      - name: Quality Gate Decision
+        run: |
+          if [[ "${{ needs.performance-testing.result }}" != "success" ]]; then
+            echo "BLOCKER: Performance tests failed - System not ready for luxury sales"
+            exit 1
+          fi
+
+          if [[ "${{ needs.critical-scenarios.result }}" != "success" ]]; then
+            echo "BLOCKER: Critical sales scenarios failed - High-value transactions at risk"
+            exit 1
+          fi
+
+          if [[ "${{ needs.mobile-testing.result }}" != "success" ]]; then
+            echo "CRITICAL: Mobile tests failed - iPhone users cannot complete sales"
+            exit 1
+          fi
+
+          if [[ "${{ needs.e2e-testing.result }}" != "success" ]]; then
+            echo "HIGH: E2E tests failed - Complete user journeys broken"
+            exit 1
+          fi
+
+          if [[ "${{ needs.unit-testing.result }}" != "success" ]]; then
+            echo "MEDIUM: Unit tests failed - Code quality issues detected"
+            exit 1
+          fi
+
+          echo "✅ QA-GUARDIAN: All quality gates passed - System ready for luxury sales"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "🚨 QA-GUARDIAN ALERT: Quality gate failed!"
+          echo "The luxury watch CRM system has failed critical quality checks."
+          echo "DO NOT DEPLOY - Risk of losing high-value sales."
+
+# Lighthouse CI Configuration
+lighthouse-ci:
+  ci:
+    collect:
+      url:
+        - 'http://localhost:3000'
+        - 'http://localhost:3000/clients'
+        - 'http://localhost:3000/waitlist'
+        - 'http://localhost:3000/allocation'
+      settings:
+        chromeFlags: '--no-sandbox --disable-dev-shm-usage'
+    assert:
+      assertions:
+        'categories:performance': ['error', { minScore: 0.9 }]
+        'categories:accessibility': ['error', { minScore: 0.95 }]
+        'categories:best-practices': ['error', { minScore: 0.9 }]
+        'categories:seo': ['warn', { minScore: 0.8 }]
+        'first-contentful-paint': ['error', { maxNumericValue: 1000 }]
+        'interactive': ['error', { maxNumericValue: 2000 }]
+        'largest-contentful-paint': ['error', { maxNumericValue: 2500 }]
+        'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }]
+    upload:
+      target: 'temporary-public-storage'

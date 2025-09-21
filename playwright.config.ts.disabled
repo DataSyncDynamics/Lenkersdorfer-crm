@@ -1,0 +1,77 @@
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: [
+    ['html'],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['junit', { outputFile: 'test-results/results.xml' }]
+  ],
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+
+  projects: [
+    // Desktop Chrome
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // Mobile Testing - Primary Focus
+    {
+      name: 'iPhone 12 Pro',
+      use: {
+        ...devices['iPhone 12 Pro'],
+        // Simulate slow network for real-world testing
+        launchOptions: {
+          args: ['--simulate-slow-network']
+        }
+      },
+    },
+
+    {
+      name: 'iPhone XR',
+      use: { ...devices['iPhone XR'] },
+    },
+
+    {
+      name: 'Samsung Galaxy S21',
+      use: { ...devices['Galaxy S21'] },
+    },
+
+    {
+      name: 'iPad',
+      use: { ...devices['iPad Pro'] },
+    },
+
+    // Network throttling tests
+    {
+      name: 'slow-3g',
+      use: {
+        ...devices['iPhone 12 Pro'],
+        contextOptions: {
+          offline: false,
+          // Simulate slow 3G: 0.5 Mbps down, 0.5 Mbps up, 2000ms latency
+          extraHTTPHeaders: {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'
+          }
+        }
+      },
+    },
+  ],
+
+  webServer: {
+    command: 'npm run dev',
+    port: 3000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+});
