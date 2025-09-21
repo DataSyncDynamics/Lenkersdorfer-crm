@@ -24,9 +24,9 @@ export default function ClientCard({ client, onSwipeLeft, onSwipeRight }: Client
   const currentX = useRef<number>(0)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
@@ -99,9 +99,9 @@ export default function ClientCard({ client, onSwipeLeft, onSwipeRight }: Client
     currentX.current = 0
   }
 
-  const lastPurchaseDate = new Date(client.lastPurchase).toLocaleDateString('de-DE', {
-    day: '2-digit',
+  const lastPurchaseDate = new Date(client.lastPurchase).toLocaleDateString('en-US', {
     month: '2-digit',
+    day: '2-digit',
     year: 'numeric',
   })
 

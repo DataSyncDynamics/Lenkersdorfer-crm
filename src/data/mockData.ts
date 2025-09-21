@@ -6,7 +6,7 @@ export const mockClients: Client[] = [
     name: 'Alexander von Habsburg',
     email: 'alexander@habsburggroup.com',
     phone: '+49 89 1234567',
-    lifetimeSpend: 485000,
+    lifetimeSpend: 533500,
     vipTier: 'Platinum',
     lastPurchase: '2024-08-15',
     preferredBrands: ['Patek Philippe', 'A. Lange & Söhne', 'Vacheron Constantin'],
@@ -17,7 +17,7 @@ export const mockClients: Client[] = [
         id: 'p1',
         watchModel: 'Nautilus 5711/1A',
         brand: 'Patek Philippe',
-        price: 145000,
+        price: 159500,
         date: '2024-08-15',
         serialNumber: 'PP5711001'
       },
@@ -25,7 +25,7 @@ export const mockClients: Client[] = [
         id: 'p2',
         watchModel: 'Lange 1',
         brand: 'A. Lange & Söhne',
-        price: 58000,
+        price: 63800,
         date: '2024-05-20',
         serialNumber: 'ALS1001'
       }
@@ -36,7 +36,7 @@ export const mockClients: Client[] = [
     name: 'Sophie Müller-Bernstein',
     email: 'sophie@bernsteinlaw.de',
     phone: '+49 30 9876543',
-    lifetimeSpend: 320000,
+    lifetimeSpend: 352000,
     vipTier: 'Gold',
     lastPurchase: '2024-09-01',
     preferredBrands: ['Rolex', 'Cartier', 'Jaeger-LeCoultre'],
@@ -47,7 +47,7 @@ export const mockClients: Client[] = [
         id: 'p3',
         watchModel: 'Submariner 126610LN',
         brand: 'Rolex',
-        price: 95000,
+        price: 104500,
         date: '2024-09-01',
         serialNumber: 'RLX126001'
       }
@@ -58,7 +58,7 @@ export const mockClients: Client[] = [
     name: 'Dr. Marcus Zimmermann',
     email: 'marcus@zimmermannmedia.com',
     phone: '+49 40 5555666',
-    lifetimeSpend: 180000,
+    lifetimeSpend: 198000,
     vipTier: 'Silver',
     lastPurchase: '2024-07-10',
     preferredBrands: ['Omega', 'Tudor', 'Grand Seiko'],
@@ -69,7 +69,7 @@ export const mockClients: Client[] = [
         id: 'p4',
         watchModel: 'Speedmaster Professional',
         brand: 'Omega',
-        price: 28000,
+        price: 30800,
         date: '2024-07-10',
         serialNumber: 'OMG311001'
       }
@@ -80,7 +80,7 @@ export const mockClients: Client[] = [
     name: 'Isabella Rossi',
     email: 'isabella@rossigroup.it',
     phone: '+39 02 1234567',
-    lifetimeSpend: 750000,
+    lifetimeSpend: 825000,
     vipTier: 'Platinum',
     lastPurchase: '2024-09-10',
     preferredBrands: ['Richard Mille', 'Audemars Piguet', 'F.P. Journe'],
@@ -91,7 +91,7 @@ export const mockClients: Client[] = [
         id: 'p5',
         watchModel: 'RM 67-02',
         brand: 'Richard Mille',
-        price: 425000,
+        price: 467500,
         date: '2024-09-10',
         serialNumber: 'RM67001'
       }
@@ -102,7 +102,7 @@ export const mockClients: Client[] = [
     name: 'James Wellington III',
     email: 'james@wellingtonassets.co.uk',
     phone: '+44 20 7123456',
-    lifetimeSpend: 920000,
+    lifetimeSpend: 1012000,
     vipTier: 'Platinum',
     lastPurchase: '2024-08-30',
     preferredBrands: ['Patek Philippe', 'Rolex', 'Breguet'],
@@ -113,7 +113,7 @@ export const mockClients: Client[] = [
         id: 'p6',
         watchModel: 'Daytona 116500LN',
         brand: 'Rolex',
-        price: 165000,
+        price: 181500,
         date: '2024-08-30',
         serialNumber: 'RLX116001'
       }
@@ -127,7 +127,7 @@ export const mockWatchModels: WatchModel[] = [
     brand: 'Rolex',
     model: 'Submariner',
     collection: '126610LN',
-    price: 95000,
+    price: 104500,
     availability: 'Waitlist',
     description: 'Iconic diving watch with ceramic bezel'
   },
@@ -136,7 +136,7 @@ export const mockWatchModels: WatchModel[] = [
     brand: 'Patek Philippe',
     model: 'Nautilus',
     collection: '5711/1A',
-    price: 145000,
+    price: 159500,
     availability: 'Waitlist',
     description: 'Legendary sports watch, discontinued model'
   },
@@ -145,7 +145,7 @@ export const mockWatchModels: WatchModel[] = [
     brand: 'Audemars Piguet',
     model: 'Royal Oak',
     collection: '15500ST',
-    price: 125000,
+    price: 137500,
     availability: 'Available',
     description: 'Iconic octagonal sports watch'
   },
@@ -154,7 +154,7 @@ export const mockWatchModels: WatchModel[] = [
     brand: 'Richard Mille',
     model: 'RM 035',
     collection: 'Rafael Nadal',
-    price: 485000,
+    price: 533500,
     availability: 'Waitlist',
     description: 'Ultra-light tourbillon for athletes'
   }

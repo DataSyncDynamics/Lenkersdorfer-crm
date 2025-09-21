@@ -111,15 +111,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Lifetime spend scoring
-      if (client.lifetimeSpend > 500000) {
+      if (client.lifetimeSpend > 550000) {
         score += 30
-        reasons.push('High lifetime value (€500K+)')
-      } else if (client.lifetimeSpend > 200000) {
+        reasons.push('High lifetime value ($550K+)')
+      } else if (client.lifetimeSpend > 220000) {
         score += 20
-        reasons.push('Significant lifetime value (€200K+)')
-      } else if (client.lifetimeSpend > 100000) {
+        reasons.push('Significant lifetime value ($220K+)')
+      } else if (client.lifetimeSpend > 110000) {
         score += 10
-        reasons.push('Good lifetime value (€100K+)')
+        reasons.push('Good lifetime value ($110K+)')
       }
 
       // Wait time scoring
@@ -171,9 +171,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 // Utility function to format currency
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('de-DE', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
