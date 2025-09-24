@@ -1,15 +1,150 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
+import {
+  Search,
+  Users,
+  Trophy,
+  Target,
+  Clock,
+  Crown,
+  Star,
+  TrendingUp,
+  Filter,
+  ArrowRight,
+  CheckCircle2,
+  Medal,
+  X,
+  Calendar,
+  Watch,
+  AlertTriangle
+} from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAppStore, formatCurrency, getVipTierColor } from '@/lib/store'
+import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
+import { cn } from '@/lib/utils'
+
+interface AllocationSuggestionCardProps {
+  suggestion: any
+  client: any
+  rank: number
+  onAllocate: (clientId: string) => void
+}
+
+const AllocationSuggestionCard: React.FC<AllocationSuggestionCardProps> = ({
+  suggestion,
+  client,
+  rank,
+  onAllocate
+}) => {
+  const getRankColor = (position: number) => {
+    if (position === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black'
+    if (position === 2) return 'bg-gradient-to-r from-gray-300 to-gray-500 text-black'
+    if (position === 3) return 'bg-gradient-to-r from-orange-400 to-orange-600 text-black'
+    return 'bg-muted text-muted-foreground border'
+  }
+
+  const getTierColor = (tier: number) => {
+    switch (tier) {
+      case 1: return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 2: return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 3: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 4: return 'bg-orange-100 text-orange-800 border-orange-200'
+      case 5: return 'bg-blue-100 text-blue-800 border-blue-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: rank * 0.1 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <Card className="hover:shadow-lg transition-all duration-200">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
+            {/* Rank Badge */}
+            <div className={cn(
+              "flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold flex-shrink-0",
+              getRankColor(rank)
+            )}>
+              {rank}
+            </div>
+
+            {/* Client Info */}
+            <div className="flex items-center gap-3 flex-1">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
+                  {client.name.split(' ').map((n: string) => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-lg">{client.name}</h3>
+                  <Badge className={cn("text-xs border", getTierColor(client.clientTier))}>
+                    <Crown className="h-3 w-3 mr-1" />
+                    Tier {client.clientTier}
+                  </Badge>
+                </div>
+                <div className="text-sm text-muted-foreground mb-2">
+                  {formatCurrency(client.lifetimeSpend)} lifetime • {client.spendPercentile}th percentile
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {suggestion.reasons.slice(0, 3).map((reason: string, idx: number) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {reason}
+                    </Badge>
+                  ))}
+                  {suggestion.reasons.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{suggestion.reasons.length - 3} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Score */}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{suggestion.score}</div>
+              <div className="text-xs text-muted-foreground">Match Score</div>
+            </div>
+
+            {/* Action Button */}
+            <Button
+              onClick={() => onAllocate(client.id)}
+              size={rank === 1 ? "default" : "sm"}
+              className={cn(
+                rank === 1 ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" : ""
+              )}
+            >
+              {rank === 1 && <Trophy className="h-4 w-4 mr-2" />}
+              {rank === 1 ? 'Recommend' : 'Allocate'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
 
 function AllocationContent() {
   const searchParams = useSearchParams()
   const [selectedWatchId, setSelectedWatchId] = useState<string>('')
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [showModal, setShowModal] = useState<'waitlist' | 'watches' | 'greenbox' | 'alerts' | null>(null)
 
   const {
     watchModels,
@@ -17,7 +152,10 @@ function AllocationContent() {
     getClientById,
     generateAllocationSuggestions,
     removeFromWaitlist,
-    waitlist
+    waitlist,
+    getGreenBoxMatches,
+    getCriticalGreenBoxAlerts,
+    clients
   } = useAppStore()
 
   // Check if watch ID is provided in URL
@@ -31,6 +169,21 @@ function AllocationContent() {
   const selectedWatch = selectedWatchId ? getWatchModelById(selectedWatchId) : null
   const suggestions = selectedWatch ? generateAllocationSuggestions(selectedWatchId) : []
 
+  // Calculate analytics
+  const analytics = useMemo(() => {
+    const greenBoxMatches = getGreenBoxMatches()
+    const criticalAlerts = getCriticalGreenBoxAlerts()
+    const totalWaitlistEntries = waitlist.length
+    const availableWatches = watchModels.filter(w => w.availability === 'Available').length
+
+    return {
+      totalWaitlistEntries,
+      availableWatches,
+      greenBoxMatches: greenBoxMatches.length,
+      criticalAlerts: criticalAlerts.length
+    }
+  }, [waitlist, watchModels, getGreenBoxMatches, getCriticalGreenBoxAlerts])
+
   const handleAllocate = (clientId: string) => {
     setSelectedClientId(clientId)
     setShowConfirmation(true)
@@ -38,7 +191,6 @@ function AllocationContent() {
 
   const confirmAllocation = () => {
     if (selectedWatchId && selectedClientId) {
-      // Remove from waitlist
       const waitlistEntry = waitlist.find(
         entry => entry.clientId === selectedClientId && entry.watchModelId === selectedWatchId
       )
@@ -51,282 +203,498 @@ function AllocationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              Lenkersdorfer
-            </Link>
-            <nav className="hidden sm:flex space-x-8">
-              <Link href="/clients" className="text-gray-500 hover:text-gray-700">
-                Clients
-              </Link>
-              <Link href="/waitlist" className="text-gray-500 hover:text-gray-700">
-                Waitlist
-              </Link>
-              <Link href="/allocation" className="text-primary-600 font-medium">
-                Allocation
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <LenkersdorferSidebar>
+      <div className="flex flex-1 flex-col bg-background">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Smart Allocation</h1>
-          <p className="text-gray-600">AI-powered client recommendations for optimal sales</p>
-        </div>
-
-        {/* Watch Selection */}
-        <div className="mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Watch to Allocate
-          </label>
-          <select
-            value={selectedWatchId}
-            onChange={(e) => setSelectedWatchId(e.target.value)}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="">Choose a watch model...</option>
-            {watchModels.map(watch => (
-              <option key={watch.id} value={watch.id}>
-                {watch.brand} {watch.model} {watch.collection} - {formatCurrency(watch.price)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Selected Watch Info */}
-        {selectedWatch && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {selectedWatch.brand} {selectedWatch.model}
-                </h3>
-                <p className="text-gray-600">{selectedWatch.collection}</p>
-                <p className="text-sm text-gray-500 mt-2">{selectedWatch.description}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary-600">
-                  {formatCurrency(selectedWatch.price)}
-                </div>
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  selectedWatch.availability === 'Available'
-                    ? 'text-green-700 bg-green-100'
-                    : 'text-yellow-700 bg-yellow-100'
-                }`}>
-                  {selectedWatch.availability}
-                </div>
-              </div>
-            </div>
+        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Smart Allocation</h1>
+            <p className="text-muted-foreground">AI-powered client recommendations for optimal sales</p>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+            <Button size="sm">
+              <Target className="h-4 w-4 mr-2" />
+              GREEN BOX Alerts
+            </Button>
+          </div>
+        </div>
 
-        {/* Allocation Suggestions */}
-        {suggestions.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Recommended Allocations
-              </h3>
-              <p className="text-sm text-gray-600">
-                Ranked by VIP tier, lifetime spend, wait time, and brand preference
-              </p>
-            </div>
+        {/* Main Content */}
+        <main className="flex-1 max-w-full mx-auto px-4 lg:px-8 pb-8">
+          {/* Analytics Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="cursor-pointer"
+              onClick={() => setShowModal('waitlist')}
+            >
+              <Card className="hover:shadow-lg transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Waitlist Entries
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{analytics.totalWaitlistEntries}</div>
+                  <p className="text-xs text-muted-foreground">Clients waiting</p>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            <div className="divide-y divide-gray-200">
-              {suggestions.map((suggestion, index) => {
-                const client = getClientById(suggestion.clientId)
-                if (!client) return null
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="cursor-pointer"
+              onClick={() => setShowModal('watches')}
+            >
+              <Card className="hover:shadow-lg transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Available Watches
+                  </CardTitle>
+                  <Trophy className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{analytics.availableWatches}</div>
+                  <p className="text-xs text-muted-foreground">Ready to allocate</p>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-                return (
-                  <div key={suggestion.clientId} className="px-6 py-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {/* Rank */}
-                        <div className="flex-shrink-0">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                            index === 0
-                              ? 'bg-gold-500 text-white'
-                              : index === 1
-                              ? 'bg-gray-400 text-white'
-                              : index === 2
-                              ? 'bg-orange-600 text-white'
-                              : 'bg-gray-200 text-gray-700'
-                          }`}>
-                            {index + 1}
-                          </div>
-                        </div>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="cursor-pointer"
+              onClick={() => setShowModal('greenbox')}
+            >
+              <Card className="hover:shadow-lg transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    GREEN BOX Matches
+                  </CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{analytics.greenBoxMatches}</div>
+                  <p className="text-xs text-muted-foreground">Perfect tier matches</p>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-                        {/* Client Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h4 className="text-lg font-medium text-gray-900">
-                              {client.name}
-                            </h4>
-                            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${getVipTierColor(client.vipTier)}`}>
-                              {client.vipTier} VIP
-                            </div>
-                          </div>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="cursor-pointer"
+              onClick={() => setShowModal('alerts')}
+            >
+              <Card className="hover:shadow-lg transition-all duration-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Critical Alerts
+                  </CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">{analytics.criticalAlerts}</div>
+                  <p className="text-xs text-muted-foreground">Urgent allocations</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600">
-                            <div>
-                              <span className="font-medium">Lifetime Spend:</span> {formatCurrency(client.lifetimeSpend)}
-                            </div>
-                            <div>
-                              <span className="font-medium">Last Purchase:</span> {new Date(client.lastPurchase).toLocaleDateString('de-DE')}
-                            </div>
-                          </div>
+          {/* Watch Selection */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Select Watch to Allocate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select value={selectedWatchId} onValueChange={setSelectedWatchId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a watch model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {watchModels.map(watch => (
+                    <SelectItem key={watch.id} value={watch.id}>
+                      {watch.brand} {watch.model} {watch.collection} - {formatCurrency(watch.price)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 
-                          {/* Reasons */}
-                          <div className="mt-3">
-                            <div className="text-sm font-medium text-gray-700 mb-1">Why this client:</div>
-                            <div className="flex flex-wrap gap-2">
-                              {suggestion.reasons.map((reason, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                                >
-                                  {reason}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Score */}
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-primary-600">
-                            {suggestion.score}
-                          </div>
-                          <div className="text-xs text-gray-500">Score</div>
-                        </div>
-
-                        {/* Action */}
-                        <div className="flex-shrink-0">
-                          <button
-                            onClick={() => handleAllocate(client.id)}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                              index === 0
-                                ? 'bg-primary-600 text-white hover:bg-primary-700'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            {index === 0 ? 'Recommend' : 'Allocate'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+          {/* Selected Watch Info */}
+          {selectedWatch && (
+            <Card className="mb-6">
+              <CardHeader className="bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">
+                      {selectedWatch.brand} {selectedWatch.model}
+                    </CardTitle>
+                    <p className="text-muted-foreground">{selectedWatch.collection}</p>
+                    <p className="text-sm text-muted-foreground mt-2">{selectedWatch.description}</p>
                   </div>
-                )
-              })}
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-600 mb-2">
+                      {formatCurrency(selectedWatch.price)}
+                    </div>
+                    <Badge variant={selectedWatch.availability === 'Available' ? 'default' : 'secondary'}>
+                      {selectedWatch.availability}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
+
+          {/* Allocation Suggestions */}
+          {suggestions.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Recommended Allocations</h2>
+                <p className="text-sm text-muted-foreground">
+                  Ranked by VIP tier, lifetime spend, wait time, and brand preference
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {suggestions.map((suggestion, index) => {
+                  const client = getClientById(suggestion.clientId)
+                  if (!client) return null
+
+                  return (
+                    <AllocationSuggestionCard
+                      key={suggestion.clientId}
+                      suggestion={suggestion}
+                      client={client}
+                      rank={index + 1}
+                      onAllocate={handleAllocate}
+                    />
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Empty States */}
+          {selectedWatchId && suggestions.length === 0 && (
+            <Card className="mt-8">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Clock className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No waitlist entries</h3>
+                <p className="text-muted-foreground text-center max-w-sm">
+                  No clients are currently waiting for this watch model.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {!selectedWatchId && (
+            <Card className="mt-8">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Select a watch model</h3>
+                <p className="text-muted-foreground text-center max-w-sm">
+                  Choose a watch to see smart allocation recommendations and GREEN BOX matches.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </main>
+
+        {/* Detail Modals */}
+        {showModal && (
+          <Dialog open={!!showModal} onOpenChange={() => setShowModal(null)}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {showModal === 'waitlist' && 'Waitlist Entries'}
+                  {showModal === 'watches' && 'Available Watches'}
+                  {showModal === 'greenbox' && 'GREEN BOX Matches'}
+                  {showModal === 'alerts' && 'Critical Alerts'}
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Waitlist Entries */}
+              {showModal === 'waitlist' && (
+                <div className="space-y-4">
+                  {waitlist.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No clients currently on waitlist</p>
+                    </div>
+                  ) : (
+                    waitlist.map((entry) => {
+                      const client = getClientById(entry.clientId)
+                      const watch = getWatchModelById(entry.watchModelId)
+                      if (!client || !watch) return null
+
+                      return (
+                        <Card key={entry.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                  {client.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold">{client.name}</h4>
+                                  <Badge className="text-xs">Tier {client.clientTier}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <Watch className="h-3 w-3" />
+                                    {watch.brand} {watch.model} - {watch.collection}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Calendar className="h-3 w-3" />
+                                    Added {new Date(entry.dateAdded).toLocaleDateString()}
+                                  </div>
+                                  {entry.notes && (
+                                    <div className="italic mt-1">"{entry.notes}"</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">{formatCurrency(watch.price)}</div>
+                                <div className="text-xs text-muted-foreground">{formatCurrency(client.lifetimeSpend)} lifetime</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Available Watches */}
+              {showModal === 'watches' && (
+                <div className="space-y-4">
+                  {watchModels.filter(w => w.availability === 'Available').length === 0 ? (
+                    <div className="text-center py-8">
+                      <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No watches currently available</p>
+                    </div>
+                  ) : (
+                    watchModels.filter(w => w.availability === 'Available').map((watch) => (
+                      <Card key={watch.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-lg">{watch.brand} {watch.model}</h4>
+                                <Badge variant="default">Available</Badge>
+                              </div>
+                              <p className="text-muted-foreground mb-2">{watch.collection}</p>
+                              <p className="text-sm text-muted-foreground">{watch.description}</p>
+                              <div className="flex items-center gap-4 mt-2">
+                                <Badge variant="outline">Tier {watch.watchTier}</Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {waitlist.filter(w => w.watchModelId === watch.id).length} waiting
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-green-600">{formatCurrency(watch.price)}</div>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedWatchId(watch.id)
+                                  setShowModal(null)
+                                }}
+                                className="mt-2"
+                              >
+                                Allocate
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* GREEN BOX Matches */}
+              {showModal === 'greenbox' && (
+                <div className="space-y-4">
+                  {getGreenBoxMatches().length === 0 ? (
+                    <div className="text-center py-8">
+                      <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No GREEN BOX matches available</p>
+                    </div>
+                  ) : (
+                    getGreenBoxMatches().map((match) => {
+                      const client = getClientById(match.clientId)
+                      const watch = getWatchModelById(match.watchModelId)
+                      if (!client || !watch) return null
+
+                      return (
+                        <Card key={`${match.clientId}-${match.watchModelId}`} className="border-green-200 bg-green-50/50">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                                <Target className="h-4 w-4 text-green-600" />
+                              </div>
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                  {client.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold">{client.name}</h4>
+                                  <Badge className="bg-green-100 text-green-800">Perfect Match</Badge>
+                                  <Badge variant="outline">Tier {client.clientTier}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <Watch className="h-3 w-3" />
+                                    {watch.brand} {watch.model} - {watch.collection}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">{formatCurrency(watch.price)}</div>
+                                <div className="text-xs text-muted-foreground">{formatCurrency(client.lifetimeSpend)} lifetime</div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedWatchId(watch.id)
+                                    setShowModal(null)
+                                  }}
+                                  className="mt-1 bg-green-600 hover:bg-green-700"
+                                >
+                                  Allocate
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Critical Alerts */}
+              {showModal === 'alerts' && (
+                <div className="space-y-4">
+                  {getCriticalGreenBoxAlerts().length === 0 ? (
+                    <div className="text-center py-8">
+                      <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No critical alerts - everything looks good!</p>
+                    </div>
+                  ) : (
+                    getCriticalGreenBoxAlerts().map((alert) => {
+                      const client = getClientById(alert.clientId)
+                      const watch = getWatchModelById(alert.watchModelId)
+                      if (!client || !watch) return null
+
+                      return (
+                        <Card key={`${alert.clientId}-${alert.watchModelId}`} className="border-red-200 bg-red-50/50">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full">
+                                <AlertTriangle className="h-4 w-4 text-red-600" />
+                              </div>
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                  {client.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold">{client.name}</h4>
+                                  <Badge className="bg-red-100 text-red-800">Critical</Badge>
+                                  <Badge variant="outline">Tier {client.clientTier}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <Watch className="h-3 w-3" />
+                                    {watch.brand} {watch.model} - {watch.collection}
+                                  </div>
+                                  <p className="text-red-600 mt-1">{alert.reason}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">{formatCurrency(watch.price)}</div>
+                                <div className="text-xs text-muted-foreground">{formatCurrency(client.lifetimeSpend)} lifetime</div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedWatchId(watch.id)
+                                    setShowModal(null)
+                                  }}
+                                  className="mt-1 bg-red-600 hover:bg-red-700"
+                                >
+                                  Urgent
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         )}
 
-        {/* Empty State */}
-        {selectedWatchId && suggestions.length === 0 && (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No waitlist entries</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              No clients are waiting for this watch model.
-            </p>
-          </div>
-        )}
-
-        {!selectedWatchId && (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Select a watch model</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Choose a watch to see smart allocation recommendations.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Confirmation Modal */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Confirm Allocation
-              </h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
+        {/* Confirmation Modal */}
+        {showConfirmation && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-background rounded-lg shadow-lg max-w-md w-full p-6"
+            >
+              <div className="text-center">
+                <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Confirm Allocation</h3>
+                <p className="text-muted-foreground mb-6">
                   Are you sure you want to allocate this watch to {getClientById(selectedClientId)?.name}?
                   This will remove them from the waitlist.
                 </p>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={confirmAllocation} className="px-6">
+                    Confirm
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowConfirmation(false)} className="px-6">
+                    Cancel
+                  </Button>
+                </div>
               </div>
-              <div className="items-center px-4 py-3">
-                <button
-                  onClick={confirmAllocation}
-                  className="px-4 py-2 bg-primary-600 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-primary-700"
-                >
-                  Confirm
-                </button>
-                <button
-                  onClick={() => setShowConfirmation(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-24"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      {/* Mobile bottom navigation */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="grid grid-cols-3">
-          <Link
-            href="/clients"
-            className="flex flex-col items-center justify-center py-2 text-gray-400"
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="text-xs mt-1">Clients</span>
-          </Link>
-          <Link
-            href="/waitlist"
-            className="flex flex-col items-center justify-center py-2 text-gray-400"
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span className="text-xs mt-1">Waitlist</span>
-          </Link>
-          <Link
-            href="/allocation"
-            className="flex flex-col items-center justify-center py-2 text-primary-600"
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span className="text-xs mt-1">Allocation</span>
-          </Link>
-        </div>
+        )}
       </div>
-    </div>
+    </LenkersdorferSidebar>
   )
 }
 
 export default function AllocationPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading allocation engine...</p>
+        </div>
+      </div>
+    }>
       <AllocationContent />
     </Suspense>
   )

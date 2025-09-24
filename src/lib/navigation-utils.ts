@@ -1,0 +1,130 @@
+import React from 'react'
+import {
+  Home,
+  Users,
+  Clock,
+  BarChart3,
+  Upload,
+  Bell,
+  Zap,
+  Crown
+} from 'lucide-react'
+import { getNavigationIconClasses, formatNotificationCount, getNotificationBadgeClasses } from './ui-utils'
+
+export type NavigationLink = {
+  label: string
+  href: string
+  icon: React.ReactNode
+  notificationKey?: string[]
+  notificationVariant?: 'green'
+}
+
+/**
+ * Creates navigation icon with consistent styling and notification badges
+ */
+export function createNavigationIcon(
+  IconComponent: React.ComponentType<any>,
+  isActive: boolean,
+  notificationCount?: number,
+  variant?: 'green'
+): React.ReactNode {
+  if (notificationCount && notificationCount > 0) {
+    return React.createElement(
+      'div',
+      { className: 'relative overflow-visible' },
+      React.createElement(IconComponent, { className: getNavigationIconClasses(isActive) }),
+      React.createElement(
+        'span',
+        { className: getNotificationBadgeClasses(variant) },
+        formatNotificationCount(notificationCount)
+      )
+    )
+  }
+
+  return React.createElement(IconComponent, { className: getNavigationIconClasses(isActive) })
+}
+
+/**
+ * Calculates notification count for a given set of categories
+ */
+export function getNotificationCountForCategories(
+  counts: any,
+  categories: string[]
+): number {
+  return categories.reduce((total, category) => {
+    return total + (counts.byCategory[category] || 0)
+  }, 0)
+}
+
+/**
+ * Creates main navigation links with consolidated logic
+ */
+export function createMainNavigationLinks(pathname: string, counts: any): NavigationLink[] {
+  return [
+    {
+      label: "Home",
+      href: "/",
+      icon: createNavigationIcon(Home, pathname === "/")
+    },
+    {
+      label: "Clients",
+      href: "/clients",
+      icon: createNavigationIcon(
+        Users,
+        pathname === "/clients",
+        getNotificationCountForCategories(counts, ['HOT_LEADS', 'ALLOCATION'])
+      )
+    },
+    {
+      label: "Waitlist",
+      href: "/waitlist",
+      icon: createNavigationIcon(
+        Clock,
+        pathname === "/waitlist",
+        getNotificationCountForCategories(counts, ['VIP_WAITING', 'FOLLOW_UPS'])
+      )
+    },
+    {
+      label: "Allocation",
+      href: "/allocation",
+      icon: createNavigationIcon(
+        Zap,
+        pathname === "/allocation",
+        getNotificationCountForCategories(counts, ['ALLOCATION']),
+        'green'
+      )
+    },
+    {
+      label: "Tier Management",
+      href: "/tier-management",
+      icon: createNavigationIcon(BarChart3, pathname === "/tier-management")
+    },
+    {
+      label: "Import",
+      href: "/import",
+      icon: createNavigationIcon(Upload, pathname === "/import")
+    }
+  ]
+}
+
+/**
+ * Creates bottom navigation items (notifications and user profile)
+ */
+export function createBottomNavigationItems(pathname: string, counts: any) {
+  return [
+    {
+      label: `Notifications (${counts.total})`,
+      href: "/notifications",
+      icon: createNavigationIcon(Bell, pathname === "/notifications", counts.total)
+    },
+    {
+      label: "Jason Jolly",
+      href: "#",
+      icon: React.createElement(
+        'div',
+        { className: 'h-7 w-7 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0' },
+        React.createElement(Crown, { className: 'h-4 w-4 text-black' })
+      )
+    }
+  ]
+}

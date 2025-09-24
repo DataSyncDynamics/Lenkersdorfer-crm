@@ -11,17 +11,34 @@ import {
   CalendarIcon,
   TagIcon,
   CurrencyEuroIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  PencilIcon,
+  ChatBubbleLeftIcon,
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 
 export default function ClientDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { getClientById, getWaitlistForClient, getWatchModelById } = useAppStore()
+  const {
+    getClientById,
+    getWaitlistForClient,
+    getWatchModelById,
+    calculateGreenBoxStatus,
+    getClientTierInfo,
+    getWatchTierInfo,
+    getGreenBoxMatches
+  } = useAppStore()
 
   const clientId = params.id as string
   const client = getClientById(clientId)
   const waitlistEntries = getWaitlistForClient(clientId)
+
+  // Get GREEN BOX matches for this specific client
+  const allGreenBoxMatches = getGreenBoxMatches()
+  const clientGreenBoxMatches = allGreenBoxMatches.filter(match => match.clientId === clientId)
 
   if (!client) {
     return (
@@ -49,7 +66,27 @@ export default function ClientDetailPage() {
     }
   }
 
+  const getGreenBoxStatusColor = (status: string) => {
+    switch (status) {
+      case 'GREEN': return 'text-green-400 bg-green-900/20 border-green-500/30'
+      case 'YELLOW': return 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30'
+      case 'RED': return 'text-red-400 bg-red-900/20 border-red-500/30'
+      default: return 'text-gray-400 bg-gray-900/20 border-gray-500/30'
+    }
+  }
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'CRITICAL': return 'text-red-400 bg-red-900/20'
+      case 'HIGH': return 'text-orange-400 bg-orange-900/20'
+      case 'MEDIUM': return 'text-yellow-400 bg-yellow-900/20'
+      case 'LOW': return 'text-blue-400 bg-blue-900/20'
+      default: return 'text-gray-400 bg-gray-900/20'
+    }
+  }
+
   const stars = getVipStars(client.vipTier)
+  const clientTierInfo = getClientTierInfo(client.clientTier)
 
   return (
     <div className="min-h-screen bg-black safe-area-pt">
@@ -114,23 +151,111 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex space-x-3 mt-6">
+          <div className="grid grid-cols-2 gap-3 mt-6">
             <button
               onClick={() => window.location.href = `tel:${client.phone}`}
-              className="luxury-button-primary flex-1 flex items-center justify-center"
+              className="luxury-button-primary flex items-center justify-center"
             >
               <PhoneIcon className="h-4 w-4 mr-2" />
               Call
             </button>
             <button
               onClick={() => window.location.href = `mailto:${client.email}`}
-              className="luxury-button-secondary flex-1 flex items-center justify-center"
+              className="luxury-button-secondary flex items-center justify-center"
             >
               <EnvelopeIcon className="h-4 w-4 mr-2" />
               Email
             </button>
+            <button
+              onClick={() => window.location.href = `sms:${client.phone}`}
+              className="luxury-button-secondary flex items-center justify-center"
+            >
+              <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
+              Text
+            </button>
+            <button
+              onClick={() => {
+                // Add functionality to navigate to add to waitlist
+                console.log('Add to waitlist functionality')
+              }}
+              className="luxury-button-secondary flex items-center justify-center"
+            >
+              <ClockIcon className="h-4 w-4 mr-2" />
+              Waitlist
+            </button>
           </div>
         </div>
+
+        {/* Client Tier Information */}
+        <div className="luxury-card p-6 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <StarIcon className="h-5 w-5 mr-2 text-gold-400" />
+            Client Tier Information
+          </h3>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+              <div>
+                <div className="text-white font-medium">Tier {client.clientTier}</div>
+                <div className="text-sm text-gray-400">{clientTierInfo.name}</div>
+                <div className="text-xs text-gray-500">{clientTierInfo.description}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-gold-400">{client.spendPercentile}th</div>
+                <div className="text-xs text-gray-500">percentile</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* GREEN BOX Status */}
+        {clientGreenBoxMatches.length > 0 && (
+          <div className="luxury-card p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <CheckCircleIcon className="h-5 w-5 mr-2 text-green-400" />
+              GREEN BOX Opportunities
+            </h3>
+
+            <div className="space-y-3">
+              {clientGreenBoxMatches.map((match) => {
+                const watch = getWatchModelById(match.watchModelId)
+                if (!watch) return null
+
+                return (
+                  <div key={match.id} className={`p-4 rounded-lg border ${getGreenBoxStatusColor(match.status)}`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="text-white font-medium mb-1">
+                          {watch.brand} {watch.model}
+                        </h4>
+                        <div className="text-sm text-gray-400 mb-2">
+                          {watch.collection}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end space-y-1">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getGreenBoxStatusColor(match.status)}`}>
+                          {match.status}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUrgencyColor(match.urgencyLevel)}`}>
+                          {match.urgencyLevel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-sm text-gray-300 mb-2">
+                      {match.callToAction}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Client Tier {match.clientTier} • Watch Tier {match.watchTier}</span>
+                      <span>{match.daysWaiting} days waiting</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Contact Information */}
         <div className="luxury-card p-6 mb-6">
@@ -205,7 +330,10 @@ export default function ClientDetailPage() {
         {/* Current Waitlist */}
         {waitlistEntries.length > 0 && (
           <div className="luxury-card p-6 mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Current Waitlist</h3>
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <ClockIcon className="h-5 w-5 mr-2 text-orange-400" />
+              Current Waitlist ({waitlistEntries.length})
+            </h3>
 
             <div className="space-y-3">
               {waitlistEntries.map((entry) => {
@@ -216,28 +344,46 @@ export default function ClientDetailPage() {
                   (new Date().getTime() - new Date(entry.dateAdded).getTime()) / (1000 * 60 * 60 * 24)
                 )
 
+                const greenBoxStatus = calculateGreenBoxStatus(client.clientTier, watch.watchTier, client.lifetimeSpend, watch.price)
+                const watchTierInfo = getWatchTierInfo(watch.watchTier)
+
                 return (
-                  <div key={entry.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="text-white font-medium mb-1">
-                        {watch.brand} {watch.model}
-                      </h4>
-                      <div className="text-sm text-gray-400">
-                        {watch.collection}
-                      </div>
-                      {entry.notes && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Note: {entry.notes}
+                  <div key={entry.id} className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="text-white font-medium mb-1">
+                          {watch.brand} {watch.model}
+                        </h4>
+                        <div className="text-sm text-gray-400 mb-2">
+                          {watch.collection}
                         </div>
-                      )}
+                        <div className="text-xs text-gray-500 mb-2">
+                          {watch.rarityDescription}
+                        </div>
+                        {entry.notes && (
+                          <div className="text-xs text-gray-500 mt-1 p-2 bg-gray-900 rounded">
+                            Note: {entry.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end space-y-1 ml-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getGreenBoxStatusColor(greenBoxStatus)}`}>
+                          {greenBoxStatus}
+                        </span>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-orange-400">
+                            {daysWaiting} days
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            waiting
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-orange-400">
-                        {daysWaiting} days
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        waiting
-                      </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-700">
+                      <span>Client Tier {client.clientTier} • Watch Tier {watch.watchTier}</span>
+                      <span className="text-gold-400 font-medium">{formatCurrency(watch.price)}</span>
                     </div>
                   </div>
                 )

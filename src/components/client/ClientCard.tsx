@@ -108,15 +108,15 @@ export default function ClientCard({ client, onSwipeLeft, onSwipeRight }: Client
   const stars = getVipStars(client.vipTier)
 
   return (
-    <div
-      className={`luxury-card luxury-card-hover p-4 mb-4 transition-all duration-300 ${
-        isSwipingLeft ? 'translate-x-4 bg-red-900/20' : ''
-      } ${isSwipingRight ? '-translate-x-4 bg-green-900/20' : ''}`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <Link href={`/clients/${client.id}`} className="block">
+    <Link href={`/clients/${client.id}`} className="block">
+      <div
+        className={`luxury-card luxury-card-hover p-4 mb-4 transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
+          isSwipingLeft ? 'translate-x-4 bg-red-900/20' : ''
+        } ${isSwipingRight ? '-translate-x-4 bg-green-900/20' : ''}`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="flex items-start justify-between">
           {/* Client Info */}
           <div className="flex-1 min-w-0">
@@ -165,18 +165,20 @@ export default function ClientCard({ client, onSwipeLeft, onSwipeRight }: Client
             {/* Quick Actions */}
             <div className="flex items-center space-x-4">
               <button
-                className="touch-target text-gray-400 hover:text-white transition-colors"
+                className="touch-target text-gray-400 hover:text-white transition-colors z-10 relative"
                 onClick={(e) => {
                   e.preventDefault()
+                  e.stopPropagation()
                   window.location.href = `tel:${client.phone}`
                 }}
               >
                 <PhoneIcon className="h-5 w-5" />
               </button>
               <button
-                className="touch-target text-gray-400 hover:text-white transition-colors"
+                className="touch-target text-gray-400 hover:text-white transition-colors z-10 relative"
                 onClick={(e) => {
                   e.preventDefault()
+                  e.stopPropagation()
                   window.location.href = `mailto:${client.email}`
                 }}
               >
@@ -201,7 +203,7 @@ export default function ClientCard({ client, onSwipeLeft, onSwipeRight }: Client
             {isSwipingLeft ? '← Archive' : '→ Quick Call'}
           </div>
         )}
-      </Link>
-    </div>
+      </div>
+    </Link>
   )
 }
