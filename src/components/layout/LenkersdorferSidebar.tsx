@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useMessaging } from "@/contexts/MessagingContext";
 import { useTheme } from "@/components/ui/theme-provider";
 import { LenkersdorferLogo } from "@/components/ui/lenkersdorfer-logo";
 import { createMainNavigationLinks, createBottomNavigationItems } from "@/lib/navigation-utils";
@@ -13,11 +14,13 @@ import { Moon, Sun } from "lucide-react";
 export function LenkersdorferSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { getCounts } = useNotifications();
+  const { getTotalUnreadCount } = useMessaging();
   const { theme, setTheme } = useTheme();
   const counts = getCounts();
+  const messagingUnreadCount = getTotalUnreadCount();
   const [open, setOpen] = useState(false);
 
-  const mainLinks = createMainNavigationLinks(pathname, counts);
+  const mainLinks = createMainNavigationLinks(pathname, counts, messagingUnreadCount);
   const bottomItems = createBottomNavigationItems(pathname, counts);
 
   return (

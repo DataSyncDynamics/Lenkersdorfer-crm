@@ -26,10 +26,10 @@ export default function ClientDetailPage() {
     getClientById,
     getWaitlistForClient,
     getWatchModelById,
-    calculateGreenBoxStatus,
+    calculateMatchStatus,
     getClientTierInfo,
     getWatchTierInfo,
-    getGreenBoxMatches
+    getPerfectMatches
   } = useAppStore()
 
   const clientId = params.id as string
@@ -37,8 +37,8 @@ export default function ClientDetailPage() {
   const waitlistEntries = getWaitlistForClient(clientId)
 
   // Get GREEN BOX matches for this specific client
-  const allGreenBoxMatches = getGreenBoxMatches()
-  const clientGreenBoxMatches = allGreenBoxMatches.filter(match => match.clientId === clientId)
+  const allPerfectMatches = getPerfectMatches()
+  const clientPerfectMatches = allPerfectMatches.filter(match => match.clientId === clientId)
 
   if (!client) {
     return (
@@ -209,7 +209,7 @@ export default function ClientDetailPage() {
         </div>
 
         {/* GREEN BOX Status */}
-        {clientGreenBoxMatches.length > 0 && (
+        {clientPerfectMatches.length > 0 && (
           <div className="luxury-card p-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
               <CheckCircleIcon className="h-5 w-5 mr-2 text-green-400" />
@@ -217,7 +217,7 @@ export default function ClientDetailPage() {
             </h3>
 
             <div className="space-y-3">
-              {clientGreenBoxMatches.map((match) => {
+              {clientPerfectMatches.map((match) => {
                 const watch = getWatchModelById(match.watchModelId)
                 if (!watch) return null
 
@@ -344,7 +344,7 @@ export default function ClientDetailPage() {
                   (new Date().getTime() - new Date(entry.dateAdded).getTime()) / (1000 * 60 * 60 * 24)
                 )
 
-                const greenBoxStatus = calculateGreenBoxStatus(client.clientTier, watch.watchTier, client.lifetimeSpend, watch.price)
+                const greenBoxStatus = calculateMatchStatus(client.clientTier, watch.watchTier, client.lifetimeSpend, watch.price)
                 const watchTierInfo = getWatchTierInfo(watch.watchTier)
 
                 return (

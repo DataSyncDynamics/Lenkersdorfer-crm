@@ -6,11 +6,16 @@ import { Users, Gem, BarChart3, RefreshCw, Crown, Star, TrendingUp } from 'lucid
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppStore, formatCurrency } from '@/lib/store'
+import { Client } from '@/types'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
+import { ClientModal } from '@/components/clients/ClientModal'
 import { getTierColorClasses } from '@/lib/ui-utils'
 
 export default function TierManagementPage() {
-  const { clients, watchModels, recalculateClientTiers, setSelectedClient } = useAppStore()
+  const { clients, watchModels, recalculateClientTiers, setSelectedClient, selectedClient, updateClient } = useAppStore()
+
+  // State to track which tiers are expanded to show all clients
+  const [expandedTiers, setExpandedTiers] = React.useState<Set<number>>(new Set())
 
   // Calculate client tier statistics
   const tierStats = clients.reduce((acc, client) => {
@@ -75,6 +80,32 @@ export default function TierManagementPage() {
     recalculateClientTiers()
   }
 
+  // Function to toggle expanded state for a tier
+  const toggleTierExpansion = (tier: number) => {
+    setExpandedTiers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(tier)) {
+        newSet.delete(tier)
+      } else {
+        newSet.add(tier)
+      }
+      return newSet
+    })
+  }
+
+  // Handle closing the client modal
+  const handleCloseClientModal = () => {
+    setSelectedClient(null)
+  }
+
+  // Handle saving client data from the modal
+  const handleSaveClient = (clientData: Partial<Client>) => {
+    if (selectedClient) {
+      updateClient(selectedClient.id, clientData)
+      setSelectedClient(null)
+    }
+  }
+
   return (
     <LenkersdorferSidebar>
       <div className="flex-1 p-6 bg-background">
@@ -136,8 +167,8 @@ export default function TierManagementPage() {
                             <div className={`absolute top-0 left-0 w-full h-1 ${colors.bg}`} />
 
                             {/* Tier badge */}
-                            <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${colors.bg} text-white text-sm font-bold mb-3`}>
-                              {tier}
+                            <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full ${colors.bg} text-white text-xs font-bold mb-3`}>
+                              Tier {tier}
                             </div>
 
                             {/* Client count - large prominent number */}
@@ -342,7 +373,7 @@ export default function TierManagementPage() {
                           <p className="text-muted-foreground text-sm">No clients in this tier</p>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                            {stats.clients.slice(0, 12).map((client, index) => (
+                            {(expandedTiers.has(tier) ? stats.clients : stats.clients.slice(0, 12)).map((client, index) => (
                               <motion.div
                                 key={client.id}
                                 initial={{ opacity: 0, scale: 0.9 }}
@@ -370,7 +401,7 @@ export default function TierManagementPage() {
                                 </button>
                               </motion.div>
                             ))}
-                            {stats.clients.length > 12 && (
+                            {stats.clients.length > 12 && !expandedTiers.has(tier) && (
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -378,9 +409,25 @@ export default function TierManagementPage() {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className="bg-muted/30 rounded-lg p-3 flex items-center justify-center hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+                                onClick={() => toggleTierExpansion(tier)}
                               >
                                 <span className="text-sm text-muted-foreground">
                                   +{stats.clients.length - 12} more
+                                </span>
+                              </motion.div>
+                            )}
+                            {expandedTiers.has(tier) && stats.clients.length > 12 && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.6 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="bg-muted/30 rounded-lg p-3 flex items-center justify-center hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+                                onClick={() => toggleTierExpansion(tier)}
+                              >
+                                <span className="text-sm text-muted-foreground">
+                                  Show less
                                 </span>
                               </motion.div>
                             )}
@@ -425,6 +472,13 @@ export default function TierManagementPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Client Profile Modal */}
+      <ClientModal
+        selectedClient={selectedClient}
+        onClose={handleCloseClientModal}
+        onSave={handleSaveClient}
+      />
     </LenkersdorferSidebar>
   )
 }

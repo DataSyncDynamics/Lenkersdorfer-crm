@@ -96,16 +96,16 @@ export default function ResponsiveNavigation({ className = '' }: ResponsiveNavig
   const navigation: NavItem[] = baseNavigation.map(item => {
     let badge = 0
 
-    // Assign badges based on page relevance
+    // Assign badges based on page relevance - focusing only on messages
     switch (item.href) {
       case '/waitlist':
-        badge = (counts.byCategory.VIP_WAITING || 0) + (counts.byCategory.FOLLOW_UPS || 0)
+        badge = 0 // Removed waitlist notifications - notifications now focus on messages only
         break
       case '/allocation':
-        badge = counts.byCategory.NEW_ARRIVALS || 0
+        badge = 0 // Removed allocation notifications - notifications now focus on messages only
         break
       case '/clients':
-        badge = (counts.byCategory.HOT_LEADS || 0) + (counts.byCategory.GREEN_BOX || 0)
+        badge = 0 // Removed client notifications - notifications now focus on messages only
         break
       default:
         badge = 0

@@ -9,12 +9,10 @@ import {
   XMarkIcon,
   PhoneIcon,
   ClockIcon,
-  StarIcon,
   ExclamationTriangleIcon,
   FireIcon,
   InboxIcon,
   UserGroupIcon,
-  CalendarDaysIcon,
   CheckCircleIcon,
   ChevronRightIcon,
   EllipsisHorizontalIcon
@@ -26,8 +24,8 @@ import {
   ExclamationTriangleIcon as ExclamationSolid
 } from '@heroicons/react/24/solid'
 
-// Types for notifications
-export type NotificationCategory = 'ALLOCATION' | 'HOT_LEADS' | 'NEW_ARRIVALS' | 'FOLLOW_UPS' | 'VIP_WAITING' | 'CALLBACKS'
+// Types for notifications - Message-focused categories only
+export type NotificationCategory = 'MESSAGES' | 'SYSTEM'
 
 export interface UrgentNotification {
   id: string
@@ -67,41 +65,17 @@ interface UrgentNotificationDashboardProps {
 
 
 const categoryConfig = {
-  ALLOCATION: {
-    icon: StarSolid,
-    color: 'text-success-400',
-    bgColor: 'bg-success-400/20',
-    borderColor: 'border-success-400/30'
+  MESSAGES: {
+    icon: BellSolid,
+    color: 'text-blue-700 dark:text-blue-400',
+    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+    borderColor: 'border-blue-200 dark:border-blue-800/50'
   },
-  HOT_LEADS: {
-    icon: FireSolid,
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-400/20',
-    borderColor: 'border-orange-400/30'
-  },
-  NEW_ARRIVALS: {
+  SYSTEM: {
     icon: InboxIcon,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-400/20',
-    borderColor: 'border-blue-400/30'
-  },
-  FOLLOW_UPS: {
-    icon: ClockIcon,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-400/20',
-    borderColor: 'border-yellow-400/30'
-  },
-  VIP_WAITING: {
-    icon: StarIcon,
-    color: 'text-gold-400',
-    bgColor: 'bg-gold-400/20',
-    borderColor: 'border-gold-400/30'
-  },
-  CALLBACKS: {
-    icon: CalendarDaysIcon,
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-400/20',
-    borderColor: 'border-purple-400/30'
+    color: 'text-gray-700 dark:text-gray-400',
+    bgColor: 'bg-gray-50 dark:bg-gray-950/30',
+    borderColor: 'border-gray-200 dark:border-gray-800/50'
   }
 }
 
@@ -191,10 +165,10 @@ export default function UrgentNotificationDashboard({
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="absolute right-0 top-0 h-full w-full max-w-md bg-black/30 backdrop-blur-xl border-l border-white/10 overflow-hidden"
+        className="absolute right-0 top-0 h-full w-full max-w-md bg-white/95 dark:bg-black/30 backdrop-blur-xl border-l border-gray-200 dark:border-white/10 overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/10">
           <div className="flex items-center space-x-3">
             <div className="relative">
               <BellSolid className="w-6 h-6 text-gold-400" />
@@ -207,15 +181,15 @@ export default function UrgentNotificationDashboard({
               )}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Notifications</h2>
-              <p className="text-xs text-gray-400">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Notifications</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {totalCount} active notification{totalCount !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 text-gray-300 hover:text-white hover:bg-white/20 transition-all duration-200 touch-target"
+            className="p-2 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-all duration-200 touch-target"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
@@ -261,9 +235,6 @@ export default function UrgentNotificationDashboard({
                           {notification.category.replace('_', ' ')}
                         </span>
                       </div>
-                      {!notification.isRead && (
-                        <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0 ml-2" />
-                      )}
                     </div>
 
                     {/* Title */}
@@ -341,21 +312,15 @@ export default function UrgentNotificationDashboard({
         </div>
 
         {/* Quick Stats Footer */}
-        <div className="p-4 border-t border-white/10">
-          <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="p-4 border-t border-gray-200 dark:border-white/10">
+          <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <div className="text-orange-400 text-lg font-bold">{counts.byCategory.HOT_LEADS || 0}</div>
-              <div className="text-xs text-gray-400">Hot Leads</div>
+              <div className="text-blue-700 dark:text-blue-400 text-lg font-bold">{counts.byCategory.MESSAGES || 0}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Messages</div>
             </div>
             <div>
-              <div className="text-purple-400 text-lg font-bold">{counts.byCategory.VIP_WAITING || 0}</div>
-              <div className="text-xs text-gray-400">VIP Waiting</div>
-            </div>
-            <div>
-              <div className="text-success-400 text-lg font-bold">
-                {counts.byCategory.ALLOCATION || 0}
-              </div>
-              <div className="text-xs text-gray-400">Allocation</div>
+              <div className="text-gray-700 dark:text-gray-400 text-lg font-bold">{counts.byCategory.SYSTEM || 0}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">System</div>
             </div>
           </div>
         </div>

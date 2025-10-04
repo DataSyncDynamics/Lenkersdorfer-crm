@@ -25,22 +25,22 @@ export default function GreenBoxPage() {
     clients,
     waitlist,
     watchModels,
-    getGreenBoxMatches,
-    getCriticalGreenBoxAlerts,
+    getPerfectMatches,
+    getCriticalAlerts,
     getClientById,
     getWatchModelById
   } = useAppStore()
 
-  const [greenBoxMatches, setGreenBoxMatches] = useState<any[]>([])
+  const [perfectMatches, setPerfectMatches] = useState<any[]>([])
   const [criticalAlerts, setCriticalAlerts] = useState<any[]>([])
   const [selectedMatch, setSelectedMatch] = useState<any>(null)
 
   useEffect(() => {
     // Get Green Box matches from the store
-    const matches = getGreenBoxMatches()
-    const critical = getCriticalGreenBoxAlerts()
+    const matches = getPerfectMatches()
+    const critical = getCriticalAlerts()
 
-    setGreenBoxMatches(matches)
+    setPerfectMatches(matches)
     setCriticalAlerts(critical)
   }, [clients, waitlist, watchModels])
 
@@ -95,7 +95,7 @@ export default function GreenBoxPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
-                <p className="text-2xl font-bold text-foreground">{greenBoxMatches.length}</p>
+                <p className="text-2xl font-bold text-foreground">{perfectMatches.length}</p>
               </div>
               <Zap className="h-8 w-8 text-blue-500" />
             </div>
@@ -126,7 +126,7 @@ export default function GreenBoxPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Perfect Matches</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {greenBoxMatches.filter(m => m.status === 'GREEN').length}
+                  {perfectMatches.filter(m => m.status === 'GREEN').length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
@@ -143,8 +143,8 @@ export default function GreenBoxPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Priority Score</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {greenBoxMatches.length > 0
-                    ? Math.round(greenBoxMatches.reduce((sum, m) => sum + m.priorityScore, 0) / greenBoxMatches.length)
+                  {perfectMatches.length > 0
+                    ? Math.round(perfectMatches.reduce((sum, m) => sum + m.priorityScore, 0) / perfectMatches.length)
                     : 0
                   }
                 </p>
@@ -169,7 +169,7 @@ export default function GreenBoxPage() {
           </div>
 
           <div className="p-6 space-y-4">
-            {greenBoxMatches.length === 0 ? (
+            {perfectMatches.length === 0 ? (
               <div className="text-center py-12">
                 <Zap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No Green Box Matches</h3>
@@ -178,7 +178,7 @@ export default function GreenBoxPage() {
                 </p>
               </div>
             ) : (
-              greenBoxMatches.map((match, index) => {
+              perfectMatches.map((match, index) => {
                 const client = getClientById(match.clientId)
                 const watch = getWatchModelById(match.watchModelId)
 

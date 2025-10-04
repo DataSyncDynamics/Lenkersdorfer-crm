@@ -222,11 +222,11 @@ export const mockClients: Client[] = [
     phone: '(555) 234-5678',
     lifetimeSpend: 10500,
     vipTier: 'Bronze',
-    clientTier: 1, // Tier 1 based on high spend
+    clientTier: 5, // Tier 5 - Entry Level ($10.5K lifetime, $5.25K avg)
     spendPercentile: 92,
     lastPurchase: '2024-02-28',
     preferredBrands: ['CARTIER', 'OMEGA'],
-    notes: 'High-value client with preference for luxury timepieces. Strong relationship established.',
+    notes: 'Entry level luxury client building watch collection. Focus on $5K-8K range.',
     joinDate: '2023-03-10',
     purchases: [
       {
@@ -254,11 +254,11 @@ export const mockClients: Client[] = [
     phone: '(555) 345-6789',
     lifetimeSpend: 11024,
     vipTier: 'Bronze',
-    clientTier: 1, // Tier 1 based on high spend
+    clientTier: 5, // Tier 5 - Entry Level ($11K lifetime, $5.5K avg)
     spendPercentile: 94,
     lastPurchase: '2024-04-10',
     preferredBrands: ['ROLEX', 'PATEK PHILIPPE'],
-    notes: 'Serious collector with appreciation for complicated movements. Excellent relationship.',
+    notes: 'Entry level collector with appreciation for movements. Build with $8K-12K pieces first.',
     joinDate: '2022-12-05',
     purchases: [
       {
@@ -286,11 +286,11 @@ export const mockClients: Client[] = [
     phone: '(555) 456-7890',
     lifetimeSpend: 11024,
     vipTier: 'Bronze',
-    clientTier: 1, // Tier 1 based on high spend
+    clientTier: 5, // Tier 5 - Entry Level ($11K lifetime, $5.5K avg)
     spendPercentile: 93,
     lastPurchase: '2024-01-25',
     preferredBrands: ['OMEGA', 'BREITLING'],
-    notes: 'German client with strong preference for precision timepieces. Professional relationship.',
+    notes: 'Entry level precision enthusiast. Focus on quality $8K-12K pieces.',
     joinDate: '2023-02-18',
     purchases: [
       {
@@ -318,11 +318,11 @@ export const mockClients: Client[] = [
     phone: '(555) 567-8901',
     lifetimeSpend: 10918,
     vipTier: 'Bronze',
-    clientTier: 2, // Tier 2 based on spend
+    clientTier: 5, // Tier 5 - Entry Level ($11K lifetime, $5.5K avg)
     spendPercentile: 88,
     lastPurchase: '2024-05-08',
     preferredBrands: ['ROLEX', 'TAG HEUER'],
-    notes: 'Sports watch enthusiast. Assigned to Jason Jolly. Strong sales relationship.',
+    notes: 'Entry level sports enthusiast. Build with Tudor Black Bay range first.',
     joinDate: '2023-04-22',
     purchases: [
       {
@@ -350,11 +350,11 @@ export const mockClients: Client[] = [
     phone: '(555) 678-9012',
     lifetimeSpend: 10653,
     vipTier: 'Bronze',
-    clientTier: 2, // Tier 2 based on spend
+    clientTier: 5, // Tier 5 - Entry Level ($10.7K lifetime, $5.3K avg)
     spendPercentile: 85,
     lastPurchase: '2024-03-22',
     preferredBrands: ['OMEGA', 'IWC'],
-    notes: 'Professional buyer with focus on investment pieces. Consistent purchase history.',
+    notes: 'Entry level professional building investment portfolio. $8K-12K sweet spot.',
     joinDate: '2023-01-08',
     purchases: [
       {
@@ -707,91 +707,91 @@ export const mockWatchModels: WatchModel[] = [
 ]
 
 export const mockWaitlist: WaitlistEntry[] = [
-  // GREEN BOX PERFECT MATCHES (Client Tier = Watch Tier)
+  // PERFECT MATCHES - Realistic client-to-watch alignments
   {
     id: 'wl1',
-    clientId: 'client_richard_blackstone', // RICHARD BLACKSTONE (Tier 1) wants Platinum Daytona (Tier 1)
+    clientId: 'client_richard_blackstone', // RICHARD BLACKSTONE (Tier 1, $487K lifetime) wants Platinum Daytona ($35K)
     watchModelId: 'w1',
     dateAdded: '2024-05-15',
     priority: 1,
-    notes: 'PERFECT Tier 1 match - GREEN BOX CRITICAL - Ultra-high net worth collector'
+    notes: 'PERFECT MATCH - Ultra-high net worth collector ($487K lifetime) for $35K Daytona. Avg order $97K.'
   },
   {
     id: 'wl2',
-    clientId: 'client_gregory_padra', // GREGORY PADRA (Tier 1) wants GMT Sprite (Tier 1)
-    watchModelId: 'w2',
+    clientId: 'client_jennifer_chen', // JENNIFER CHEN (Tier 2, $142K lifetime) wants Steel Submariner ($18.5K)
+    watchModelId: 'w4',
     dateAdded: '2024-06-01',
     priority: 1,
-    notes: 'Tier 1 perfect match - GREEN BOX CRITICAL - Serious collector'
+    notes: 'PERFECT MATCH - High net worth client ($142K lifetime) for $18.5K Submariner. Avg order $35.5K.'
   },
   {
     id: 'wl3',
-    clientId: 'client_jason_jorgensen', // JASON JORGENSEN (Tier 2) wants Steel Submariner (Tier 2)
-    watchModelId: 'w4',
-    dateAdded: '2024-07-10',
-    priority: 1,
-    notes: 'Tier 2 perfect match - GREEN BOX HIGH - Sports watch enthusiast'
-  },
-  {
-    id: 'wl4',
-    clientId: 'client_robert_chen', // Robert Chen (Tier 3) wants Datejust (Tier 3)
+    clientId: 'client_robert_chen', // Robert Chen (Tier 3, $9K lifetime) wants Datejust ($12.5K)
     watchModelId: 'w7',
     dateAdded: '2024-08-05',
     priority: 1,
-    notes: 'Tier 3 perfect match - GREEN BOX MEDIUM - Vintage collector'
+    notes: 'STRETCH PURCHASE - Client capacity $4.6K avg, watch $12.5K. Build relationship first.'
   },
 
-  // YELLOW STATUS (Client Tier > Watch Tier - Possible Upgrade)
+  // REALISTIC ENTRY-LEVEL MATCHES
   {
-    id: 'wl5',
-    clientId: 'client_tanan_yesunmunkh', // TANAN YESUNMUNKH (Tier 1) wants Air-King (Tier 5)
+    id: 'wl4',
+    clientId: 'client_tanan_yesunmunkh', // TANAN YESUNMUNKH ($10.5K lifetime) wants Air-King ($12K)
     watchModelId: 'w13',
     dateAdded: '2024-08-20',
     priority: 2,
-    notes: 'YELLOW - Tier 1 client wanting Tier 5 watch - upgrade opportunity to Daytona'
+    notes: 'STRETCH PURCHASE - Client avg $5.25K, watch $12K. Discuss financing options.'
+  },
+  {
+    id: 'wl5',
+    clientId: 'client_brian_beaulieu', // Brian Beaulieu ($10.7K lifetime) wants Explorer ($9.5K)
+    watchModelId: 'w8',
+    dateAdded: '2024-09-01',
+    priority: 1,
+    notes: 'PERFECT MATCH - Client avg $5.3K, watch $9.5K. Within comfort zone.'
   },
   {
     id: 'wl6',
-    clientId: 'client_brian_beaulieu', // Brian Beaulieu (Tier 2) wants Explorer (Tier 3)
-    watchModelId: 'w8',
-    dateAdded: '2024-09-01',
-    priority: 2,
-    notes: 'YELLOW - Can offer higher tier Rolex like GMT-Master II'
+    clientId: 'client_david_martinez', // David Martinez ($8.1K lifetime) wants Lady-Datejust ($8.5K)
+    watchModelId: 'w15',
+    dateAdded: '2024-09-05',
+    priority: 1,
+    notes: 'PERFECT MATCH - Client avg $4K, watch $8.5K. Reasonable stretch.'
   },
 
-  // RED STATUS (Client Tier < Watch Tier - Tier Too Low)
+  // REALISTIC HIGH-VALUE MATCHES
   {
     id: 'wl7',
-    clientId: 'client_mark_williams', // Mark Williams (Tier 5) wants Platinum Daytona (Tier 1)
-    watchModelId: 'w1',
-    dateAdded: '2024-09-10',
-    priority: 3,
-    notes: 'RED - Tier 5 client wanting Tier 1 watch - build relationship and spend first'
+    clientId: 'client_richard_blackstone', // RICHARD BLACKSTONE also wants Nautilus ($85K)
+    watchModelId: 'w16',
+    dateAdded: '2024-07-10',
+    priority: 1,
+    notes: 'PERFECT MATCH - Ultra-high net worth client for $85K Nautilus. Well within capacity.'
   },
   {
     id: 'wl8',
-    clientId: 'client_david_martinez', // David Martinez (Tier 4) wants GMT Sprite (Tier 1)
-    watchModelId: 'w2',
-    dateAdded: '2024-09-05',
-    priority: 3,
-    notes: 'RED - Tier 4 client wanting Tier 1 watch - focus on Tudor and entry-level luxury'
+    clientId: 'client_jennifer_chen', // JENNIFER CHEN wants GMT Batman ($19.5K)
+    watchModelId: 'w6',
+    dateAdded: '2024-08-15',
+    priority: 1,
+    notes: 'PERFECT MATCH - High net worth client for $19.5K GMT. Perfect fit for spending pattern.'
   },
 
-  // More strategic waitlist entries
+  // APPROPRIATE UPGRADE OPPORTUNITIES
   {
     id: 'wl9',
-    clientId: 'client_sarah_thompson', // Sarah Thompson (Tier 5) wants Yacht-Master (Tier 4)
-    watchModelId: 'w10',
-    dateAdded: '2024-08-15',
+    clientId: 'client_mark_williams', // Mark Williams ($5.4K lifetime) wants Milgauss ($10.5K)
+    watchModelId: 'w12',
+    dateAdded: '2024-09-10',
     priority: 2,
-    notes: 'YELLOW - Can upgrade to Cartier Tank or similar elegant piece'
+    notes: 'STRETCH PURCHASE - Entry client ($5.4K lifetime) for $10.5K Milgauss. Build relationship first.'
   },
   {
     id: 'wl10',
-    clientId: 'client_werner_krauss', // Werner KRAUSS (Tier 1) wants Sky-Dweller (Tier 2)
-    watchModelId: 'w5',
-    dateAdded: '2024-07-25',
-    priority: 1,
-    notes: 'GREEN - Tier 1 client can access Tier 2 watch - perfect match for precision enthusiast'
+    clientId: 'client_sarah_thompson', // Sarah Thompson ($6.9K lifetime) wants Lady-Datejust ($8.5K)
+    watchModelId: 'w15',
+    dateAdded: '2024-08-25',
+    priority: 2,
+    notes: 'STRETCH PURCHASE - Fashion professional, watch aligns with style preference.'
   }
 ]

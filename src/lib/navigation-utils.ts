@@ -7,7 +7,8 @@ import {
   Upload,
   Bell,
   Zap,
-  Crown
+  Crown,
+  MessageSquare
 } from 'lucide-react'
 import { getNavigationIconClasses, formatNotificationCount, getNotificationBadgeClasses } from './ui-utils'
 
@@ -31,7 +32,10 @@ export function createNavigationIcon(
   if (notificationCount && notificationCount > 0) {
     return React.createElement(
       'div',
-      { className: 'relative overflow-visible' },
+      {
+        className: 'relative overflow-visible',
+        style: { overflow: 'visible' } // Ensure badges can overflow container
+      },
       React.createElement(IconComponent, { className: getNavigationIconClasses(isActive) }),
       React.createElement(
         'span',
@@ -59,7 +63,7 @@ export function getNotificationCountForCategories(
 /**
  * Creates main navigation links with consolidated logic
  */
-export function createMainNavigationLinks(pathname: string, counts: any): NavigationLink[] {
+export function createMainNavigationLinks(pathname: string, counts: any, messagingUnreadCount?: number): NavigationLink[] {
   return [
     {
       label: "Home",
@@ -72,7 +76,16 @@ export function createMainNavigationLinks(pathname: string, counts: any): Naviga
       icon: createNavigationIcon(
         Users,
         pathname === "/clients",
-        getNotificationCountForCategories(counts, ['HOT_LEADS', 'ALLOCATION'])
+        getNotificationCountForCategories(counts, ['OPPORTUNITIES', 'ALLOCATIONS'])
+      )
+    },
+    {
+      label: "Messages",
+      href: "/messages",
+      icon: createNavigationIcon(
+        MessageSquare,
+        pathname === "/messages",
+        messagingUnreadCount || 0
       )
     },
     {
@@ -81,7 +94,7 @@ export function createMainNavigationLinks(pathname: string, counts: any): Naviga
       icon: createNavigationIcon(
         Clock,
         pathname === "/waitlist",
-        getNotificationCountForCategories(counts, ['VIP_WAITING', 'FOLLOW_UPS'])
+        getNotificationCountForCategories(counts, ['URGENT', 'FOLLOW_UPS'])
       )
     },
     {
@@ -90,7 +103,7 @@ export function createMainNavigationLinks(pathname: string, counts: any): Naviga
       icon: createNavigationIcon(
         Zap,
         pathname === "/allocation",
-        getNotificationCountForCategories(counts, ['ALLOCATION']),
+        getNotificationCountForCategories(counts, ['ALLOCATIONS']),
         'green'
       )
     },

@@ -8,15 +8,19 @@ import {
   Users,
   Phone,
   Mail,
-  Calendar
+  Calendar,
+  AlertTriangle,
+  Flame,
+  CheckCircle
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { formatCurrency } from '@/lib/store'
-import { getTierColorClasses, getAvatarInitials } from '@/lib/ui-utils'
+import { getTierColorClasses, getAvatarInitials, formatClientName } from '@/lib/ui-utils'
 import { cn } from '@/lib/utils'
 import { Client } from '@/types'
+import { useNotifications } from '@/contexts/NotificationContext'
 
 interface ClientCardProps {
   client: Client
@@ -30,6 +34,21 @@ const getTierIcon = (tier: number) => {
 }
 
 export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
+  const { notifications } = useNotifications()
+
+  // Find notifications for this specific client
+  const clientNotifications = notifications.filter(n =>
+    n.clientId === client.id || n.clientName === client.name
+  )
+
+  const hasUrgentNotifications = clientNotifications.some(n =>
+    n.category === 'URGENT_CLIENTS' && !n.isRead
+  )
+
+  const hasOpportunityNotifications = clientNotifications.some(n =>
+    n.category === 'NEW_OPPORTUNITIES' && !n.isRead
+  )
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -37,7 +56,28 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
       className="cursor-pointer"
       onClick={onClick}
     >
-      <Card className="h-full hover:shadow-lg transition-all duration-200">
+      <Card className={cn(
+        "h-full hover:shadow-lg transition-all duration-200 relative",
+        (hasUrgentNotifications || hasOpportunityNotifications) && "ring-2 ring-offset-2",
+        hasUrgentNotifications && "ring-red-400",
+        hasOpportunityNotifications && !hasUrgentNotifications && "ring-orange-400"
+      )}>
+        {/* Notification Indicators */}
+        {(hasUrgentNotifications || hasOpportunityNotifications) && (
+          <div className="absolute -top-2 -right-2 z-10 flex gap-1">
+            {hasUrgentNotifications && (
+              <div className="bg-red-500 rounded-full p-2 shadow-lg animate-pulse">
+                <AlertTriangle className="w-4 h-4 text-white" />
+              </div>
+            )}
+            {hasOpportunityNotifications && (
+              <div className="bg-orange-500 rounded-full p-2 shadow-lg">
+                <Flame className="w-4 h-4 text-white" />
+              </div>
+            )}
+          </div>
+        )}
+
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -47,7 +87,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle className="text-lg font-semibold truncate">{client.name}</CardTitle>
+                <CardTitle className="text-lg font-semibold truncate">{formatClientName(client.name)}</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge className={cn("text-xs font-medium border", getTierColorClasses(client.clientTier))}>
                     {getTierIcon(client.clientTier)}
@@ -69,36 +109,60 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
 
           {/* Contact Info */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <Mail className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               <span className="truncate">{client.email}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <Phone className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               <span>{client.phone}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               <span>Last purchase: {client.lastPurchase ? new Date(client.lastPurchase).toLocaleDateString() : 'No purchases yet'}</span>
             </div>
           </div>
 
           {/* Preferred Brands */}
           <div>
-            <div className="text-sm font-medium mb-2">Preferred Brands</div>
+            <div className="text-sm font-medium mb-2 text-gray-800 dark:text-gray-200">Preferred Brands</div>
             <div className="flex flex-wrap gap-1">
               {client.preferredBrands.slice(0, 3).map((brand: string) => (
-                <Badge key={brand} variant="outline" className="text-xs">
+                <Badge key={brand} variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600">
                   {brand}
                 </Badge>
               ))}
               {client.preferredBrands.length > 3 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600">
                   +{client.preferredBrands.length - 3} more
                 </Badge>
               )}
             </div>
           </div>
+
+          {/* Notification Summary */}
+          {clientNotifications.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Needs Attention</span>
+              </div>
+              <div className="space-y-1">
+                {hasUrgentNotifications && (
+                  <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>Urgent follow-up required</span>
+                  </div>
+                )}
+                {hasOpportunityNotifications && (
+                  <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                    <Flame className="w-3 h-3" />
+                    <span>Perfect match available</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

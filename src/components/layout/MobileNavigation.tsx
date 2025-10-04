@@ -49,8 +49,8 @@ const navigation: NavItem[] = [
     activeIcon: PlusSolid,
   },
   {
-    name: 'Green Box',
-    href: '/green-box',
+    name: 'Allocation',
+    href: '/allocation',
     icon: BoltIcon,
     activeIcon: BoltSolid,
     badge: 3,

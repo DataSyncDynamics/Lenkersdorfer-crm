@@ -28,24 +28,24 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --background: 220 26% 7%;
+    --foreground: 210 40% 96%;
+    --card: 220 20% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 220 20% 10%;
+    --popover-foreground: 210 40% 96%;
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --secondary: 220 14% 18%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 220 14% 18%;
+    --muted-foreground: 215 16% 55%;
+    --accent: 220 14% 18%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 220 13% 25%;
+    --input: 220 13% 22%;
     --ring: 224.3 76.3% 94.1%;
   }
 }
@@ -475,23 +475,26 @@ a {
 
 .notification-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   background-color: #ef4444;
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid hsl(var(--background)); /* Prevent cutoff with border */
-  z-index: 10;
+  z-index: 20; /* Higher z-index to ensure visibility */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   line-height: 1;
+  /* Ensure badge stays visible in collapsed sidebar */
+  transform: translateZ(0); /* Force GPU acceleration */
+  will-change: transform; /* Optimize for animations */
 }
 
 /* Ensure sidebar doesn't cut off content */
@@ -503,6 +506,18 @@ a {
   width: 64px;
   z-index: 50;
   overflow: visible; /* Allow badge to overflow */
+}
+
+/* Ensure main layout doesn't clip sidebar badges */
+.sidebar-layout {
+  overflow: visible !important;
+}
+
+/* Additional styling for collapsed sidebar badges */
+.sidebar-collapsed .notification-badge {
+  /* Slightly adjust position when sidebar is collapsed */
+  right: -10px;
+  top: -8px;
 }
 
 /* Header notification badge */
@@ -563,4 +578,227 @@ a {
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(239, 68, 68, 0.15) 100%);
   border: 1px solid #dc2626;
   color: #f87171;
+}
+
+/* iMessage-style message bubbles */
+.bg-messageBlue-light { background-color: #007AFF; }
+.bg-messageBlue-dark { background-color: #0A84FF; }
+.bg-messageGray-light { background-color: #E5E5EA; }
+.bg-messageGray-dark { background-color: #3A3A3C; }
+
+.hover\\:bg-messageBlue-light:hover { background-color: #007AFF; }
+.hover\\:bg-messageBlue-dark:hover { background-color: #0A84FF; }
+
+.dark .bg-messageBlue-light { background-color: #0A84FF; }
+.dark .bg-messageBlue-dark { background-color: #007AFF; }
+.dark .bg-messageGray-light { background-color: #3A3A3C; }
+.dark .bg-messageGray-dark { background-color: #3A3A3C; }
+
+.dark .hover\\:bg-messageBlue-light:hover { background-color: #007AFF; }
+.dark .hover\\:bg-messageBlue-dark:hover { background-color: #0A84FF; }
+
+/* ========================================
+   ENHANCED DARK MODE SYSTEM
+   ======================================== */
+
+/* Custom Scrollbar Styling for Dark Mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(220 14% 18%);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(220 13% 35%);
+  border-radius: 4px;
+  border: 1px solid hsl(220 13% 25%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 13% 45%);
+}
+
+.dark ::-webkit-scrollbar-corner {
+  background: hsl(220 14% 18%);
+}
+
+/* Enhanced Card Styling for Dark Mode */
+.dark .bg-card {
+  background: hsl(220 20% 10%);
+  border: 1px solid hsl(220 13% 25%);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark .border {
+  border-color: hsl(220 13% 25%);
+}
+
+/* Consistent Border Colors */
+.dark .border-gray-200 { border-color: hsl(220 13% 25%); }
+.dark .border-gray-300 { border-color: hsl(220 13% 30%); }
+.dark .border-white\/10 { border-color: hsl(220 13% 25%); }
+.dark .border-white\/20 { border-color: hsl(220 13% 30%); }
+
+/* Enhanced Background Colors */
+.dark .bg-gray-50 { background-color: hsl(220 14% 18%); }
+.dark .bg-gray-100 { background-color: hsl(220 14% 22%); }
+.dark .bg-gray-200 { background-color: hsl(220 13% 25%); }
+.dark .bg-white { background-color: hsl(220 20% 10%); }
+
+/* Input and Form Styling */
+.dark input, .dark textarea, .dark select {
+  background: hsl(220 13% 22%);
+  border: 1px solid hsl(220 13% 25%);
+  color: hsl(210 40% 96%);
+}
+
+.dark input:focus, .dark textarea:focus, .dark select:focus {
+  border-color: hsl(217.2 91.2% 59.8%);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Button Hover States */
+.dark .hover\\:bg-gray-50:hover { background-color: hsl(220 14% 22%); }
+.dark .hover\\:bg-gray-100:hover { background-color: hsl(220 14% 25%); }
+.dark .hover\\:bg-gray-200:hover { background-color: hsl(220 13% 28%); }
+.dark .hover\\:bg-white:hover { background-color: hsl(220 20% 12%); }
+
+/* Enhanced Shadow System for Dark Mode */
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .hover\\:shadow-lg:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Text Color Improvements */
+.dark .text-gray-600 { color: hsl(215 16% 65%); }
+.dark .text-gray-500 { color: hsl(215 16% 55%); }
+.dark .text-gray-400 { color: hsl(215 16% 45%); }
+.dark .text-muted-foreground { color: hsl(215 16% 55%); }
+
+/* Dropdown and Select Styling */
+.dark [role="menu"], .dark [role="listbox"] {
+  background: hsl(220 20% 10%);
+  border: 1px solid hsl(220 13% 25%);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced Table and List Styling */
+.dark .divide-y > * + * {
+  border-top-color: hsl(220 13% 25%);
+}
+
+.dark .divide-gray-200 > * + * {
+  border-top-color: hsl(220 13% 25%);
+}
+
+/* Modal and Popover Enhancements */
+.dark .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.dark .backdrop-blur-sm {
+  backdrop-filter: blur(4px) saturate(150%);
+}
+
+/* Navigation and Sidebar Enhancements */
+.dark .bg-white\/5 { background-color: hsl(220 20% 15%); }
+.dark .bg-white\/10 { background-color: hsl(220 20% 18%); }
+.dark .bg-white\/20 { background-color: hsl(220 20% 22%); }
+
+.dark .hover\\:bg-white\\/5:hover { background-color: hsl(220 20% 15%); }
+.dark .hover\\:bg-white\\/10:hover { background-color: hsl(220 20% 18%); }
+.dark .hover\\:bg-white\\/20:hover { background-color: hsl(220 20% 22%); }
+
+/* Status and Alert Color Refinements */
+.dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.15); }
+.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.15); }
+.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.15); }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.15); }
+.dark .bg-orange-100 { background-color: rgba(249, 115, 22, 0.15); }
+.dark .bg-purple-100 { background-color: rgba(147, 51, 234, 0.15); }
+
+.dark .text-green-600 { color: #4ade80; }
+.dark .text-yellow-600 { color: #fbbf24; }
+.dark .text-red-600 { color: #f87171; }
+.dark .text-blue-600 { color: #60a5fa; }
+.dark .text-orange-600 { color: #fb923c; }
+.dark .text-purple-600 { color: #a78bfa; }
+
+.dark .text-green-800 { color: #4ade80; }
+.dark .text-yellow-800 { color: #fbbf24; }
+.dark .text-red-800 { color: #f87171; }
+.dark .text-blue-800 { color: #60a5fa; }
+.dark .text-orange-800 { color: #fb923c; }
+.dark .text-purple-800 { color: #a78bfa; }
+
+/* Border Color Consistency */
+.dark .border-green-200 { border-color: rgba(34, 197, 94, 0.3); }
+.dark .border-yellow-200 { border-color: rgba(234, 179, 8, 0.3); }
+.dark .border-red-200 { border-color: rgba(239, 68, 68, 0.3); }
+.dark .border-blue-200 { border-color: rgba(59, 130, 246, 0.3); }
+.dark .border-orange-200 { border-color: rgba(249, 115, 22, 0.3); }
+.dark .border-purple-200 { border-color: rgba(147, 51, 234, 0.3); }
+
+/* Enhanced Gradient Backgrounds for Dark Mode */
+.dark .bg-gradient-to-r.from-blue-50 {
+  --tw-gradient-from: hsl(220 20% 12%);
+  --tw-gradient-to: hsl(220 20% 15%);
+}
+
+.dark .bg-gradient-to-r.from-green-50 {
+  --tw-gradient-from: rgba(34, 197, 94, 0.1);
+  --tw-gradient-to: rgba(34, 197, 94, 0.05);
+}
+
+.dark .bg-gradient-to-r.from-yellow-50 {
+  --tw-gradient-from: rgba(234, 179, 8, 0.1);
+  --tw-gradient-to: rgba(234, 179, 8, 0.05);
+}
+
+.dark .bg-gradient-to-r.from-red-50 {
+  --tw-gradient-from: rgba(239, 68, 68, 0.1);
+  --tw-gradient-to: rgba(239, 68, 68, 0.05);
+}
+
+/* Code and Monospace Text */
+.dark code, .dark pre {
+  background: hsl(220 13% 22%);
+  border: 1px solid hsl(220 13% 25%);
+  color: hsl(210 40% 90%);
+}
+
+/* Enhanced Focus States */
+.dark *:focus-visible {
+  outline: 2px solid hsl(217.2 91.2% 59.8%);
+  outline-offset: 2px;
+}
+
+/* Loading and Skeleton States */
+.dark .animate-pulse {
+  background: linear-gradient(90deg, hsl(220 14% 18%) 25%, hsl(220 14% 22%) 50%, hsl(220 14% 18%) 75%);
+  background-size: 200% 100%;
+  animation: pulse 2s infinite;
+}
+
+/* Enhanced Dark Mode for Specific Components */
+.dark .bg-muted { background-color: hsl(220 14% 18%); }
+.dark .bg-muted\/50 { background-color: hsl(220 14% 18% / 0.5); }
+.dark .bg-muted\/20 { background-color: hsl(220 14% 18% / 0.2); }
+
+/* Notification Badge Dark Mode Enhancements */
+.dark .notification-badge {
+  background-color: #ef4444;
+  border: 2px solid hsl(220 26% 7%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }

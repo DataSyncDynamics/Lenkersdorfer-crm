@@ -91,6 +91,17 @@ module.exports = {
           800: '#991b1b',
           900: '#7f1d1d',
         },
+        // iMessage-style colors
+        messageBlue: {
+          light: '#007AFF',
+          dark: '#0A84FF',
+          DEFAULT: '#007AFF',
+        },
+        messageGray: {
+          light: '#E5E5EA',
+          dark: '#3A3A3C',
+          DEFAULT: '#E5E5EA',
+        },
       },
       spacing: {
         '18': '4.5rem',

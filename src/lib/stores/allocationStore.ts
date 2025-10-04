@@ -20,6 +20,16 @@ export interface AllocationActions {
   getSMSTemplates: (type?: 'ALLOCATION' | 'FOLLOWUP' | 'CUSTOM') => SMSTemplate[]
   generateSMSMessage: (templateId: string, clientName: string, watchBrand: string, watchModel: string) => string
   getContactHistory: (clientId: string, watchId: string) => ContactAttempt[]
+  // New business logic functions
+  calculateClientCapacity: (client: any) => { maxSingle: number; avgOrder: number }
+  getBusinessRecommendation: (client: any, watch: any) => {
+    category: string
+    label: string
+    priority: number
+    action: string
+    reasoning: string
+    confidence: string
+  }
 }
 
 export type AllocationSlice = AllocationState & AllocationActions
@@ -54,73 +64,196 @@ export const createAllocationSlice: StateCreator<
     }
   ],
 
+  // Helper function to calculate client's purchasing capacity
+  calculateClientCapacity: (client: any) => {
+    const purchases = client.purchases || []
+    if (purchases.length === 0) return { maxSingle: client.lifetimeSpend, avgOrder: client.lifetimeSpend }
+
+    const maxSingle = Math.max(...purchases.map((p: any) => p.price))
+    const avgOrder = purchases.reduce((sum: number, p: any) => sum + p.price, 0) / purchases.length
+
+    return { maxSingle, avgOrder }
+  },
+
+  // Business logic for allocation suitability
+  getBusinessRecommendation: (client: any, watch: any) => {
+    const capacity = get().calculateClientCapacity(client)
+    const watchPrice = watch.price
+
+    // Perfect Match: Price within comfort zone (≤ 1.2x average order)
+    if (watchPrice <= capacity.avgOrder * 1.2) {
+      return {
+        category: 'PERFECT_MATCH',
+        label: 'PERFECT MATCH',
+        priority: 1,
+        action: 'CALL NOW - Ready to purchase',
+        reasoning: `Within comfort zone: Watch $${watchPrice.toLocaleString()} ≤ $${Math.round(capacity.avgOrder * 1.2).toLocaleString()} (1.2x avg order)`,
+        confidence: 'HIGH'
+      }
+    }
+
+    // Stretch Purchase: Price within reach (1.2x - 1.5x average, or ≤ max single purchase)
+    if (watchPrice <= Math.max(capacity.avgOrder * 1.5, capacity.maxSingle)) {
+      return {
+        category: 'STRETCH_PURCHASE',
+        label: 'STRETCH PURCHASE',
+        priority: 2,
+        action: 'DISCUSS FINANCING - Client can stretch with motivation',
+        reasoning: `Stretch territory: Watch $${watchPrice.toLocaleString()} vs avg order $${Math.round(capacity.avgOrder).toLocaleString()}`,
+        confidence: 'MEDIUM'
+      }
+    }
+
+    // Upgrade Opportunity: Price too high, but client has potential
+    if (client.lifetimeSpend > 50000 && watchPrice <= capacity.avgOrder * 3) {
+      return {
+        category: 'UPGRADE_OPPORTUNITY',
+        label: 'UPGRADE OPPORTUNITY',
+        priority: 3,
+        action: `SUGGEST ALTERNATIVES - Recommend $${Math.round(capacity.avgOrder * 0.8).toLocaleString()}-$${Math.round(capacity.avgOrder * 1.5).toLocaleString()} range`,
+        reasoning: `Build relationship: Current capacity $${Math.round(capacity.avgOrder).toLocaleString()}, watch $${watchPrice.toLocaleString()}`,
+        confidence: 'LOW'
+      }
+    }
+
+    // Not Suitable: Price far exceeds client capacity
+    return {
+      category: 'NOT_SUITABLE',
+      label: 'NOT SUITABLE',
+      priority: 4,
+      action: `FOCUS ELSEWHERE - Client needs $${Math.round(capacity.avgOrder * 0.8).toLocaleString()}-$${Math.round(capacity.avgOrder * 1.2).toLocaleString()} range`,
+      reasoning: `Outside capacity: Watch $${watchPrice.toLocaleString()} >> client avg $${Math.round(capacity.avgOrder).toLocaleString()}`,
+      confidence: 'NONE'
+    }
+  },
+
   // Actions
-  generateAllocationContacts: (watchId: string): AllocationContact[] => {
-    const { clients, waitlist, getWatchModelById } = get()
+  generateAllocationContacts: (watchId: string, showAllClients: boolean = false): AllocationContact[] => {
+    const { clients, waitlist, getWatchModelById, getBusinessRecommendation } = get()
     const watch = getWatchModelById(watchId)
     if (!watch) return []
 
     const waitlistEntries = waitlist.filter(entry => entry.watchModelId === watchId)
+    const waitlistClientIds = new Set(waitlistEntries.map(e => e.clientId))
 
-    const contacts: AllocationContact[] = waitlistEntries.map((entry, index) => {
-      const client = clients.find(c => c.id === entry.clientId)
+    // Determine which clients to show
+    let clientsToEvaluate: Array<{ client: any, waitlistEntry?: any }> = []
+
+    // CRITICAL: For available watches, we can show all clients OR just waitlist
+    // For non-available watches (Waitlist/Sold Out), ONLY show waitlist entries
+    if (watch.availability === 'Available') {
+      if (showAllClients) {
+        // Show ALL clients BUT filter out NOT_SUITABLE unless they're on the waitlist
+        clientsToEvaluate = clients.map(client => ({
+          client,
+          waitlistEntry: waitlistEntries.find(e => e.clientId === client.id),
+          recommendation: getBusinessRecommendation(client, watch)
+        }))
+        .filter(item => {
+          // Always show if on waitlist (even if NOT_SUITABLE - show as warning)
+          if (item.waitlistEntry) return true
+
+          // For non-waitlist clients, only show GREEN (PERFECT_MATCH) and YELLOW (STRETCH_PURCHASE)
+          return item.recommendation.category === 'PERFECT_MATCH' ||
+                 item.recommendation.category === 'STRETCH_PURCHASE'
+        })
+      } else {
+        // Show only waitlist clients even though watch is available
+        clientsToEvaluate = waitlistEntries.map(entry => ({
+          client: clients.find(c => c.id === entry.clientId)!,
+          waitlistEntry: entry
+        })).filter(item => item.client)
+      }
+    } else {
+      // For waitlist/reserved/sold out watches, ONLY show clients actually waiting
+      // IGNORE showAllClients flag completely
+      clientsToEvaluate = waitlistEntries.map(entry => ({
+        client: clients.find(c => c.id === entry.clientId)!,
+        waitlistEntry: entry
+      })).filter(item => item.client)
+    }
+
+    const contacts: AllocationContact[] = clientsToEvaluate.map((item, index) => {
+      const { client, waitlistEntry } = item
       if (!client) return null
 
-      let score = 0
-      const reasons: string[] = []
+      // Get business recommendation instead of arbitrary scoring
+      const recommendation = getBusinessRecommendation(client, watch)
 
-      // Client tier scoring (1 = highest tier, 5 = lowest)
-      score += (6 - client.clientTier) * 20
-      reasons.push(`Tier ${client.clientTier} client`)
+      // Calculate days waiting for context
+      const daysWaiting = waitlistEntry
+        ? Math.floor((new Date().getTime() - new Date(waitlistEntry.dateAdded).getTime()) / (1000 * 60 * 60 * 24))
+        : 0
 
-      // Lifetime spend scoring
-      if (client.lifetimeSpend > 550000) {
-        score += 30
-        reasons.push('Ultra-high lifetime value ($550K+)')
-      } else if (client.lifetimeSpend > 220000) {
-        score += 20
-        reasons.push('High lifetime value ($220K+)')
-      } else if (client.lifetimeSpend > 110000) {
-        score += 10
-        reasons.push('Good lifetime value ($110K+)')
+      // Build contextual reasons
+      const reasons: string[] = [
+        `${client.lifetimeSpend >= 100000 ? 'High-value' : 'Entry-level'} client ($${client.lifetimeSpend.toLocaleString()} lifetime)`,
+      ]
+
+      if (waitlistEntry) {
+        reasons.push(`Waiting ${daysWaiting} days`)
+      } else {
+        reasons.push('Not on waitlist - potential opportunity')
       }
 
-      // Wait time scoring
-      const daysWaiting = Math.floor(
-        (new Date().getTime() - new Date(entry.dateAdded).getTime()) / (1000 * 60 * 60 * 24)
-      )
-      if (daysWaiting > 90) {
-        score += 15
-        reasons.push(`Waiting ${daysWaiting} days`)
-      } else if (daysWaiting > 60) {
-        score += 10
-        reasons.push(`Waiting ${daysWaiting} days`)
-      } else if (daysWaiting > 30) {
-        score += 5
-        reasons.push(`Waiting ${daysWaiting} days`)
-      }
-
-      // Brand preference scoring
       if (client.preferredBrands.includes(watch.brand)) {
-        score += 15
         reasons.push(`Prefers ${watch.brand}`)
       }
 
+      // Check tier matching (GREEN BOX)
+      const tierMatch = client.clientTier === watch.watchTier
+      if (tierMatch) {
+        reasons.push('🎯 GREEN BOX - Perfect tier match')
+      }
+
       return {
-        id: `allocation_${entry.id}`,
+        id: `allocation_${waitlistEntry?.id || client.id}`,
         clientId: client.id,
         watchModelId: watchId,
-        rank: index + 1, // Will be reordered by score
-        score,
+        rank: index + 1, // Will be reordered by priority
+        score: 100 - recommendation.priority * 20, // Convert to legacy score for compatibility
         reasons,
         contacted: false,
-        saleCompleted: false
+        saleCompleted: false,
+        // New business fields
+        businessCategory: recommendation.category,
+        businessLabel: recommendation.label,
+        businessAction: recommendation.action,
+        businessReasoning: recommendation.reasoning,
+        businessConfidence: recommendation.confidence,
+        daysWaiting,
+        isOnWaitlist: !!waitlistEntry
       }
     }).filter(Boolean) as AllocationContact[]
 
-    // Sort by score (highest first) and update ranks
+    // Sort by business priority (1 = highest), tier match, and days waiting
     return contacts
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        // First: Prioritize waitlist clients for non-available watches
+        if (watch.availability !== 'Available') {
+          if (a.isOnWaitlist && !b.isOnWaitlist) return -1
+          if (!a.isOnWaitlist && b.isOnWaitlist) return 1
+        }
+
+        // Second: Sort by business priority
+        const priorityA = a.businessCategory === 'PERFECT_MATCH' ? 1 :
+                         a.businessCategory === 'STRETCH_PURCHASE' ? 2 :
+                         a.businessCategory === 'UPGRADE_OPPORTUNITY' ? 3 : 4
+        const priorityB = b.businessCategory === 'PERFECT_MATCH' ? 1 :
+                         b.businessCategory === 'STRETCH_PURCHASE' ? 2 :
+                         b.businessCategory === 'UPGRADE_OPPORTUNITY' ? 3 : 4
+
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB
+        }
+
+        // Third: Prioritize those on waitlist
+        if (a.isOnWaitlist && !b.isOnWaitlist) return -1
+        if (!a.isOnWaitlist && b.isOnWaitlist) return 1
+
+        // Fourth: Sort by days waiting (descending)
+        return (b.daysWaiting || 0) - (a.daysWaiting || 0)
+      })
       .map((contact, index) => ({ ...contact, rank: index + 1 }))
   },
 

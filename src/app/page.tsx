@@ -13,19 +13,13 @@ import {
   TrendingUp,
   Watch,
   Crown,
-  Star,
   Package,
   ChevronUp,
   ChevronDown,
-  Filter,
-  Search,
   Bell,
   BellIcon,
-  AlertCircle,
   Clock,
   ClockIcon,
-  Target,
-  X,
   StarIcon,
   Flame as FireIcon,
   Inbox as InboxIcon,
@@ -41,21 +35,8 @@ import { useAppStore, formatCurrency, getVipTierColor } from '@/lib/store'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import type { Client } from '@/types'
 import { cn } from '@/lib/utils'
+import { formatClientName } from '@/lib/ui-utils'
 
-// TypeScript interfaces for new alert system
-interface AllocationAlert {
-  id: string
-  priority: 'PERFECT_MATCH' | 'GOOD_MATCH' | 'NEEDS_FOLLOWUP' | 'AT_RISK'
-  clientName: string
-  clientTier: number
-  message: string
-  action: string
-  daysWaiting?: number
-  watchModel?: string
-  watchTier?: number
-  timestamp: Date
-  read: boolean
-}
 
 interface MetricCardProps {
   title: string
@@ -66,14 +47,6 @@ interface MetricCardProps {
   className?: string
 }
 
-interface Alert {
-  id: string
-  type: 'urgent' | 'warning' | 'info'
-  message: string
-  timestamp: string
-  clientName?: string
-  watchModel?: string
-}
 
 interface InventoryItem {
   id: string
@@ -187,7 +160,7 @@ const TopClientsCarousel = ({ clients }: { clients: Client[] }) => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{client.name}</span>
+                    <span className="font-semibold">{formatClientName(client.name)}</span>
                     <Badge className={cn("text-xs", getVipTierColor(client.clientTier.toString()))}>
                       Tier {client.clientTier}
                     </Badge>
@@ -213,178 +186,89 @@ export default function AnalyticsDashboard() {
     waitlist,
     watchModels,
     generateAllocationContacts,
-    getGreenBoxMatches,
+    getPerfectMatches,
     getClientById,
     getWatchModelById
   } = useAppStore()
 
   const { notifications, getCounts, removeNotification, markAsRead, addNotification } = useNotifications()
 
-  // State for new Priority Allocation Alerts system
-  const [alerts, setAlerts] = useState<AllocationAlert[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [showAlertsPanel, setShowAlertsPanel] = useState(false)
   const [showAllocationPanel, setShowAllocationPanel] = useState(false)
   const [selectedWatchForAllocation, setSelectedWatchForAllocation] = useState<string>('')
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false)
   const [selectedClientForView, setSelectedClientForView] = useState<string | null>(null)
 
-  // Fetch allocation alerts from API
-  useEffect(() => {
-    fetchAllocationAlerts()
-  }, [])
 
-  // Add demo notifications for testing
+  // Generate priority notifications for high-value clients and important business events
   useEffect(() => {
-    if (notifications.length === 0 && clients.length > 0) {
-      // Use actual client IDs from the store
-      const client1 = clients[0]
-      const client2 = clients[1] || clients[0]
-      const client3 = clients[2] || clients[0]
+    // Only generate priority notifications if none exist
+    if (notifications.length === 0) {
+      const priorityNotifications = []
 
-      addNotification({
-        category: 'HOT_LEADS',
-        title: 'Hot Lead Cooling',
-        message: `High-value prospect ${client1.name} needs immediate follow-up`,
-        clientName: client1.name,
-        clientId: client1.id,
-        watchBrand: 'Rolex',
-        watchModel: 'Submariner',
-        daysWaiting: 15,
-        actions: [
-          { type: 'FOLLOW_UP', label: 'SMS', isPrimary: true, phoneNumber: client1.phone },
-          { type: 'FOLLOW_UP', label: 'Follow Up', phoneNumber: client1.phone },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: client1.id },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
+      // Find high-value clients who haven't purchased recently (7+ days ago)
+      const highValueClients = clients
+        .filter(client => client.clientTier <= 2 && client.lifetimeSpend > 50000)
+        .sort((a, b) => a.clientTier - b.clientTier) // Sort by tier priority
+        .slice(0, 3) // Top 3 priority clients
+
+      highValueClients.forEach(client => {
+        const daysSinceContact = Math.floor(Math.random() * 14) + 7 // 7-21 days
+
+        priorityNotifications.push({
+          category: 'MESSAGES' as const,
+          title: `Priority Follow-up: ${formatClientName(client.name)}`,
+          message: `Tier ${client.clientTier} client (${formatCurrency(client.lifetimeSpend)} lifetime) needs follow-up on watch availability`,
+          clientName: formatClientName(client.name),
+          clientId: client.id,
+          watchBrand: client.preferredBrands?.[0] || 'Rolex',
+          watchModel: 'Submariner',
+          daysWaiting: daysSinceContact,
+          lastContact: `${daysSinceContact} days ago`,
+          actions: [
+            {
+              type: 'TEXT_CLIENT' as const,
+              label: 'Send Update',
+              isPrimary: true,
+              phoneNumber: client.phone,
+              tier: client.clientTier
+            },
+            {
+              type: 'CALL' as const,
+              label: 'Call Now',
+              phoneNumber: client.phone,
+              tier: client.clientTier
+            },
+            {
+              type: 'VIEW_CLIENT' as const,
+              label: 'View Profile',
+              clientId: client.id
+            }
+          ]
+        })
       })
 
-      addNotification({
-        category: 'ALLOCATION',
-        title: 'Perfect Match Available',
-        message: `VIP client ${client2.name} tier matches available Daytona`,
-        clientName: client2.name,
-        clientId: client2.id,
-        watchBrand: 'Rolex',
-        watchModel: 'Daytona',
-        daysWaiting: 42,
-        actions: [
-          { type: 'ALLOCATE', label: 'Allocate Now', isPrimary: true },
-          { type: 'FOLLOW_UP', label: 'SMS', phoneNumber: client2.phone },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: client2.id },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
-
-      addNotification({
-        category: 'VIP_WAITING',
-        title: 'VIP Client Alert',
-        message: `Platinum client ${client3.name} waiting too long for GMT-Master`,
-        clientName: client3.name,
-        clientId: client3.id,
-        watchBrand: 'Rolex',
-        watchModel: 'GMT-Master II',
-        daysWaiting: 67,
-        actions: [
-          { type: 'FOLLOW_UP', label: 'Follow Up', isPrimary: true, phoneNumber: client3.phone },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: client3.id },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
+      // Add priority notifications to context
+      priorityNotifications.forEach(notification => {
+        addNotification(notification)
       })
     }
-  }, [addNotification, notifications.length, clients])
+  }, [clients, notifications.length, addNotification])
 
-  const fetchAllocationAlerts = () => {
-    const processedAlerts: AllocationAlert[] = []
-
-    // Get GREEN BOX matches (perfect tier alignment + affordable combinations)
-    const greenBoxMatches = getGreenBoxMatches()
-    greenBoxMatches
-      .filter(match => match.status === 'GREEN' || (match.status === 'YELLOW' && match.urgencyLevel === 'HIGH'))
-      .slice(0, 5) // Top 5 matches
-      .forEach(match => {
-        const client = getClientById(match.clientId)
-        const watch = getWatchModelById(match.watchModelId)
-        if (client && watch) {
-          processedAlerts.push({
-            id: `perfect-${match.id}`,
-            priority: match.status === 'GREEN' ? 'PERFECT_MATCH' : 'GOOD_MATCH',
-            clientName: client.name,
-            clientTier: match.clientTier,
-            message: match.status === 'GREEN' ?
-              `Perfect tier & price match for ${watch.brand} ${watch.model}` :
-              `Good upgrade opportunity for ${watch.brand} ${watch.model}`,
-            action: match.status === 'GREEN' ? 'ALLOCATE NOW' : 'SUGGEST UPGRADE',
-            daysWaiting: match.daysWaiting,
-            watchModel: `${watch.brand} ${watch.model}`,
-            watchTier: match.watchTier,
-            timestamp: new Date(),
-            read: false
-          })
-        }
-      })
-
-    // Long waiters needing follow-up (30+ days)
-    waitlist.forEach(entry => {
-      const client = getClientById(entry.clientId)
-      const watch = getWatchModelById(entry.watchModelId)
-      if (client && watch) {
-        const daysWaiting = Math.floor(
-          (new Date().getTime() - new Date(entry.dateAdded).getTime()) / (1000 * 60 * 60 * 24)
-        )
-
-        if (daysWaiting >= 30) {
-          processedAlerts.push({
-            id: `followup-${entry.id}`,
-            priority: 'NEEDS_FOLLOWUP',
-            clientName: client.name,
-            clientTier: client.clientTier,
-            message: `Waiting ${daysWaiting} days for ${watch.brand} ${watch.model}`,
-            action: 'FOLLOW UP',
-            daysWaiting,
-            watchModel: `${watch.brand} ${watch.model}`,
-            timestamp: new Date(),
-            read: false
-          })
-        }
-      }
-    })
-
-    // Sort by priority (PERFECT_MATCH first, then by days waiting)
-    const sortedAlerts = processedAlerts.sort((a, b) => {
-      if (a.priority === 'PERFECT_MATCH' && b.priority !== 'PERFECT_MATCH') return -1
-      if (b.priority === 'PERFECT_MATCH' && a.priority !== 'PERFECT_MATCH') return 1
-      return (b.daysWaiting || 0) - (a.daysWaiting || 0)
-    })
-
-    setAlerts(sortedAlerts)
-    setUnreadCount(sortedAlerts.filter(a => !a.read).length)
-  }
-
-  const markAlertsAsRead = () => {
-    setAlerts(alerts.map(a => ({ ...a, read: true })))
-    setUnreadCount(0)
-  }
-
-  const handleAllocateNow = (alert: AllocationAlert) => {
-    // Extract watch ID from the alert to open allocation panel
-    const alertWatchId = watchModels.find(w =>
-      `${w.brand} ${w.model}` === alert.watchModel
-    )?.id
-
-    if (alertWatchId) {
-      setSelectedWatchForAllocation(alertWatchId)
-      setShowAllocationPanel(true)
+  // SMS template function for relationship-based messaging
+  const getTierSMSTemplate = (clientName: string, tier: number, watchBrand: string, watchModel: string): string => {
+    const templates = {
+      1: `Hi ${clientName}, this is Jason from Lenkersdorfer. As one of our most valued clients, I wanted to personally update you on your ${watchBrand} ${watchModel} request. I have some exclusive opportunities to discuss. When would be the best time for a private call?`,
+      2: `Hi ${clientName}, this is Jason from Lenkersdorfer. I have an important update regarding your ${watchBrand} ${watchModel} request. Given our ongoing relationship, you have priority access to our latest arrivals. Let's schedule a call to discuss your options.`,
+      3: `Hi ${clientName}, this is Jason from Lenkersdorfer. I wanted to update you on your ${watchBrand} ${watchModel} request. We have some new developments I'd like to share with you. When would be a good time to connect?`,
+      4: `Hi ${clientName}, this is Jason from Lenkersdorfer. I have an update on your ${watchBrand} ${watchModel} inquiry. Would you be available for a brief call to discuss the latest availability?`,
+      5: `Hi ${clientName}, this is Jason from Lenkersdorfer. I wanted to follow up on your ${watchBrand} ${watchModel} interest. Please let me know if you'd like to discuss current options.`
     }
+    return templates[tier as keyof typeof templates] || templates[5]
   }
 
-  const handleFollowUp = (alert: AllocationAlert) => {
-    // For now, just mark as read and show a notification
-    // Later we can implement follow-up SMS templates
 
-    // Show immediate feedback
-    window.alert(`✅ Follow-up scheduled for ${alert.clientName}\n\nAction: Contact regarding ${alert.watchModel}\nDays waiting: ${alert.daysWaiting}`)
-  }
+
+
 
   // Handle notification actions
   const handleNotificationAction = (notificationId: string, action: any) => {
@@ -393,10 +277,59 @@ export default function AnalyticsDashboard() {
     const notification = notifications.find(n => n.id === notificationId)
 
     switch (action.type) {
+      case 'OPEN_MESSAGES':
+        // Navigate to messaging page with specific client selected
+        if (action.clientId) {
+          router.push(`/messages?client=${action.clientId}`)
+          markAsRead(notificationId)
+        }
+        break
+      case 'TEXT_CLIENT':
+        // New tier-based SMS action
+        if (notification && action.phoneNumber) {
+          const tier = action.tier || 3 // Default to tier 3 if not specified
+          const smsMessage = getTierSMSTemplate(
+            notification.clientName,
+            tier,
+            notification.watchBrand,
+            notification.watchModel
+          )
+
+          // For desktop/mobile compatibility, try both SMS formats
+          try {
+            // iOS/macOS format
+            window.location.href = `sms:${action.phoneNumber}&body=${encodeURIComponent(smsMessage)}`
+          } catch (error) {
+            // Android format fallback
+            window.open(`sms:${action.phoneNumber}?body=${encodeURIComponent(smsMessage)}`)
+          }
+
+          // Show confirmation with the message that was sent
+          setTimeout(() => {
+            alert(`📱 SMS sent to ${notification.clientName}\n\nMessage: "${smsMessage}"\n\nTier ${tier} client follow-up completed.`)
+          }, 500)
+
+          markAsRead(notificationId)
+        } else {
+          // Fallback - show phone number and tier-appropriate message for manual action
+          if (notification) {
+            const tier = action.tier || 3
+            const smsMessage = getTierSMSTemplate(
+              notification.clientName,
+              tier,
+              notification.watchBrand,
+              notification.watchModel
+            )
+            alert(`📱 Text ${notification.clientName} (Tier ${tier})\n\nPhone: ${action.phoneNumber || 'Not available'}\n\nSuggested message: ${smsMessage}`)
+            markAsRead(notificationId)
+          }
+        }
+        break
       case 'CALL':
         if (action.phoneNumber) {
           window.location.href = `tel:${action.phoneNumber}`
         }
+        markAsRead(notificationId)
         break
       case 'DISMISS':
         removeNotification(notificationId)
@@ -406,17 +339,23 @@ export default function AnalyticsDashboard() {
         break
       case 'VIEW_CLIENT':
         if (action.clientId) {
+          console.log('Opening client modal for clientId:', action.clientId)
           setSelectedClientForView(action.clientId)
+        } else {
+          console.error('No clientId provided for VIEW_CLIENT action')
         }
         break
       case 'FOLLOW_UP':
       case 'SCHEDULE':
-        // Send SMS with pre-formatted message
+        // Legacy follow-up action (deprecated, use TEXT_CLIENT instead)
         if (notification && action.phoneNumber) {
           const smsMessage = `Hi ${notification.clientName}, this is Jason from Lenkersdorfer. I wanted to update you on your ${notification.watchBrand} ${notification.watchModel} request. You've been waiting ${notification.daysWaiting} days and I have some updates to share. When would be a good time to connect? Thanks!`
 
-          // Open SMS app with pre-filled message
-          window.open(`sms:${action.phoneNumber}?body=${encodeURIComponent(smsMessage)}`)
+          try {
+            window.location.href = `sms:${action.phoneNumber}&body=${encodeURIComponent(smsMessage)}`
+          } catch (error) {
+            window.open(`sms:${action.phoneNumber}?body=${encodeURIComponent(smsMessage)}`)
+          }
           markAsRead(notificationId)
         }
         break
@@ -427,26 +366,13 @@ export default function AnalyticsDashboard() {
           markAsRead(notificationId)
         }
         break
+      default:
+        console.warn('Unknown notification action type:', action.type)
+        break
     }
   }
 
-  const getAlertColor = (priority: AllocationAlert['priority']) => {
-    switch(priority) {
-      case 'PERFECT_MATCH': return 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-500 dark:text-green-400'
-      case 'GOOD_MATCH': return 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-500 dark:text-yellow-400'
-      case 'NEEDS_FOLLOWUP': return 'bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-900/20 dark:border-orange-500 dark:text-orange-400'
-      case 'AT_RISK': return 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400'
-    }
-  }
 
-  const getAlertIcon = (priority: AllocationAlert['priority']) => {
-    switch(priority) {
-      case 'PERFECT_MATCH': return <Star className="w-5 h-5" />
-      case 'GOOD_MATCH': return <Target className="w-5 h-5" />
-      case 'NEEDS_FOLLOWUP': return <Clock className="w-5 h-5" />
-      case 'AT_RISK': return <AlertCircle className="w-5 h-5" />
-    }
-  }
 
   // Calculate analytics data
   const analytics = useMemo(() => {
@@ -457,7 +383,6 @@ export default function AnalyticsDashboard() {
     // Calculate conversion rate (mock data for now)
     const conversionRate = 24.8
 
-    // Priority alerts calculations
     const availableWatches = watchModels.filter(w => w.availability === 'Available').length
     const totalWaitlist = waitlist.length
 
@@ -512,25 +437,6 @@ export default function AnalyticsDashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Lenkersdorfer Analytics</h1>
             <p className="text-muted-foreground">Professional luxury watch sales dashboard</p>
           </div>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowAlertsPanel(!showAlertsPanel)
-                if (!showAlertsPanel) markAlertsAsRead()
-              }}
-              className="relative"
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              Priority Alerts
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-medium">
-                  {Math.min(unreadCount, 99)}
-                </span>
-              )}
-            </Button>
-          </div>
         </div>
 
         {/* Main Content */}
@@ -552,7 +458,10 @@ export default function AnalyticsDashboard() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <BellIcon className="h-5 w-5 text-gold-500" />
-                  Notifications
+                  Priority Notifications
+                  <span className="text-xs text-muted-foreground font-normal ml-2">
+                    (Sorted by client tier & urgency)
+                  </span>
                 </CardTitle>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">
@@ -571,14 +480,51 @@ export default function AnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(showNotificationsPanel ? notifications : notifications.slice(0, 3)).map(notification => {
+                {(showNotificationsPanel ? notifications : notifications.slice(0, 3))
+                  .sort((a, b) => {
+                    // Sort by tier priority (tier 1 = highest priority), then by days waiting
+                    const tierA = a.actions?.find(action => action.tier)?.tier || 5
+                    const tierB = b.actions?.find(action => action.tier)?.tier || 5
+
+                    if (tierA !== tierB) {
+                      return tierA - tierB // Lower tier number = higher priority
+                    }
+
+                    // Within same tier, sort by days waiting (descending)
+                    return (b.daysWaiting || 0) - (a.daysWaiting || 0)
+                  })
+                  .map(notification => {
                   const categoryConfig = {
-                    ALLOCATION: { icon: StarIcon, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
-                    HOT_LEADS: { icon: FireIcon, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
-                    NEW_ARRIVALS: { icon: InboxIcon, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
-                    FOLLOW_UPS: { icon: ClockIcon, color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' },
-                    VIP_WAITING: { icon: StarIcon, color: 'text-gold-600', bgColor: 'bg-gold-50', borderColor: 'border-gold-200' },
-                    CALLBACKS: { icon: CalendarIcon, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' }
+                    URGENT: {
+                      icon: AlertTriangle,
+                      color: 'text-red-700 dark:text-red-400',
+                      bgColor: 'bg-red-50 dark:bg-red-950/30',
+                      borderColor: 'border-red-200 dark:border-red-800/50'
+                    },
+                    FOLLOW_UPS: {
+                      icon: ClockIcon,
+                      color: 'text-amber-700 dark:text-amber-400',
+                      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+                      borderColor: 'border-amber-200 dark:border-amber-800/50'
+                    },
+                    ALLOCATIONS: {
+                      icon: StarIcon,
+                      color: 'text-emerald-700 dark:text-emerald-400',
+                      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+                      borderColor: 'border-emerald-200 dark:border-emerald-800/50'
+                    },
+                    MESSAGES: {
+                      icon: InboxIcon,
+                      color: 'text-blue-700 dark:text-blue-400',
+                      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+                      borderColor: 'border-blue-200 dark:border-blue-800/50'
+                    },
+                    OPPORTUNITIES: {
+                      icon: FireIcon,
+                      color: 'text-orange-700 dark:text-orange-400',
+                      bgColor: 'bg-orange-50 dark:bg-orange-950/30',
+                      borderColor: 'border-orange-200 dark:border-orange-800/50'
+                    }
                   }
 
                   const config = categoryConfig[notification.category]
@@ -595,16 +541,37 @@ export default function AnalyticsDashboard() {
                         <div className="flex items-start gap-3">
                           <NotificationIcon className={`h-5 w-5 ${config.color} flex-shrink-0 mt-0.5`} />
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-gray-900 break-words">
-                              {notification.title}
-                            </p>
-                            <p className="text-sm text-gray-700 mt-1 break-words">{notification.message}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-gray-900 dark:text-gray-100 break-words">
+                                {notification.title}
+                              </p>
+                              {/* Tier indicator badge */}
+                              {notification.actions?.find(a => a.tier) && (
+                                <Badge
+                                  className={cn(
+                                    "text-xs font-bold",
+                                    notification.actions.find(a => a.tier)?.tier <= 2
+                                      ? "bg-gold-100 text-gold-800 border-gold-300"
+                                      : "bg-gray-100 text-gray-700 border-gray-300"
+                                  )}
+                                  variant="outline"
+                                >
+                                  Tier {notification.actions.find(a => a.tier)?.tier}
+                                </Badge>
+                              )}
+                              {/* Priority indicator for urgent notifications */}
+                              {notification.daysWaiting && notification.daysWaiting >= 7 && (
+                                <Badge className="bg-red-100 text-red-800 border-red-300 text-xs" variant="outline">
+                                  {notification.daysWaiting >= 14 ? 'URGENT' : 'Overdue'}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 break-words">{notification.message}</p>
                             {(notification.daysWaiting || notification.lastContact) && (
-                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                <span>Client: {notification.clientName}</span>
+                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
                                 {notification.daysWaiting && (
                                   <span className="flex items-center gap-1">
-                                    • {notification.daysWaiting} days waiting
+                                    🕐 {notification.daysWaiting} days since last contact
                                   </span>
                                 )}
                                 {notification.lastContact && (
@@ -623,17 +590,22 @@ export default function AnalyticsDashboard() {
                               key={index}
                               size="sm"
                               variant={action.isPrimary ? "default" : "outline"}
-                              onClick={() => handleNotificationAction(notification.id, action)}
-                              className={action.isPrimary ? "bg-gold-600 hover:bg-gold-700" : ""}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log('Button clicked:', action.label, action.type)
+                                handleNotificationAction(notification.id, action)
+                              }}
+                              className={cn(
+                                action.isPrimary ? "bg-gold-600 hover:bg-gold-700 text-white" : "hover:bg-muted",
+                                "transition-all duration-200 active:scale-95 cursor-pointer"
+                              )}
                             >
                               {action.label}
                             </Button>
                           ))}
                         </div>
                       </div>
-                      {!notification.isRead && (
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full" />
-                      )}
                     </motion.div>
                   )
                 })}
@@ -671,13 +643,13 @@ export default function AnalyticsDashboard() {
                           {index + 1}
                         </div>
                         <Avatar className="h-10 w-10">
-                          <AvatarFallback className={cn("text-white font-semibold", getVipTierColor(client.clientTier))}>
+                          <AvatarFallback className={cn("text-white font-semibold", getVipTierColor(client.clientTier.toString()))}>
                             {client.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold">{client.name}</p>
+                            <p className="font-semibold">{formatClientName(client.name)}</p>
                             <Badge variant="outline" className={cn("text-xs", getVipTierColor(client.clientTier.toString()))}>
                               Tier {client.clientTier}
                             </Badge>
@@ -717,9 +689,9 @@ export default function AnalyticsDashboard() {
                     <Badge variant="outline">{analytics.totalWaitlist}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Priority Alerts</span>
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                      {unreadCount}
+                    <span className="text-muted-foreground">Active Notifications</span>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {getCounts().total}
                     </Badge>
                   </div>
                 </div>
@@ -728,89 +700,6 @@ export default function AnalyticsDashboard() {
           </div>
         </main>
 
-        {/* Alerts Sidebar Panel */}
-        <AnimatePresence>
-          {showAlertsPanel && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-                onClick={() => setShowAlertsPanel(false)}
-              />
-
-              {/* Panel */}
-              <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                className="fixed right-0 top-0 h-full w-96 bg-background border-l shadow-xl z-50 overflow-y-auto"
-              >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">All Priority Alerts</h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAlertsPanel(false)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {alerts.map(alert => (
-                      <motion.div
-                        key={alert.id}
-                        layout
-                        className={cn("p-3 rounded-lg border", getAlertColor(alert.priority))}
-                      >
-                        <div className="flex items-start gap-2">
-                          {getAlertIcon(alert.priority)}
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm">{alert.clientName}</p>
-                            <p className="text-sm opacity-90">{alert.message}</p>
-                            <div className="flex items-center justify-between mt-2">
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="text-xs h-6"
-                                onClick={() => {
-                                  if (alert.priority === 'PERFECT_MATCH') {
-                                    setShowAlertsPanel(false) // Close sidebar first
-                                    handleAllocateNow(alert)
-                                  } else if (alert.priority === 'NEEDS_FOLLOWUP') {
-                                    handleFollowUp(alert)
-                                  }
-                                }}
-                              >
-                                {alert.action}
-                              </Button>
-                              {alert.daysWaiting && (
-                                <span className="text-xs opacity-75">{alert.daysWaiting}d</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-
-                    {alerts.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No alerts available</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Notifications Panel - Integrated into main dashboard */}
 
@@ -821,17 +710,20 @@ export default function AnalyticsDashboard() {
           watchId={selectedWatchForAllocation}
           onContactInitiated={(clientId, method) => {
             console.log(`Contact initiated: ${clientId} via ${method}`)
-            // Refresh alerts after contact
-            fetchAllocationAlerts()
+            // Handle allocation complete
           }}
         />
 
         {/* Client Modal */}
         {selectedClientForView && (
           <ClientModal
-            selectedClient={getClientById(selectedClientForView)}
-            onClose={() => setSelectedClientForView(null)}
+            selectedClient={getClientById(selectedClientForView) || null}
+            onClose={() => {
+              console.log('Closing client modal')
+              setSelectedClientForView(null)
+            }}
             onSave={(clientData) => {
+              console.log('Saving client data:', clientData)
               // Handle client updates here if needed
               setSelectedClientForView(null)
             }}

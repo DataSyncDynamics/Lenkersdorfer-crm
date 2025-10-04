@@ -89,9 +89,10 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "h-screen px-4 py-4 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] flex-shrink-0 overflow-visible",
+        "h-screen px-4 py-4 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] flex-shrink-0",
         className
       )}
+      style={{ overflow: 'visible' }} // Ensure badges can overflow
       animate={{
         width: animate ? (open ? "300px" : "60px") : "300px",
       }}
@@ -168,12 +169,15 @@ export const SidebarLink = ({
     <Link
       href={link.href}
       className={cn(
-        "flex items-center justify-start gap-2 group/sidebar py-2",
+        "flex items-center justify-start gap-2 group/sidebar py-2 relative",
         className
       )}
+      style={{ overflow: 'visible' }} // Ensure notification badges are not clipped
       {...props}
     >
-      {link.icon}
+      <div className="relative overflow-visible flex-shrink-0">
+        {link.icon}
+      </div>
       <motion.span
         animate={{
           display: animate ? (open ? "inline-block" : "none") : "inline-block",

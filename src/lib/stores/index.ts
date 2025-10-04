@@ -4,18 +4,18 @@ import { create } from 'zustand'
 import { ClientSlice, createClientSlice } from './clientStore'
 import { WatchSlice, createWatchSlice } from './watchStore'
 import { WaitlistSlice, createWaitlistSlice } from './waitlistStore'
-import { GreenBoxSlice, createGreenBoxSlice } from './greenBoxStore'
+import { PerfectMatchSlice, createPerfectMatchSlice } from './perfectMatchStore'
 import { AllocationSlice, createAllocationSlice } from './allocationStore'
 
 // Combined app state type
-export type AppState = ClientSlice & WatchSlice & WaitlistSlice & GreenBoxSlice & AllocationSlice
+export type AppState = ClientSlice & WatchSlice & WaitlistSlice & PerfectMatchSlice & AllocationSlice
 
 // Create the combined store
 export const useAppStore = create<AppState>()((...a) => ({
   ...createClientSlice(...a),
   ...createWatchSlice(...a),
   ...createWaitlistSlice(...a),
-  ...createGreenBoxSlice(...a),
+  ...createPerfectMatchSlice(...a),
   ...createAllocationSlice(...a),
 }))
 

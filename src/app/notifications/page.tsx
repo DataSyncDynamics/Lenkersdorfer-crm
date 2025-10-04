@@ -37,57 +37,10 @@ export default function NotificationsDemoPage() {
 
   const counts = getCounts()
 
-  // Add a demo notification for testing
-  useEffect(() => {
-    addNotification({
-      category: 'HOT_LEADS',
-      title: 'Hot Lead Cooling',
-      message: 'High-value prospect Sarah Chen needs immediate follow-up',
-      clientName: 'Sarah Chen',
-      clientId: 'client-demo-123',
-      watchBrand: 'Rolex',
-      watchModel: 'Submariner',
-      daysWaiting: 15,
-      actions: [
-        { type: 'CALL', label: 'Call Now', isPrimary: true, phoneNumber: '+1-555-0123' },
-        { type: 'SCHEDULE', label: 'Follow Up' },
-        { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-demo-123' },
-        { type: 'DISMISS', label: 'Dismiss' }
-      ]
-    })
-  }, [])
+  // Removed demo notifications - notifications now come from real user actions only
 
-  // Demo notification templates
-  const demoNotifications = [
-    {
-      category: 'ALLOCATION' as const,
-      urgency: 'CRITICAL' as const,
-      title: 'Perfect Allocation Match!',
-      message: 'New VIP client with exact tier match available',
-      template: true
-    },
-    {
-      category: 'HOT_LEADS' as const,
-      urgency: 'HIGH' as const,
-      title: 'Hot Lead Cooling',
-      message: 'High-value prospect needs immediate follow-up',
-      template: true
-    },
-    {
-      category: 'VIP_WAITING' as const,
-      urgency: 'HIGH' as const,
-      title: 'VIP Client Alert',
-      message: 'Platinum client waiting too long for watch',
-      template: true
-    },
-    {
-      category: 'NEW_ARRIVALS' as const,
-      urgency: 'MEDIUM' as const,
-      title: 'New Watch Arrival',
-      message: 'Fresh inventory needs allocation review',
-      template: true
-    }
-  ]
+  // Demo notification templates (disabled - notifications now come from messages only)
+  // const demoNotifications = []
 
   const addDemoNotification = (template: typeof demoNotifications[0]) => {
     const clientNames = ['Sarah Chen', 'Michael Rodriguez', 'James Thompson', 'Emma Wilson', 'David Kim']
@@ -118,12 +71,8 @@ export default function NotificationsDemoPage() {
   }
 
   const categoryIcons = {
-    ALLOCATION: Star,
-    HOT_LEADS: Flame,
-    VIP_WAITING: Star,
-    NEW_ARRIVALS: Inbox,
-    FOLLOW_UPS: Clock,
-    CALLBACKS: Calendar
+    MESSAGES: Bell,
+    SYSTEM: Inbox
   }
 
 
@@ -231,12 +180,12 @@ export default function NotificationsDemoPage() {
             <Card className="hover:shadow-lg transition-all duration-200">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-green-100 p-3 rounded-lg">
-                    <Star className="w-7 h-7 text-green-600" />
+                  <div className="bg-blue-100 p-3 rounded-lg">
+                    <Bell className="w-7 h-7 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-green-600 text-3xl font-bold">{counts.byCategory.ALLOCATION || 0}</div>
-                    <div className="text-muted-foreground text-sm font-medium">Allocation</div>
+                    <div className="text-blue-600 text-3xl font-bold">{counts.byCategory.MESSAGES || 0}</div>
+                    <div className="text-muted-foreground text-sm font-medium">Messages</div>
                   </div>
                 </div>
               </CardContent>
@@ -276,12 +225,8 @@ export default function NotificationsDemoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">All Categories</SelectItem>
-                      <SelectItem value="ALLOCATION">Allocation</SelectItem>
-                      <SelectItem value="HOT_LEADS">Hot Leads</SelectItem>
-                      <SelectItem value="VIP_WAITING">VIP Waiting</SelectItem>
-                      <SelectItem value="NEW_ARRIVALS">New Arrivals</SelectItem>
-                      <SelectItem value="FOLLOW_UPS">Follow-ups</SelectItem>
-                      <SelectItem value="CALLBACKS">Callbacks</SelectItem>
+                      <SelectItem value="MESSAGES">Messages</SelectItem>
+                      <SelectItem value="SYSTEM">System</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -380,48 +325,16 @@ export default function NotificationsDemoPage() {
             </Card>
           </div>
 
-          {/* Demo Controls */}
+          {/* Demo Controls - Disabled (notifications now come from messages only) */}
           <div className="space-y-6">
-            <Card className="hover:shadow-lg transition-all duration-200">
+            {/* <Card className="hover:shadow-lg transition-all duration-200">
               <CardHeader>
                 <CardTitle className="text-lg">Add Demo Notifications</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {demoNotifications.map((template, index) => {
-                  const getUrgencyColors = (urgency: string) => {
-                    switch (urgency) {
-                      case 'CRITICAL': return { bg: 'bg-red-50 hover:bg-red-100', border: 'border-red-200', icon: 'bg-red-100', iconText: 'text-red-600' }
-                      case 'HIGH': return { bg: 'bg-orange-50 hover:bg-orange-100', border: 'border-orange-200', icon: 'bg-orange-100', iconText: 'text-orange-600' }
-                      case 'MEDIUM': return { bg: 'bg-yellow-50 hover:bg-yellow-100', border: 'border-yellow-200', icon: 'bg-yellow-100', iconText: 'text-yellow-600' }
-                      case 'LOW': return { bg: 'bg-gray-50 hover:bg-gray-100', border: 'border-gray-200', icon: 'bg-gray-100', iconText: 'text-gray-600' }
-                      default: return { bg: 'bg-gray-50 hover:bg-gray-100', border: 'border-gray-200', icon: 'bg-gray-100', iconText: 'text-gray-600' }
-                    }
-                  }
-
-                  const colors = getUrgencyColors(template.urgency)
-                  const CategoryIcon = categoryIcons[template.category]
-
-                  return (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      onClick={() => addDemoNotification(template)}
-                      className={cn("w-full h-auto p-3 justify-start", colors.bg, colors.border)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={cn("p-2 rounded-lg", colors.icon)}>
-                          <CategoryIcon className={cn("w-4 h-4", colors.iconText)} />
-                        </div>
-                        <div className="text-left">
-                          <div className="font-medium text-sm">{template.title}</div>
-                          <div className="text-muted-foreground text-xs">{template.urgency} Priority</div>
-                        </div>
-                      </div>
-                    </Button>
-                  )
-                })}
+                Demo notification controls removed - notifications now come from real user actions only
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card className="hover:shadow-lg transition-all duration-200">
               <CardHeader>

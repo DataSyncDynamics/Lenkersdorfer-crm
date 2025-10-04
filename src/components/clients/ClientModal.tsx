@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAppStore } from '@/lib/store'
 import { Client, ClientTier, WatchTier } from '@/types'
+import { formatClientName } from '@/lib/ui-utils'
 
 interface ClientModalProps {
   selectedClient: Client | null
@@ -26,7 +27,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     addToWaitlist,
     removeFromWaitlist,
     getWatchModelById,
-    calculateGreenBoxStatus
+    calculateMatchStatus
   } = useAppStore()
 
   // Form state for client editing
@@ -43,8 +44,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
   const [selectedWatchId, setSelectedWatchId] = useState('')
   const [wishlistNotes, setWishlistNotes] = useState('')
 
-  // Edit mode state
-  const [isEditing, setIsEditing] = useState(!readonly)
+  // Edit mode state - always start in read-only mode
+  const [isEditing, setIsEditing] = useState(false)
 
   // Update form data when selected client changes
   useEffect(() => {
@@ -112,16 +113,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
 
   // Get tier match status for display
   const getTierMatchStatus = (clientTier: ClientTier, watchTier: WatchTier, clientLifetimeSpend: number, watchPrice: number) => {
-    const status = calculateGreenBoxStatus(clientTier, watchTier, clientLifetimeSpend, watchPrice)
+    const status = calculateMatchStatus(clientTier, watchTier, clientLifetimeSpend, watchPrice)
     switch (status) {
       case 'GREEN':
-        return { text: 'Perfect Match', className: 'bg-green-100 text-green-800' }
+        return { text: 'Perfect Match', className: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700' }
       case 'YELLOW':
-        return { text: 'Upgrade Opportunity', className: 'bg-yellow-100 text-yellow-800' }
+        return { text: 'Upgrade Opportunity', className: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700' }
       case 'RED':
-        return { text: 'Not Suitable', className: 'bg-red-100 text-red-800' }
+        return { text: 'Not Suitable', className: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700' }
       default:
-        return { text: 'Unknown', className: 'bg-gray-100 text-gray-800' }
+        return { text: 'Unknown', className: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700' }
     }
   }
 
@@ -132,157 +133,168 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>{isEditing ? 'Edit Client:' : 'View Client:'} {selectedClient.name}</DialogTitle>
-            {readonly && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                {isEditing ? (
-                  <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View
-                  </>
-                ) : (
-                  <>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </>
-                )}
-              </Button>
-            )}
+            <DialogTitle>{formatClientName(selectedClient.name)} Client Information</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(!isEditing)}
+            >
+              {isEditing ? (
+                <>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </>
+              )}
+            </Button>
           </div>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Client Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Client Information</h3>
+          <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Client Information</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName" className="text-slate-700 dark:text-slate-300 font-medium">First Name</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   readOnly={!isEditing}
-                  className={!isEditing ? "bg-muted" : ""}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
                 />
               </div>
               <div>
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName" className="text-slate-700 dark:text-slate-300 font-medium">Last Name</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   readOnly={!isEditing}
-                  className={!isEditing ? "bg-muted" : ""}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   readOnly={!isEditing}
-                  className={!isEditing ? "bg-muted" : ""}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
                 />
               </div>
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone" className="text-slate-700 dark:text-slate-300 font-medium">Phone</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   readOnly={!isEditing}
-                  className={!isEditing ? "bg-muted" : ""}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes" className="text-slate-700 dark:text-slate-300 font-medium">Notes</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
                 readOnly={!isEditing}
-                className={!isEditing ? "bg-muted" : ""}
+                className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
               />
             </div>
           </div>
 
           {/* Preferred Brands */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Preferred Brands</h3>
+          <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-5 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Preferred Brands</h3>
             <div className="flex flex-wrap gap-2">
               {formData.preferredBrands.map((brand) => (
-                <Badge key={brand} variant="secondary" className="cursor-pointer">
+                <Badge
+                  key={brand}
+                  variant="secondary"
+                  className={`${isEditing ? "cursor-pointer" : ""} bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium`}
+                >
                   {brand}
-                  <X
-                    className="ml-1 h-3 w-3"
-                    onClick={() => handleRemoveBrand(brand)}
-                  />
+                  {isEditing && (
+                    <X
+                      className="ml-1 h-3 w-3 hover:text-red-600 dark:hover:text-red-400"
+                      onClick={() => handleRemoveBrand(brand)}
+                    />
+                  )}
                 </Badge>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add preferred brand..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddBrand(e.currentTarget.value)
-                    e.currentTarget.value = ''
-                  }
-                }}
-              />
-            </div>
+            {isEditing && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add preferred brand..."
+                  className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddBrand(e.currentTarget.value)
+                      e.currentTarget.value = ''
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Wishlist Management */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Wishlist Management</h3>
+          <div className="space-y-4 bg-purple-50 dark:bg-purple-950/30 p-5 rounded-lg border border-purple-200 dark:border-purple-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Wishlist Management</h3>
 
-            {/* Add to Wishlist */}
-            <div className="border rounded-lg p-4 space-y-3">
-              <h4 className="font-medium">Add Watch to Wishlist</h4>
-              <div className="grid grid-cols-1 gap-3">
-                <Select value={selectedWatchId} onValueChange={setSelectedWatchId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a watch model..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {watchModels.map((watch) => (
-                      <SelectItem key={watch.id} value={watch.id}>
-                        {watch.brand} {watch.model} - {watch.collection}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Optional notes..."
-                  value={wishlistNotes}
-                  onChange={(e) => setWishlistNotes(e.target.value)}
-                />
-                <Button
-                  onClick={handleAddToWishlist}
-                  disabled={!selectedWatchId}
-                  size="sm"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add to Wishlist
-                </Button>
+            {/* Add to Wishlist - Only show in edit mode */}
+            {isEditing && (
+              <div className="bg-white dark:bg-slate-800 border border-purple-300 dark:border-purple-700 rounded-lg p-4 space-y-3">
+                <h4 className="font-medium text-slate-900 dark:text-slate-100">Add Watch to Wishlist</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  <Select value={selectedWatchId} onValueChange={setSelectedWatchId}>
+                    <SelectTrigger className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600">
+                      <SelectValue placeholder="Select a watch model..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {watchModels.map((watch) => (
+                        <SelectItem key={watch.id} value={watch.id}>
+                          {watch.brand} {watch.model} - {watch.collection}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Optional notes..."
+                    value={wishlistNotes}
+                    onChange={(e) => setWishlistNotes(e.target.value)}
+                    className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+                  />
+                  <Button
+                    onClick={handleAddToWishlist}
+                    disabled={!selectedWatchId}
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add to Wishlist
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Current Wishlist */}
             {clientWishlist.length > 0 && (
               <div className="space-y-3">
-                <h4 className="font-medium">Current Wishlist ({clientWishlist.length} items)</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <h4 className="font-medium text-slate-900 dark:text-slate-100">Current Wishlist ({clientWishlist.length} items)</h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                   {clientWishlist.map((entry) => {
                     const watch = getWatchModelById(entry.watchModelId)
                     if (!watch) return null
@@ -290,32 +302,34 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                     const tierMatch = getTierMatchStatus(selectedClient.clientTier, watch.watchTier, selectedClient.lifetimeSpend, watch.price)
 
                     return (
-                      <div key={entry.id} className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                      <div key={entry.id} className="flex items-center justify-between bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-700 p-4 rounded-lg hover:shadow-md transition-shadow">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Watch className="h-4 w-4" />
-                            <span className="font-medium">{watch.brand} {watch.model}</span>
-                            <Badge className={tierMatch.className} variant="outline">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Watch className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">{watch.brand} {watch.model}</span>
+                            <Badge className={`${tierMatch.className} dark:bg-opacity-20 font-semibold border`} variant="outline">
                               {tierMatch.text}
                             </Badge>
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-slate-600 dark:text-slate-400 font-medium">
                             {watch.collection} • Added {new Date(entry.dateAdded).toLocaleDateString()}
                           </div>
                           {entry.notes && (
-                            <div className="text-sm text-muted-foreground italic mt-1">
+                            <div className="text-sm text-slate-700 dark:text-slate-300 italic mt-2 bg-slate-100 dark:bg-slate-700 p-2 rounded">
                               "{entry.notes}"
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveFromWishlist(entry.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        {isEditing && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveFromWishlist(entry.id)}
+                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     )
                   })}
@@ -325,24 +339,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
 
           {/* Purchase History */}
           {selectedClient.purchases && selectedClient.purchases.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Purchase History</h3>
+            <div className="space-y-4 bg-emerald-50 dark:bg-emerald-950/30 p-5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Purchase History</h3>
               <div className="space-y-3">
                 {selectedClient.purchases.map((purchase) => (
-                  <div key={purchase.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div key={purchase.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-lg hover:shadow-md transition-shadow">
                     <div className="flex-1">
-                      <h4 className="font-medium">
+                      <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-base">
                         {purchase.brand} {purchase.watchModel}
                       </h4>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">
                         {new Date(purchase.date).toLocaleDateString('de-DE')}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-slate-500 dark:text-slate-500 font-mono mt-1 bg-slate-100 dark:bg-slate-700 inline-block px-2 py-1 rounded">
                         Serial: {purchase.serialNumber}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-green-600">
+                      <div className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
                         ${purchase.price.toLocaleString()}
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -24,6 +24,7 @@ import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { ClientCard } from '@/components/clients/ClientCard'
 import { ClientModal } from '@/components/clients/ClientModal'
 import { AddClientModal } from '@/components/clients/AddClientModal'
+import { useNotifications } from '@/contexts/NotificationContext'
 
 export default function ClientsPage() {
   const {
@@ -37,6 +38,24 @@ export default function ClientsPage() {
     clients,
     addToWaitlist
   } = useAppStore()
+
+  const { notifications, markAsRead } = useNotifications()
+
+  // Mark relevant notifications as read when visiting clients page
+  useEffect(() => {
+    const clientPageNotifications = notifications.filter(n =>
+      (n.category === 'URGENT_CLIENTS' || n.category === 'NEW_OPPORTUNITIES') && !n.isRead
+    )
+
+    // Auto-mark as read after 3 seconds to give user time to see them
+    const timer = setTimeout(() => {
+      clientPageNotifications.forEach(notification => {
+        markAsRead(notification.id)
+      })
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [notifications, markAsRead])
 
   const [showAddClientModal, setShowAddClientModal] = useState(false)
   const [sortBy, setSortBy] = useState<string>('name')

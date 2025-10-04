@@ -96,7 +96,7 @@ export class NotificationService {
 
         notifications.push({
           id: `greenbox-${entry.id}-${Date.now()}`,
-          category: 'GREEN_BOX',
+          category: 'NEW_OPPORTUNITIES',
           urgency: 'CRITICAL',
           title: 'Perfect GREEN BOX Match!',
           message: `${client.name} (${client.vip_tier}) has exact tier match for new ${entry.brand} ${entry.model}`,
@@ -157,7 +157,7 @@ export class NotificationService {
 
         notifications.push({
           id: `vip-waiting-${entry.id}-${Date.now()}`,
-          category: 'VIP_WAITING',
+          category: 'URGENT_CLIENTS',
           urgency,
           title: `${client.vip_tier} Client Waiting`,
           message: `${client.name} (${client.vip_tier}) waiting ${daysWaiting} days for ${entry.brand} ${entry.model}`,
@@ -212,7 +212,7 @@ export class NotificationService {
 
         notifications.push({
           id: `hot-lead-${client.id}-${Date.now()}`,
-          category: 'HOT_LEADS',
+          category: 'URGENT_CLIENTS',
           urgency,
           title: 'Hot Lead Cooling Off',
           message: `${client.name} (${client.vip_tier}) - No contact in ${daysSinceContact} days`,
@@ -254,7 +254,7 @@ export class NotificationService {
       if (arrival.potentialMatches > 0) {
         notifications.push({
           id: `new-arrival-${arrival.id}-${Date.now()}`,
-          category: 'NEW_ARRIVALS',
+          category: 'ALLOCATIONS',
           urgency: 'MEDIUM',
           title: 'New Arrival Needs Allocation',
           message: `${arrival.brand} ${arrival.model} just arrived - ${arrival.potentialMatches} waitlist candidates`,
@@ -339,7 +339,7 @@ export class NotificationService {
     if (scheduledCallbacks.length > 0) {
       notifications.push({
         id: `callbacks-${Date.now()}`,
-        category: 'CALLBACKS',
+        category: 'FOLLOW_UPS',
         urgency: 'MEDIUM',
         title: 'Scheduled Callbacks Due',
         message: `${scheduledCallbacks.length} callbacks scheduled for today`,

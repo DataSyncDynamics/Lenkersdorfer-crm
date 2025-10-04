@@ -103,6 +103,14 @@ export interface AllocationContact {
   contactTimestamp?: string
   saleCompleted: boolean
   completedAt?: string
+  // New business logic fields
+  businessCategory?: 'PERFECT_MATCH' | 'STRETCH_PURCHASE' | 'UPGRADE_OPPORTUNITY' | 'NOT_SUITABLE'
+  businessLabel?: string
+  businessAction?: string
+  businessReasoning?: string
+  businessConfidence?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+  daysWaiting?: number
+  isOnWaitlist?: boolean // True if client is actually on waitlist for this watch
 }
 
 export interface ContactAttempt {

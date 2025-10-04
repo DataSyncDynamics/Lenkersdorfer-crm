@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { NotificationProvider } from '@/contexts/NotificationContext'
+import { MessagingProvider } from '@/contexts/MessagingContext'
 import { ThemeProvider } from '@/components/ui/theme-provider'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -27,9 +28,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NotificationProvider>
-            <div className="min-h-screen bg-background text-foreground">
-              {children}
-            </div>
+            <MessagingProvider>
+              <div className="min-h-screen bg-background text-foreground">
+                {children}
+              </div>
+            </MessagingProvider>
           </NotificationProvider>
         </ThemeProvider>
       </body>
