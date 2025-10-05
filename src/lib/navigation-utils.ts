@@ -3,7 +3,6 @@ import {
   Home,
   Users,
   Clock,
-  BarChart3,
   Upload,
   Bell,
   Zap,
@@ -106,11 +105,6 @@ export function createMainNavigationLinks(pathname: string, counts: any, messagi
         getNotificationCountForCategories(counts, ['ALLOCATIONS']),
         'green'
       )
-    },
-    {
-      label: "Tier Management",
-      href: "/tier-management",
-      icon: createNavigationIcon(BarChart3, pathname === "/tier-management")
     },
     {
       label: "Import",

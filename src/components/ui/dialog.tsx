@@ -40,13 +40,13 @@ const DialogContent = React.forwardRef<
       className={cn(
         // Base styles
         "fixed z-50 grid w-full gap-4 border bg-background p-4 md:p-6 shadow-lg duration-200",
-        // Mobile: Bottom sheet styles
-        "bottom-0 left-0 right-0 rounded-t-2xl translate-y-0",
+        // Mobile: Full-height modal from top
+        "top-0 left-1/2 -translate-x-1/2 rounded-b-2xl max-h-screen overflow-y-auto",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         // Desktop: Centered modal styles (md breakpoint and up)
-        "md:bottom-auto md:left-[50%] md:top-[50%] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg",
+        "md:bottom-auto md:left-[50%] md:top-[50%] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:max-h-[90vh]",
         "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
         "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
         "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",

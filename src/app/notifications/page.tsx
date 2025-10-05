@@ -100,50 +100,8 @@ export default function NotificationsDemoPage() {
           { type: 'DISMISS', label: 'Dismiss' }
         ]
       })
-
-      // System notification example
-      addNotification({
-        category: 'SYSTEM',
-        urgency: 'LOW',
-        title: 'Daily Summary Report',
-        message: 'Your daily client activity summary is ready. 3 new waitlist entries, 2 allocations made, 5 follow-ups pending.',
-        actions: [
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
     }
   }, []) // Only run once on mount
-
-  // Demo notification templates (disabled - notifications now come from messages only)
-  // const demoNotifications = []
-
-  const addDemoNotification = (template: typeof demoNotifications[0]) => {
-    const clientNames = ['Sarah Chen', 'Michael Rodriguez', 'James Thompson', 'Emma Wilson', 'David Kim']
-    const watchBrands = ['Rolex', 'Patek Philippe', 'Omega', 'Tudor', 'Cartier']
-    const watchModels = ['Submariner', 'Nautilus', 'Speedmaster', 'Black Bay', 'Santos']
-
-    const randomClient = clientNames[Math.floor(Math.random() * clientNames.length)]
-    const randomBrand = watchBrands[Math.floor(Math.random() * watchBrands.length)]
-    const randomModel = watchModels[Math.floor(Math.random() * watchModels.length)]
-
-    addNotification({
-      category: template.category,
-      urgency: template.urgency,
-      title: template.title,
-      message: template.message.replace('VIP client', randomClient).replace('New VIP client', randomClient),
-      clientName: randomClient,
-      clientId: `client-${Date.now()}`,
-      watchBrand: randomBrand,
-      watchModel: randomModel,
-      daysWaiting: Math.floor(Math.random() * 90) + 1,
-      actions: [
-        { type: 'CALL', label: 'Call Now', isPrimary: true, phoneNumber: '+1-555-0123' },
-        { type: 'SCHEDULE', label: 'Follow Up' },
-        { type: 'VIEW_CLIENT', label: 'View Client' },
-        { type: 'DISMISS', label: 'Dismiss' }
-      ]
-    })
-  }
 
   const categoryIcons = {
     MESSAGES: Bell,
@@ -213,9 +171,9 @@ export default function NotificationsDemoPage() {
   return (
     <LenkersdorferSidebar>
       <div className="flex h-screen flex-col overflow-hidden bg-background">
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden space-y-6">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-y-auto space-y-6" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-background md:static flex items-center space-x-4 pt-6">
+        <div className="sticky top-0 z-10 bg-background md:static flex items-center space-x-4 pt-6">
           <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-3 rounded-full">
             <Bell className="w-8 h-8 text-black" />
           </div>
@@ -227,16 +185,14 @@ export default function NotificationsDemoPage() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <div
             className="cursor-pointer"
             onClick={() => setShowStatsModal('CRITICAL')}
           >
-            <Card className="hover:shadow-lg transition-all duration-200">
+            <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-red-100 dark:bg-red-950 p-3 rounded-lg">
+                  <div className="bg-red-100 dark:bg-red-950 p-3 rounded-lg flex-shrink-0">
                     <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-500" />
                   </div>
                   <div>
@@ -246,18 +202,16 @@ export default function NotificationsDemoPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <div
             className="cursor-pointer"
             onClick={() => setShowStatsModal('HIGH')}
           >
-            <Card className="hover:shadow-lg transition-all duration-200">
+            <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-orange-100 dark:bg-orange-950 p-3 rounded-lg">
+                  <div className="bg-orange-100 dark:bg-orange-950 p-3 rounded-lg flex-shrink-0">
                     <Flame className="w-7 h-7 text-orange-600 dark:text-orange-500" />
                   </div>
                   <div>
@@ -267,18 +221,16 @@ export default function NotificationsDemoPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <div
             className="cursor-pointer"
             onClick={() => setShowStatsModal('MESSAGES')}
           >
-            <Card className="hover:shadow-lg transition-all duration-200">
+            <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-blue-100 dark:bg-blue-950 p-3 rounded-lg">
+                  <div className="bg-blue-100 dark:bg-blue-950 p-3 rounded-lg flex-shrink-0">
                     <Bell className="w-7 h-7 text-blue-600 dark:text-blue-500" />
                   </div>
                   <div>
@@ -288,18 +240,16 @@ export default function NotificationsDemoPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <div
             className="cursor-pointer"
             onClick={() => setShowStatsModal('ALL')}
           >
-            <Card className="hover:shadow-lg transition-all duration-200">
+            <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-yellow-100 dark:bg-yellow-950 p-3 rounded-lg">
+                  <div className="bg-yellow-100 dark:bg-yellow-950 p-3 rounded-lg flex-shrink-0">
                     <Bell className="w-7 h-7 text-yellow-600 dark:text-yellow-500" />
                   </div>
                   <div>
@@ -309,12 +259,12 @@ export default function NotificationsDemoPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6 w-full max-w-full">
           {/* Notification List */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             <Card className="hover:shadow-lg transition-all duration-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -354,12 +304,12 @@ export default function NotificationsDemoPage() {
                       layout
                       className="border rounded-lg p-4 hover:shadow-md transition-all duration-200"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3 flex-1">
-                          <div className={`${urgencyColors.bg} p-2 rounded-lg`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start space-x-3 flex-1 min-w-0">
+                          <div className={`${urgencyColors.bg} p-2 rounded-lg flex-shrink-0`}>
                             <CategoryIcon className={`w-5 h-5 ${urgencyColors.text}`} />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-semibold">{notification.title}</h3>
                               <Badge className={cn("text-xs", urgencyColors.bg, urgencyColors.text, urgencyColors.border)}>
@@ -409,7 +359,7 @@ export default function NotificationsDemoPage() {
                             triggerHapticFeedback()
                             removeNotification(notification.id)
                           }}
-                          className="p-2"
+                          className="p-2 flex-shrink-0"
                         >
                           <CheckCircle className="w-5 h-5" />
                         </Button>
@@ -486,7 +436,7 @@ export default function NotificationsDemoPage() {
 
         {/* Stats Modal */}
         <Dialog open={!!showStatsModal} onOpenChange={() => setShowStatsModal(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] md:w-full">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {showStatsModal === 'CRITICAL' && (

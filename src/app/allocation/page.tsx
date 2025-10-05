@@ -35,6 +35,7 @@ import { useAppStore, formatCurrency, getVipTierColor } from '@/lib/store'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { cn } from '@/lib/utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
+import { getTierColorClasses } from '@/lib/ui-utils'
 
 interface AllocationSuggestionCardProps {
   suggestion: any
@@ -667,7 +668,7 @@ function AllocationContent() {
         {/* Detail Modals */}
         {showModal && (
           <Dialog open={!!showModal} onOpenChange={() => setShowModal(null)}>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] md:w-full">
               <DialogHeader>
                 <DialogTitle>
                   {showModal === 'waitlist' && 'Waitlist Entries'}
@@ -847,37 +848,38 @@ function AllocationContent() {
                       if (!client || !watch) return null
 
                       return (
-                        <Card key={`${match.clientId}-${match.watchModelId}`}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                        <Card key={`${match.clientId}-${match.watchModelId}`} className="border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-800">
+                          <CardContent className="p-3 md:p-4">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs md:text-sm">
                                   {client.name.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold">{client.name}</h4>
-                                  <Badge variant="default">Perfect Match</Badge>
-                                  <Badge variant="outline">Tier {client.clientTier}</Badge>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
+                                  <h4 className="font-semibold text-sm md:text-base break-words">{client.name}</h4>
+                                  <Badge className={cn("text-xs border flex-shrink-0", getTierColorClasses(client.clientTier))}>
+                                    Tier {client.clientTier}
+                                  </Badge>
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <Watch className="h-3 w-3" />
-                                    {watch.brand} {watch.model} - {watch.collection}
+                                <div className="text-xs md:text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5 md:gap-2">
+                                    <Watch className="h-3 w-3 flex-shrink-0" />
+                                    <span className="break-words">{watch.brand} {watch.model} - {watch.collection}</span>
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-semibold">{formatCurrency(watch.price)}</div>
-                                <div className="text-xs text-muted-foreground">{formatCurrency(client.lifetimeSpend)} lifetime</div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="font-semibold text-sm md:text-base">{formatCurrency(watch.price)}</div>
+                                <div className="text-xs text-muted-foreground hidden md:block">{formatCurrency(client.lifetimeSpend)} lifetime</div>
                                 <Button
                                   size="sm"
                                   onClick={() => {
                                     setSelectedWatchId(watch.id)
                                     setShowModal(null)
                                   }}
-                                  className="mt-1"
+                                  className="mt-1 md:mt-2"
                                 >
                                   Allocate
                                 </Button>

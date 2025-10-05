@@ -456,7 +456,7 @@ export default function ClientsPage() {
 
         {/* VIP Clients Modal */}
         <Dialog open={showVipModal} onOpenChange={setShowVipModal}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] md:w-full">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />

@@ -434,7 +434,7 @@ export default function AnalyticsDashboard() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header with Alert Bell */}
-        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
+        <div className="sticky top-0 z-10 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Lenkersdorfer Analytics</h1>
             <p className="text-muted-foreground">Professional luxury watch sales dashboard</p>

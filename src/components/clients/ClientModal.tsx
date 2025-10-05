@@ -130,7 +130,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
 
   return (
     <Dialog open={!!selectedClient} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] md:w-full">
         <DialogHeader>
           <DialogTitle>{formatClientName(selectedClient.name)}</DialogTitle>
         </DialogHeader>
