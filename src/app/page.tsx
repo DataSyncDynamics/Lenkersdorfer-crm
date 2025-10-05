@@ -36,6 +36,7 @@ import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import type { Client } from '@/types'
 import { cn } from '@/lib/utils'
 import { formatClientName } from '@/lib/ui-utils'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
 
 interface MetricCardProps {
@@ -326,6 +327,7 @@ export default function AnalyticsDashboard() {
         }
         break
       case 'CALL':
+        triggerHapticFeedback()
         if (action.phoneNumber) {
           window.location.href = `tel:${action.phoneNumber}`
         }
@@ -432,7 +434,7 @@ export default function AnalyticsDashboard() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header with Alert Bell */}
-        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
+        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Lenkersdorfer Analytics</h1>
             <p className="text-muted-foreground">Professional luxury watch sales dashboard</p>

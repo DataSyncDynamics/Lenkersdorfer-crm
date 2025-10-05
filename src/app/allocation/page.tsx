@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useAppStore, formatCurrency, getVipTierColor } from '@/lib/store'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { cn } from '@/lib/utils'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
 interface AllocationSuggestionCardProps {
   suggestion: any
@@ -266,6 +267,7 @@ function AllocationContent() {
   }, [watchModels, searchQuery, showAllClients, generateAllocationContacts])
 
   const handleAllocate = (clientId: string) => {
+    triggerHapticFeedback()
     setSelectedClientId(clientId)
     setShowConfirmation(true)
   }
@@ -297,7 +299,7 @@ function AllocationContent() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header */}
-        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
+        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Smart Allocation</h1>
             <p className="text-muted-foreground">AI-powered client recommendations for optimal sales</p>

@@ -176,7 +176,7 @@ export default function WaitlistPage() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header */}
-        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
+        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Waitlist Management</h1>
             <p className="text-muted-foreground">Track client interest in luxury timepieces</p>

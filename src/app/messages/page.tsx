@@ -14,6 +14,7 @@ import { useAppStore, formatCurrency, getVipTierColor } from '@/lib/store'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { cn } from '@/lib/utils'
 import type { Client } from '@/types'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
 // Mock message data structure
 interface Message {
@@ -102,6 +103,9 @@ export default function MessagesPage() {
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedClient) return
 
+    // Trigger haptic feedback
+    triggerHapticFeedback()
+
     // In a real implementation, this would send the message via SMS API
     alert(`📱 Message would be sent to ${selectedClient.name}:\n\n"${messageInput}"\n\n✅ This is a demo - message not actually sent.`)
 
@@ -112,9 +116,9 @@ export default function MessagesPage() {
   return (
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background h-screen overflow-hidden touch-pan-y">
-        {/* Header - Only show on conversation list view on mobile */}
+        {/* Header - Sticky on Mobile, only show on conversation list */}
         {!selectedClientId && (
-          <div className="flex flex-col gap-4 p-4 md:p-6 border-b">
+          <div className="sticky top-0 z-20 flex flex-col gap-4 p-4 md:p-6 border-b bg-background">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
               <p className="text-muted-foreground">Centralized client communication</p>

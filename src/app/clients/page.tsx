@@ -30,6 +30,7 @@ import { AddClientModal } from '@/components/clients/AddClientModal'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { cn } from '@/lib/utils'
 import { getTierColorClasses, getAvatarInitials } from '@/lib/ui-utils'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
 export default function ClientsPage() {
   const {
@@ -189,10 +190,13 @@ export default function ClientsPage() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header */}
-        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8">
+        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Clients</h1>
-            <Button size="default" onClick={() => setShowAddClientModal(true)} className="h-10">
+            <Button size="default" onClick={() => {
+              triggerHapticFeedback()
+              setShowAddClientModal(true)
+            }} className="h-10">
               <Users className="h-4 w-4 mr-2" />
               Add Client
             </Button>

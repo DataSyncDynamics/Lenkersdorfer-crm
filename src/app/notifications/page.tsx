@@ -25,6 +25,7 @@ import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { FollowUpModal } from '@/components/notifications/FollowUpModal'
 import { cn } from '@/lib/utils'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
 export default function NotificationsDemoPage() {
   const router = useRouter()
@@ -214,7 +215,7 @@ export default function NotificationsDemoPage() {
       <div className="flex h-screen flex-col overflow-hidden bg-background">
         <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
+        <div className="sticky top-0 z-20 bg-background md:static flex items-center space-x-4 pt-6">
           <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-3 rounded-full">
             <Bell className="w-8 h-8 text-black" />
           </div>
@@ -404,7 +405,10 @@ export default function NotificationsDemoPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeNotification(notification.id)}
+                          onClick={() => {
+                            triggerHapticFeedback()
+                            removeNotification(notification.id)
+                          }}
                           className="p-2"
                         >
                           <CheckCircle className="w-5 h-5" />
@@ -600,7 +604,10 @@ export default function NotificationsDemoPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeNotification(notification.id)}
+                          onClick={() => {
+                            triggerHapticFeedback()
+                            removeNotification(notification.id)
+                          }}
                           className="p-2"
                         >
                           <CheckCircle className="w-5 h-5" />
