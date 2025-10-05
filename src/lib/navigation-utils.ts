@@ -135,8 +135,8 @@ export function createBottomNavigationItems(pathname: string, counts: any) {
       href: "#",
       icon: React.createElement(
         'div',
-        { className: 'h-7 w-7 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0' },
-        React.createElement(Crown, { className: 'h-4 w-4 text-black' })
+        { className: 'h-5 w-5 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0' },
+        React.createElement(Crown, { className: 'h-3 w-3 text-black' })
       )
     }
   ]

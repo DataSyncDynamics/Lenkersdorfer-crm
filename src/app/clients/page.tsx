@@ -11,13 +11,16 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  X
+  X,
+  DollarSign
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAppStore, formatCurrency } from '@/lib/store'
 import { NewClientData } from '@/types'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
@@ -25,6 +28,8 @@ import { ClientCard } from '@/components/clients/ClientCard'
 import { ClientModal } from '@/components/clients/ClientModal'
 import { AddClientModal } from '@/components/clients/AddClientModal'
 import { useNotifications } from '@/contexts/NotificationContext'
+import { cn } from '@/lib/utils'
+import { getTierColorClasses, getAvatarInitials } from '@/lib/ui-utils'
 
 export default function ClientsPage() {
   const {
@@ -58,6 +63,7 @@ export default function ClientsPage() {
   }, [notifications, markAsRead])
 
   const [showAddClientModal, setShowAddClientModal] = useState(false)
+  const [showVipModal, setShowVipModal] = useState(false)
   const [sortBy, setSortBy] = useState<string>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [tierFilter, setTierFilter] = useState<number | null>(null)
@@ -166,20 +172,37 @@ export default function ClientsPage() {
     }
   }, [clients])
 
+  // Get VIP clients for modal
+  const vipClientsList = useMemo(() => {
+    return clients
+      .filter(c => c.clientTier <= 2)
+      .sort((a, b) => {
+        // Sort by tier first, then by lifetime spend
+        if (a.clientTier !== b.clientTier) {
+          return a.clientTier - b.clientTier
+        }
+        return b.lifetimeSpend - a.lifetimeSpend
+      })
+  }, [clients])
+
   return (
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header */}
-        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-            <p className="text-muted-foreground">Manage your luxury watch clientele</p>
+        <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Clients</h1>
+            <Button size="default" onClick={() => setShowAddClientModal(true)} className="h-10">
+              <Users className="h-4 w-4 mr-2" />
+              Add Client
+            </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Manage your luxury watch clientele</p>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Sort by" />
+                <SelectTrigger className="w-28 h-10">
+                  <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="name">Name</SelectItem>
@@ -191,15 +214,16 @@ export default function ClientsPage() {
 
               <Button
                 variant="outline"
-                size="sm"
+                size="default"
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-10 w-10 p-0 flex-shrink-0"
               >
-                {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                {sortOrder === 'asc' ? <ArrowUp className="h-5 w-5" /> : <ArrowDown className="h-5 w-5" />}
               </Button>
 
               <Select value={tierFilter?.toString() || 'all'} onValueChange={(value) => setTierFilter(value === 'all' ? null : parseInt(value))}>
-                <SelectTrigger className="w-24">
-                  <SelectValue placeholder="Tier" />
+                <SelectTrigger className="w-20 h-10">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
@@ -210,48 +234,25 @@ export default function ClientsPage() {
                   <SelectItem value="5">T5</SelectItem>
                 </SelectContent>
               </Select>
-
-              {(tierFilter !== null || sortBy !== 'name' || sortOrder !== 'asc') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSortBy('name')
-                    setSortOrder('asc')
-                    setTierFilter(null)
-                  }}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
             </div>
-
-            <Button size="sm" onClick={() => setShowAddClientModal(true)}>
-              <Users className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
           </div>
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-full mx-auto px-4 lg:px-8 pb-8">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
           {/* Analytics Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+          <div className="grid grid-cols-5 md:grid-cols-2 lg:grid-cols-5 gap-1.5 md:gap-4 mb-4">
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Clients
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+                <CardHeader className="p-2 pb-1">
+                  <Users className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
+                  <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Total</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics.totalClients}</div>
-                  <p className="text-xs text-muted-foreground">Active portfolio</p>
+                <CardContent className="p-2 pt-0 text-center">
+                  <div className="text-sm font-bold">{analytics.totalClients}</div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -260,16 +261,13 @@ export default function ClientsPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Revenue
-                  </CardTitle>
-                  <Crown className="h-4 w-4 text-muted-foreground" />
+              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+                <CardHeader className="p-2 pb-1">
+                  <DollarSign className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
+                  <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Revenue</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(analytics.totalRevenue)}</div>
-                  <p className="text-xs text-muted-foreground">Lifetime value</p>
+                <CardContent className="p-2 pt-0 text-center">
+                  <div className="text-[11px] font-bold leading-tight">{formatCurrency(analytics.totalRevenue)}</div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -278,16 +276,30 @@ export default function ClientsPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Avg. Spend
-                  </CardTitle>
-                  <Star className="h-4 w-4 text-muted-foreground" />
+              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+                <CardHeader className="p-2 pb-1">
+                  <Star className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
+                  <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Avg</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(analytics.avgSpend)}</div>
-                  <p className="text-xs text-muted-foreground">Per client</p>
+                <CardContent className="p-2 pt-0 text-center">
+                  <div className="text-[11px] font-bold leading-tight">{formatCurrency(analytics.avgSpend)}</div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="cursor-pointer"
+              onClick={() => setShowVipModal(true)}
+            >
+              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+                <CardHeader className="p-2 pb-1">
+                  <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-500 mx-auto mb-1" />
+                  <CardTitle className="text-[10px] text-center text-foreground/70 font-medium">VIP</CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 pt-0 text-center">
+                  <div className="text-sm font-bold text-foreground">{analytics.vipClients}</div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -296,48 +308,28 @@ export default function ClientsPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    VIP Clients
-                  </CardTitle>
-                  <Crown className="h-4 w-4 text-muted-foreground" />
+              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+                <CardHeader className="p-2 pb-1">
+                  <Users className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
+                  <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Active</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics.vipClients}</div>
-                  <p className="text-xs text-muted-foreground">Tier 1-2</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card className="hover:shadow-lg transition-all duration-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Active
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics.activeClients}</div>
-                  <p className="text-xs text-muted-foreground">Last 6 months</p>
+                <CardContent className="p-2 pt-0 text-center">
+                  <div className="text-sm font-bold">{analytics.activeClients}</div>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
 
           {/* Search Bar */}
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
+          <Card className="mb-6 mx-0">
+            <CardContent className="p-3">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
                 <div className="relative flex-1 min-w-0">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
                   <Input
                     className="pl-10 pr-12 w-full"
-                    placeholder="Search clients by name, email, phone, or preferred brands..."
+                    style={{ fontSize: '16px' }}
+                    placeholder="Search clients..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -354,7 +346,7 @@ export default function ClientsPage() {
                 </div>
 
                 {/* Active Filters Display */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   {tierFilter !== null && (
                     <Badge variant="secondary" className="gap-1 whitespace-nowrap">
                       Tier {tierFilter}
@@ -403,13 +395,15 @@ export default function ClientsPage() {
           </div>
 
           {/* Client Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
             {filteredAndSortedClients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
-                onClick={() => setSelectedClient(client)}
-              />
+              <div className="w-full min-w-0">
+                <ClientCard
+                  key={client.id}
+                  client={client}
+                  onClick={() => setSelectedClient(client)}
+                />
+              </div>
             ))}
           </div>
 
@@ -455,6 +449,62 @@ export default function ClientsPage() {
           onClose={() => setShowAddClientModal(false)}
           onAdd={handleAddNewClient}
         />
+
+        {/* VIP Clients Modal */}
+        <Dialog open={showVipModal} onOpenChange={setShowVipModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                VIP Clients ({analytics.vipClients})
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-2 md:space-y-3">
+              {vipClientsList.length === 0 ? (
+                <div className="text-center py-8 text-foreground/60">
+                  <Crown className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No VIP clients yet</p>
+                </div>
+              ) : (
+                vipClientsList.map((client) => (
+                  <div
+                    key={client.id}
+                    className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedClient(client)
+                      setShowVipModal(false)
+                    }}
+                  >
+                    <Avatar className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-xs md:text-sm">
+                        {getAvatarInitials(client.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
+                        <span className="font-semibold text-sm md:text-base text-foreground break-words">{client.name}</span>
+                        <Badge className={cn("text-xs border flex-shrink-0", getTierColorClasses(client.clientTier))}>
+                          Tier {client.clientTier}
+                        </Badge>
+                      </div>
+                      <div className="text-xs md:text-sm text-foreground/70 break-all">
+                        {client.email}
+                      </div>
+                      <div className="text-xs text-foreground/60 mt-1">
+                        {formatCurrency(client.lifetimeSpend)} lifetime spend
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm font-medium text-foreground">{client.purchases.length}</div>
+                      <div className="text-xs text-foreground/60">purchases</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </LenkersdorferSidebar>
   )

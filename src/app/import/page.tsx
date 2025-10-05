@@ -138,8 +138,8 @@ export default function ImportPage() {
 
   return (
     <LenkersdorferSidebar>
-      <div className="flex-1 p-6 bg-background">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -445,7 +445,7 @@ export default function ImportPage() {
             </div>
           </div>
         )}
-        </div>
+        </main>
       </div>
     </LenkersdorferSidebar>
   )

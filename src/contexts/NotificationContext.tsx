@@ -13,6 +13,10 @@ interface NotificationContextType {
   getCounts: () => {
     total: number
     byCategory: Record<NotificationCategory, number>
+    critical: number
+    high: number
+    medium: number
+    low: number
   }
   getNotificationsByCategory: (category: NotificationCategory) => UrgentNotification[]
 }
@@ -95,9 +99,19 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
     })
 
+    // Count by urgency
+    const critical = unreadNotifications.filter(n => n.urgency === 'CRITICAL').length
+    const high = unreadNotifications.filter(n => n.urgency === 'HIGH').length
+    const medium = unreadNotifications.filter(n => n.urgency === 'MEDIUM').length
+    const low = unreadNotifications.filter(n => n.urgency === 'LOW').length
+
     return {
       total,
-      byCategory
+      byCategory,
+      critical,
+      high,
+      medium,
+      low
     }
   }
 

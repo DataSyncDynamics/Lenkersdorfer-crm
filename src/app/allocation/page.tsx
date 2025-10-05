@@ -99,37 +99,37 @@ const AllocationSuggestionCard: React.FC<AllocationSuggestionCardProps> = ({
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
     >
-      <Card className={cn("hover:shadow-lg transition-all duration-200", styling.cardClass)}>
-        <CardContent className="p-6">
-          <div className="space-y-4">
+      <Card className={cn("hover:shadow-lg transition-all duration-200 w-full", styling.cardClass)}>
+        <CardContent className="p-4 md:p-6">
+          <div className="space-y-3 md:space-y-4">
             {/* Business Recommendation Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge className={cn("px-3 py-1 font-semibold", styling.badgeClass)}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                <Badge className={cn("px-2 py-0.5 md:px-3 md:py-1 font-semibold text-xs md:text-sm", styling.badgeClass)}>
                   {suggestion.businessLabel || 'EVALUATING'}
                 </Badge>
                 {suggestion.isOnWaitlist && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs">
                     <Clock className="h-3 w-3 mr-1" />
                     On Waitlist
                   </Badge>
                 )}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs md:text-sm text-muted-foreground">
                 #{rank} priority
               </div>
             </div>
 
             {/* Client Info */}
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Avatar className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0">
+                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-xs md:text-sm">
                   {client.name.split(' ').map((n: string) => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{client.name}</h3>
-                <div className="text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base md:text-lg break-words">{client.name}</h3>
+                <div className="text-xs md:text-sm text-muted-foreground break-words">
                   {formatCurrency(client.lifetimeSpend)} lifetime spend
                   {suggestion.isOnWaitlist && ` • ${suggestion.daysWaiting || 0} days waiting`}
                   {!suggestion.isOnWaitlist && ' • Not on waitlist'}
@@ -138,24 +138,24 @@ const AllocationSuggestionCard: React.FC<AllocationSuggestionCardProps> = ({
             </div>
 
             {/* Business Reasoning */}
-            <div className="bg-muted/50 rounded-lg p-3">
-              <div className="text-sm font-medium text-foreground mb-1">Business Analysis:</div>
-              <div className="text-sm text-muted-foreground">
+            <div className="bg-muted/50 rounded-lg p-2 md:p-3">
+              <div className="text-xs md:text-sm font-medium text-foreground mb-1">Business Analysis:</div>
+              <div className="text-xs md:text-sm text-muted-foreground break-words">
                 {suggestion.businessReasoning || 'No analysis available'}
               </div>
             </div>
 
             {/* Action Recommendation */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0">
               <div className="flex-1">
-                <div className="text-sm font-medium text-foreground mb-1">Recommended Action:</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs md:text-sm font-medium text-foreground mb-1">Recommended Action:</div>
+                <div className="text-xs md:text-sm text-muted-foreground break-words">
                   {suggestion.businessAction || 'Evaluate case-by-case'}
                 </div>
               </div>
               <Button
                 onClick={() => onAllocate(client.id)}
-                className={styling.buttonClass}
+                className={cn(styling.buttonClass, "w-full md:w-auto flex-shrink-0")}
                 disabled={suggestion.businessCategory === 'NOT_SUITABLE'}
               >
                 {suggestion.businessCategory === 'PERFECT_MATCH' && <CheckCircle2 className="h-4 w-4 mr-2" />}
@@ -225,7 +225,7 @@ function AllocationContent() {
     }
   }, [waitlist, watchModels, getPerfectMatches, getCriticalAlerts])
 
-  // Filter and sort watches - Available first, then by price
+  // Filter and sort watches - Only show watches with actionable clients
   const filteredWatches = useMemo(() => {
     let watches = watchModels
 
@@ -238,18 +238,32 @@ function AllocationContent() {
         watch.collection.toLowerCase().includes(query) ||
         watch.description.toLowerCase().includes(query)
       )
+    } else {
+      // ONLY when NOT searching: Filter to watches with actionable clients
+      watches = watches.filter(watch => {
+        const suggestions = generateAllocationContacts(watch.id, showAllClients)
+        // Only show watches that have at least one GREEN, YELLOW, or waitlist client
+        return suggestions.length > 0
+      })
     }
 
-    // Sort: Available watches first, then by price (high to low)
+    // Sort: Available watches first, then by number of matches (descending), then by price (high to low)
     return watches.sort((a, b) => {
       // Available watches come first
       if (a.availability === 'Available' && b.availability !== 'Available') return -1
       if (a.availability !== 'Available' && b.availability === 'Available') return 1
 
-      // Within same availability, sort by price (high to low)
+      // Count actionable matches for each watch
+      const aMatches = generateAllocationContacts(a.id, showAllClients).length
+      const bMatches = generateAllocationContacts(b.id, showAllClients).length
+
+      // More matches = higher priority
+      if (aMatches !== bMatches) return bMatches - aMatches
+
+      // Within same match count, sort by price (high to low)
       return b.price - a.price
     })
-  }, [watchModels, searchQuery])
+  }, [watchModels, searchQuery, showAllClients, generateAllocationContacts])
 
   const handleAllocate = (clientId: string) => {
     setSelectedClientId(clientId)
@@ -290,9 +304,9 @@ function AllocationContent() {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setShowModal('greenbox')}
+              className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-700"
             >
               <Target className="h-4 w-4 mr-2" />
               Perfect Matches ({analytics.perfectMatches})
@@ -309,7 +323,7 @@ function AllocationContent() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-full mx-auto px-4 lg:px-8 pb-8">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
           {/* Perfect Match Allocation Status Guide */}
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 mb-6">
             <CardHeader className="pb-3">
@@ -321,12 +335,10 @@ function AllocationContent() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* GREEN Status Guide */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <div className="relative flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                  <div className="absolute top-2 right-2 h-3 w-3 bg-green-500/60 dark:bg-green-500/40 rounded-full animate-pulse"></div>
                   <div className="flex-shrink-0">
-                    <div className="relative">
-                      <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                    </div>
+                    <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="min-w-0">
                     <div className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-1">
@@ -338,12 +350,10 @@ function AllocationContent() {
                 </div>
 
                 {/* YELLOW Status Guide */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
+                <div className="relative flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
+                  <div className="absolute top-2 right-2 h-3 w-3 bg-yellow-500/60 dark:bg-yellow-500/40 rounded-full animate-pulse"></div>
                   <div className="flex-shrink-0">
-                    <div className="relative">
-                      <Clock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-yellow-500 rounded-full animate-bounce"></div>
-                    </div>
+                    <Clock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div className="min-w-0">
                     <div className="font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-1">
@@ -355,12 +365,10 @@ function AllocationContent() {
                 </div>
 
                 {/* RED Status Guide */}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <div className="relative flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                  <div className="absolute top-2 right-2 h-3 w-3 bg-red-500/60 dark:bg-red-500/40 rounded-full animate-pulse"></div>
                   <div className="flex-shrink-0">
-                    <div className="relative">
-                      <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
-                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping"></div>
-                    </div>
+                    <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
                   </div>
                   <div className="min-w-0">
                     <div className="font-semibold text-red-800 dark:text-red-200 flex items-center gap-1">
@@ -657,7 +665,7 @@ function AllocationContent() {
         {/* Detail Modals */}
         {showModal && (
           <Dialog open={!!showModal} onOpenChange={() => setShowModal(null)}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
               <DialogHeader>
                 <DialogTitle>
                   {showModal === 'waitlist' && 'Waitlist Entries'}
@@ -666,12 +674,12 @@ function AllocationContent() {
                   {showModal === 'alerts' && 'Critical Alerts'}
                 </DialogTitle>
                 {showModal === 'waitlist' && (
-                  <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="mt-2 md:mt-3 p-3 md:p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <Clock className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">What are Waitlist Entries?</h4>
-                        <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                        <h4 className="font-semibold text-sm md:text-base text-blue-900 dark:text-blue-100 mb-1">What are Waitlist Entries?</h4>
+                        <p className="text-xs md:text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
                           All clients who have expressed interest in specific watch models that are currently unavailable or reserved. Each entry tracks when the client was added, their tier status, lifetime spend, and any special notes. Use this to prioritize allocations when inventory becomes available.
                         </p>
                       </div>
@@ -679,12 +687,12 @@ function AllocationContent() {
                   </div>
                 )}
                 {showModal === 'watches' && (
-                  <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Trophy className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="mt-2 md:mt-3 p-3 md:p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <Trophy className="h-4 w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">What are Available Watches?</h4>
-                        <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                        <h4 className="font-semibold text-sm md:text-base text-amber-900 dark:text-amber-100 mb-1">What are Available Watches?</h4>
+                        <p className="text-xs md:text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
                           Your current inventory of luxury watches ready for immediate allocation. Each watch shows its tier level, number of clients waiting, and full specifications. Select any watch to see smart allocation recommendations based on client tier matching and wait times.
                         </p>
                       </div>
@@ -692,12 +700,12 @@ function AllocationContent() {
                   </div>
                 )}
                 {showModal === 'greenbox' && (
-                  <div className="mt-3 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Target className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                  <div className="mt-2 md:mt-3 p-3 md:p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <Target className="h-4 w-4 md:h-5 md:w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">What is a Perfect Match?</h4>
-                        <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
+                        <h4 className="font-semibold text-sm md:text-base text-green-900 dark:text-green-100 mb-1">What is a Perfect Match?</h4>
+                        <p className="text-xs md:text-sm text-green-800 dark:text-green-200 leading-relaxed">
                           Perfect tier-to-watch matches where the client's VIP tier aligns perfectly with the watch tier. These are your highest-probability sales with minimal negotiation needed. The client's spending history and tier status make them ideal candidates for immediate allocation.
                         </p>
                       </div>
@@ -705,12 +713,12 @@ function AllocationContent() {
                   </div>
                 )}
                 {showModal === 'alerts' && (
-                  <div className="mt-3 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Star className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="mt-2 md:mt-3 p-3 md:p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <Star className="h-4 w-4 md:h-5 md:w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-semibold text-red-900 dark:text-red-100 mb-1">What are Critical Alerts?</h4>
-                        <p className="text-sm text-red-800 dark:text-red-200 leading-relaxed">
+                        <h4 className="font-semibold text-sm md:text-base text-red-900 dark:text-red-100 mb-1">What are Critical Alerts?</h4>
+                        <p className="text-xs md:text-sm text-red-800 dark:text-red-200 leading-relaxed">
                           High-priority situations requiring immediate attention. This includes VIP clients (Tier 1-2) waiting 30+ days, clients who've spent $50K+ waiting 45+ days, or any Tier 1 client waiting 14+ days. These alerts prevent customer dissatisfaction and lost revenue opportunities.
                         </p>
                       </div>
@@ -721,7 +729,7 @@ function AllocationContent() {
 
               {/* Waitlist Entries */}
               {showModal === 'waitlist' && (
-                <div className="space-y-4">
+                <div className="space-y-2 md:space-y-4">
                   {waitlist.length === 0 ? (
                     <div className="text-center py-8">
                       <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -735,34 +743,34 @@ function AllocationContent() {
 
                       return (
                         <Card key={entry.id}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                          <CardContent className="p-3 md:p-4">
+                            <div className="flex items-center gap-2 md:gap-4">
+                              <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs md:text-sm">
                                   {client.name.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold">{client.name}</h4>
-                                  <Badge className="text-xs">Tier {client.clientTier}</Badge>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
+                                  <h4 className="font-semibold text-sm md:text-base break-words">{client.name}</h4>
+                                  <Badge className="text-xs flex-shrink-0">Tier {client.clientTier}</Badge>
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <Watch className="h-3 w-3" />
-                                    {watch.brand} {watch.model} - {watch.collection}
+                                <div className="text-xs md:text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5 md:gap-2">
+                                    <Watch className="h-3 w-3 flex-shrink-0" />
+                                    <span className="break-words">{watch.brand} {watch.model} - {watch.collection}</span>
                                   </div>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Calendar className="h-3 w-3" />
-                                    Added {new Date(entry.dateAdded).toLocaleDateString()}
+                                  <div className="flex items-center gap-1.5 md:gap-2 mt-1">
+                                    <Calendar className="h-3 w-3 flex-shrink-0" />
+                                    <span>Added {new Date(entry.dateAdded).toLocaleDateString()}</span>
                                   </div>
                                   {entry.notes && (
-                                    <div className="italic mt-1">"{entry.notes}"</div>
+                                    <div className="italic mt-1 break-words">"{entry.notes}"</div>
                                   )}
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-semibold">{formatCurrency(watch.price)}</div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="font-semibold text-xs md:text-base">{formatCurrency(watch.price)}</div>
                                 <div className="text-xs text-muted-foreground">{formatCurrency(client.lifetimeSpend)} lifetime</div>
                               </div>
                             </div>

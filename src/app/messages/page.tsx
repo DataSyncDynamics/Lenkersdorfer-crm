@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { MessageSquare, Search, Plus, Phone, User, Crown, FileText } from 'lucide-react'
+import { MessageSquare, Search, Plus, Phone, User, Crown, FileText, ArrowLeft, Send } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -58,9 +58,11 @@ export default function MessagesPage() {
     }
   }, [searchParams, clients])
 
-  // Auto-select first conversation if none is selected
+  // Auto-select first conversation if none is selected (desktop only)
   useEffect(() => {
-    if (conversations.length > 0 && !selectedClientId) {
+    // Only auto-select on desktop (md breakpoint and above)
+    const isDesktop = window.innerWidth >= 768
+    if (conversations.length > 0 && !selectedClientId && isDesktop) {
       handleConversationSelect(conversations[0].clientId)
     }
   }, [conversations, selectedClientId])
@@ -109,19 +111,24 @@ export default function MessagesPage() {
 
   return (
     <LenkersdorferSidebar>
-      <div className="flex flex-1 flex-col bg-background h-screen">
-        {/* Header */}
-        <div className="flex flex-col gap-4 p-4 md:p-6 border-b">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-            <p className="text-muted-foreground">Centralized client communication</p>
+      <div className="flex flex-1 flex-col bg-background h-screen overflow-hidden touch-pan-y">
+        {/* Header - Only show on conversation list view on mobile */}
+        {!selectedClientId && (
+          <div className="flex flex-col gap-4 p-4 md:p-6 border-b">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
+              <p className="text-muted-foreground">Centralized client communication</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main Content */}
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Conversation List - Left Panel */}
-          <div className="w-full md:w-80 lg:w-96 border-r bg-muted/30 flex flex-col">
+          <div className={cn(
+            "w-full md:w-80 lg:w-96 border-r bg-muted/30 flex flex-col overflow-hidden",
+            selectedClientId && "hidden md:flex"
+          )}>
             {/* Search */}
             <div className="p-4">
               <div className="relative">
@@ -136,9 +143,9 @@ export default function MessagesPage() {
             </div>
 
             {/* Conversation List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
               {filteredConversations.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-1 pb-4">
                   {filteredConversations.map((conversation) => {
                     const client = getClientById(conversation.clientId)
                     if (!client) return null
@@ -150,50 +157,52 @@ export default function MessagesPage() {
                         key={conversation.clientId}
                         onClick={() => handleConversationSelect(conversation.clientId)}
                         className={cn(
-                          "p-4 cursor-pointer hover:bg-background/80 transition-colors border-l-4",
+                          "p-3 md:p-4 cursor-pointer hover:bg-background/80 transition-colors border-l-4",
                           isSelected
                             ? "bg-background border-l-gold-500 shadow-sm"
                             : "border-l-transparent"
                         )}
                       >
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-12 w-12 flex-shrink-0">
-                            <AvatarFallback className={cn("text-white font-semibold", getVipTierColor(client.clientTier.toString()))}>
+                        <div className="flex items-start gap-2 md:gap-3">
+                          <Avatar className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-xs md:text-sm">
                               {client.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
 
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold truncate">{client.name}</p>
+                            <div className="flex items-center gap-1.5 md:gap-2 mb-1 flex-wrap">
+                              <p className="font-semibold text-sm md:text-base break-words">{client.name}</p>
                               <Badge
                                 className={cn(
-                                  "text-xs",
-                                  client.clientTier <= 2
-                                    ? "bg-gold-100 text-gold-800 border-gold-300"
-                                    : "bg-gray-100 text-gray-700 border-gray-300"
+                                  "text-xs font-semibold flex-shrink-0",
+                                  client.clientTier === 1 && "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700",
+                                  client.clientTier === 2 && "bg-gold-100 text-gold-800 border-gold-300 dark:bg-gold-900/30 dark:text-gold-400 dark:border-gold-700",
+                                  client.clientTier === 3 && "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700",
+                                  client.clientTier === 4 && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700",
+                                  client.clientTier === 5 && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                                 )}
                                 variant="outline"
                               >
                                 T{client.clientTier}
                               </Badge>
                               {conversation.unreadCount > 0 && (
-                                <Badge className="bg-blue-500 text-white text-xs h-5 w-5 flex items-center justify-center rounded-full p-0">
+                                <Badge className="bg-blue-500 text-white text-xs h-5 w-5 flex items-center justify-center rounded-full p-0 flex-shrink-0">
                                   {conversation.unreadCount}
                                 </Badge>
                               )}
                             </div>
 
-                            <p className="text-sm text-muted-foreground truncate">
+                            <p className="text-xs md:text-sm text-muted-foreground break-words line-clamp-2">
                               {conversation.lastMessage.isFromClient ? '' : 'You: '}
                               {conversation.lastMessage.content}
                             </p>
 
-                            <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center justify-between mt-1.5 md:mt-2 gap-2">
                               <span className="text-xs text-muted-foreground">
                                 {formatMessageTime(conversation.lastMessage.timestamp)}
                               </span>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
                                 {formatCurrency(client.lifetimeSpend)}
                               </span>
                             </div>
@@ -213,15 +222,27 @@ export default function MessagesPage() {
           </div>
 
           {/* Message Thread - Right Panel */}
-          <div className="hidden md:flex flex-1 flex-col">
+          <div className={cn(
+            "flex-1 flex flex-col overflow-hidden w-full",
+            !selectedClientId && "hidden md:flex"
+          )}>
             {selectedConversation && selectedClient ? (
               <>
                 {/* Client Header */}
                 <div className="p-4 border-b bg-background">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    {/* Back button for mobile */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="md:hidden mr-2"
+                      onClick={() => setSelectedClientId(null)}
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className={cn("text-white font-semibold", getVipTierColor(selectedClient.clientTier.toString()))}>
+                        <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
                           {selectedClient.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
@@ -230,10 +251,12 @@ export default function MessagesPage() {
                           <h3 className="font-semibold">{selectedClient.name}</h3>
                           <Badge
                             className={cn(
-                              "text-xs",
-                              selectedClient.clientTier <= 2
-                                ? "bg-gold-100 text-gold-800 border-gold-300"
-                                : "bg-gray-100 text-gray-700 border-gray-300"
+                              "text-xs font-semibold",
+                              selectedClient.clientTier === 1 && "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700",
+                              selectedClient.clientTier === 2 && "bg-gold-100 text-gold-800 border-gold-300 dark:bg-gold-900/30 dark:text-gold-400 dark:border-gold-700",
+                              selectedClient.clientTier === 3 && "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700",
+                              selectedClient.clientTier === 4 && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700",
+                              selectedClient.clientTier === 5 && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                             )}
                             variant="outline"
                           >
@@ -250,20 +273,19 @@ export default function MessagesPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="hidden md:flex">
                         <Phone className="h-4 w-4 mr-2" />
                         Call
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <User className="h-4 w-4 mr-2" />
-                        Profile
+                      <Button variant="outline" size="sm" className="md:hidden p-2">
+                        <Phone className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
                   {selectedConversation.messages.map((message) => (
                     <div
                       key={message.id}
@@ -274,19 +296,19 @@ export default function MessagesPage() {
                     >
                       <div
                         className={cn(
-                          "max-w-[70%] rounded-lg p-3",
+                          "max-w-[85%] md:max-w-[70%] rounded-lg p-3",
                           message.isFromClient
                             ? "bg-messageGray-light dark:bg-messageGray-dark text-gray-900 dark:text-white"
                             : "bg-messageBlue-light dark:bg-messageBlue-dark text-white"
                         )}
                       >
-                        <p className="text-sm">{message.content}</p>
-                        <div className="flex items-center justify-between mt-2">
+                        <p className="text-sm md:text-base break-words">{message.content}</p>
+                        <div className="flex items-center justify-between mt-2 gap-2">
                           <span className="text-xs opacity-70">
                             {formatMessageTime(message.timestamp)}
                           </span>
                           {!message.isFromClient && (
-                            <span className="text-xs opacity-70 ml-2">
+                            <span className="text-xs opacity-70">
                               {message.status === 'sent' && '✓'}
                               {message.status === 'delivered' && '✓✓'}
                               {message.status === 'read' && '✓✓'}
@@ -312,27 +334,29 @@ export default function MessagesPage() {
                   )}
 
                   {/* Composer */}
-                  <div className="p-4">
-                    <div className="flex gap-2 mb-3">
+                  <div className="p-3 md:p-4">
+                    <div className="flex gap-2 mb-2 md:mb-3">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setShowTemplates(!showTemplates)}
                         className={cn(
-                          "flex-shrink-0",
+                          "flex-shrink-0 text-xs md:text-sm",
                           showTemplates && "bg-gold-50 border-gold-300 text-gold-700"
                         )}
                       >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Templates
+                        <FileText className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Templates</span>
                       </Button>
                       {selectedClient && (
                         <Badge
                           className={cn(
-                            "ml-auto",
-                            selectedClient.clientTier <= 2
-                              ? "bg-gold-100 text-gold-800 border-gold-300"
-                              : "bg-gray-100 text-gray-700 border-gray-300"
+                            "ml-auto font-semibold text-xs hidden md:flex",
+                            selectedClient.clientTier === 1 && "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700",
+                            selectedClient.clientTier === 2 && "bg-gold-100 text-gold-800 border-gold-300 dark:bg-gold-900/30 dark:text-gold-400 dark:border-gold-700",
+                            selectedClient.clientTier === 3 && "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700",
+                            selectedClient.clientTier === 4 && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700",
+                            selectedClient.clientTier === 5 && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                           )}
                           variant="outline"
                         >
@@ -357,19 +381,20 @@ export default function MessagesPage() {
                       <Button
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
-                        className="bg-messageBlue-light hover:bg-messageBlue-dark dark:bg-messageBlue-dark dark:hover:bg-messageBlue-light disabled:opacity-50 text-white"
+                        className="bg-messageBlue-light hover:bg-messageBlue-dark dark:bg-messageBlue-dark dark:hover:bg-messageBlue-light disabled:opacity-50 text-white flex-shrink-0"
                       >
-                        <MessageSquare className="h-4 w-4" />
+                        <Send className="h-4 w-4" />
                       </Button>
                     </div>
 
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                      <p className="hidden md:block">
                         💡 Demo interface - messages would be sent via SMS
                       </p>
+                      <p className="md:hidden">💡 Demo - SMS</p>
                       {messageInput && (
-                        <p className="text-xs text-muted-foreground">
-                          {messageInput.length} characters
+                        <p>
+                          {messageInput.length} chars
                         </p>
                       )}
                     </div>

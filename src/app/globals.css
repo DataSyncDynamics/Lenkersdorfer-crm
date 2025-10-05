@@ -802,3 +802,13 @@ a {
   border: 2px solid hsl(220 26% 7%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+
+/* Hide scrollbar for horizontal scrolling containers */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

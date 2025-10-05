@@ -130,34 +130,34 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
 
   return (
     <Dialog open={!!selectedClient} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>{formatClientName(selectedClient.name)} Client Information</DialogTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              {isEditing ? (
-                <>
-                  <Eye className="h-4 w-4 mr-2" />
-                  View
-                </>
-              ) : (
-                <>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </>
-              )}
-            </Button>
-          </div>
+          <DialogTitle>{formatClientName(selectedClient.name)}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Client Information */}
           <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Client Information</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Client Information</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                {isEditing ? (
+                  <>
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </>
+                ) : (
+                  <>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </>
+                )}
+              </Button>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName" className="text-slate-700 dark:text-slate-300 font-medium">First Name</Label>
@@ -179,23 +179,23 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                   className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
                 />
               </div>
-              <div>
+              <div className="col-span-2">
+                <Label htmlFor="phone" className="text-slate-700 dark:text-slate-300 font-medium">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  readOnly={!isEditing}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
+                />
+              </div>
+              <div className="col-span-2">
                 <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  readOnly={!isEditing}
-                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone" className="text-slate-700 dark:text-slate-300 font-medium">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   readOnly={!isEditing}
                   className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : ""}
                 />
@@ -294,7 +294,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
             {clientWishlist.length > 0 && (
               <div className="space-y-3">
                 <h4 className="font-medium text-slate-900 dark:text-slate-100">Current Wishlist ({clientWishlist.length} items)</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                <div className="space-y-2">
                   {clientWishlist.map((entry) => {
                     const watch = getWatchModelById(entry.watchModelId)
                     if (!watch) return null
@@ -336,36 +336,68 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                 </div>
               </div>
             )}
+          </div>
 
           {/* Purchase History */}
           {selectedClient.purchases && selectedClient.purchases.length > 0 && (
-            <div className="space-y-4 bg-emerald-50 dark:bg-emerald-950/30 p-5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Purchase History</h3>
+            <div className="space-y-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-5 rounded-lg border border-emerald-300 dark:border-emerald-800 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-1 bg-emerald-500 rounded-full"></div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Purchase History</h3>
+                <Badge className="ml-auto bg-emerald-600 text-white">{selectedClient.purchases.length}</Badge>
+              </div>
               <div className="space-y-3">
-                {selectedClient.purchases.map((purchase) => (
-                  <div key={purchase.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-base">
-                        {purchase.brand} {purchase.watchModel}
-                      </h4>
-                      <div className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">
-                        {new Date(purchase.date).toLocaleDateString('de-DE')}
+                {selectedClient.purchases.map((purchase, index) => {
+                  const purchaseDate = new Date(purchase.date)
+                  const monthYear = purchaseDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                  const day = purchaseDate.toLocaleDateString('en-US', { day: 'numeric' })
+
+                  return (
+                    <div key={purchase.id} className="group relative overflow-hidden bg-white dark:bg-slate-800/90 border-2 border-emerald-100 dark:border-emerald-900/50 rounded-xl p-4 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200">
+                      {/* Purchase number badge */}
+                      <div className="absolute top-3 right-3 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2 py-1 rounded-full">
+                        #{selectedClient.purchases.length - index}
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500 font-mono mt-1 bg-slate-100 dark:bg-slate-700 inline-block px-2 py-1 rounded">
-                        Serial: {purchase.serialNumber}
+
+                      <div className="flex gap-4">
+                        {/* Date Badge */}
+                        <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex flex-col items-center justify-center text-white shadow-md">
+                          <div className="text-xs font-medium opacity-90">{monthYear.split(' ')[0]}</div>
+                          <div className="text-2xl font-bold leading-none">{day}</div>
+                          <div className="text-xs font-medium opacity-90">{monthYear.split(' ')[1]}</div>
+                        </div>
+
+                        {/* Watch Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight mb-1">
+                                {purchase.brand}
+                              </h4>
+                              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                                {purchase.watchModel}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Serial Number */}
+                          <div className="flex items-center gap-2 mt-3">
+                            <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-md font-mono">
+                              SN: {purchase.serialNumber}
+                            </div>
+                            {/* Price */}
+                            <div className="ml-auto font-bold text-xl text-emerald-600 dark:text-emerald-400">
+                              ${purchase.price.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
-                        ${purchase.price.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
-          </div>
         </div>
 
         <DialogFooter>

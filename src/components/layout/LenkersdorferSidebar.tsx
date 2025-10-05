@@ -45,14 +45,14 @@ export function LenkersdorferSidebar({ children }: { children: React.ReactNode }
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-300 hover:text-gold-400 hover:bg-white/5 transition-all duration-200 group border border-transparent hover:border-gold-400/20"
+              className="flex items-center justify-start gap-2 py-2 rounded-lg text-foreground hover:text-gold-500 hover:bg-muted transition-all duration-200 group border border-border hover:border-gold-400"
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
-              <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+              <div className="relative overflow-visible flex-shrink-0">
                 {theme === "dark" ? (
-                  <Sun className="w-5 h-5" />
+                  <Sun className="h-5 w-5" />
                 ) : (
-                  <Moon className="w-5 h-5" />
+                  <Moon className="h-5 w-5" />
                 )}
               </div>
               {open && (

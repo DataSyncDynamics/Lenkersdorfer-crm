@@ -88,14 +88,12 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
               </Avatar>
               <div>
                 <CardTitle className="text-lg font-semibold truncate">{formatClientName(client.name)}</CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={cn("text-xs font-medium border", getTierColorClasses(client.clientTier))}>
-                    {getTierIcon(client.clientTier)}
-                    <span className="ml-1">Tier {client.clientTier}</span>
-                  </Badge>
-                </div>
               </div>
             </div>
+            <Badge className={cn("text-xs font-medium flex-shrink-0", getTierColorClasses(client.clientTier))}>
+              {getTierIcon(client.clientTier)}
+              <span className="ml-1">Tier {client.clientTier}</span>
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -109,9 +107,9 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
 
           {/* Contact Info */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-              <Mail className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <span className="truncate">{client.email}</span>
+            <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <Mail className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+              <span className="break-all">{client.email}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
               <Phone className="h-4 w-4 text-gray-500 dark:text-gray-400" />

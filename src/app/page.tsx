@@ -456,31 +456,35 @@ export default function AnalyticsDashboard() {
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <BellIcon className="h-5 w-5 text-gold-500" />
-                  Priority Notifications
-                  <span className="text-xs text-muted-foreground font-normal ml-2">
-                    (Sorted by client tier & urgency)
-                  </span>
-                </CardTitle>
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <BellIcon className="h-5 w-5 text-gold-500" />
+                    Priority Notifications
+                  </CardTitle>
+                  <p className="text-xs text-foreground/60">
+                    Sorted by client tier & urgency
+                  </p>
+                </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">
                     {getCounts().total} active notification{getCounts().total !== 1 ? 's' : ''}
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowNotificationsPanel(!showNotificationsPanel)}
-                    className="text-gold-600 border-gold-300 hover:bg-gold-50"
-                  >
-                    {showNotificationsPanel ? 'Show Less' : 'View All'}
-                  </Button>
+                  {notifications.length > 4 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowNotificationsPanel(!showNotificationsPanel)}
+                      className="text-gold-600 border-gold-300 hover:bg-gold-50"
+                    >
+                      {showNotificationsPanel ? 'Show Less' : 'View All'}
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(showNotificationsPanel ? notifications : notifications.slice(0, 3))
+                {(showNotificationsPanel ? notifications : notifications.slice(0, 4))
                   .sort((a, b) => {
                     // Sort by tier priority (tier 1 = highest priority), then by days waiting
                     const tierA = a.actions?.find(action => action.tier)?.tier || 5
@@ -524,6 +528,12 @@ export default function AnalyticsDashboard() {
                       color: 'text-orange-700 dark:text-orange-400',
                       bgColor: 'bg-orange-50 dark:bg-orange-950/30',
                       borderColor: 'border-orange-200 dark:border-orange-800/50'
+                    },
+                    SYSTEM: {
+                      icon: InboxIcon,
+                      color: 'text-gray-700 dark:text-gray-400',
+                      bgColor: 'bg-gray-50 dark:bg-gray-950/30',
+                      borderColor: 'border-gray-200 dark:border-gray-800/50'
                     }
                   }
 
@@ -535,60 +545,75 @@ export default function AnalyticsDashboard() {
                       key={notification.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`p-4 rounded-lg border hover:shadow-lg transition-all duration-200 ${config.bgColor} ${config.borderColor}`}
+                      className={`p-4 md:p-6 rounded-lg border hover:shadow-lg transition-all duration-200 ${config.bgColor} ${config.borderColor} relative w-full`}
                     >
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <NotificationIcon className={`h-5 w-5 ${config.color} flex-shrink-0 mt-0.5`} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-gray-900 dark:text-gray-100 break-words">
-                                {notification.title}
+                      {/* Priority indicator for urgent notifications - Top Right */}
+                      {notification.daysWaiting && notification.daysWaiting >= 7 && (
+                        <Badge className="absolute top-3 right-3 md:top-4 md:right-4 bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700 text-xs md:text-sm font-semibold" variant="outline">
+                          {notification.daysWaiting >= 14 ? 'URGENT' : 'Overdue'}
+                        </Badge>
+                      )}
+                      <div className="space-y-3 md:space-y-4">
+                        <div className="flex items-start gap-2 md:gap-3">
+                          <NotificationIcon className={`h-5 w-5 md:h-6 md:w-6 ${config.color} flex-shrink-0 mt-0.5`} />
+                          <div className="min-w-0 flex-1 pr-16 md:pr-20">
+                            <div className="mb-1.5 md:mb-2">
+                              <p className="font-semibold text-foreground break-words text-base md:text-lg">
+                                {notification.clientName
+                                  ? notification.title.replace(notification.clientName, '').replace(/^\s*[-–]\s*/, '').replace(/\s*[-–]\s*$/, '').trim()
+                                  : notification.title}
                               </p>
-                              {/* Tier indicator badge */}
-                              {notification.actions?.find(a => a.tier) && (
-                                <Badge
-                                  className={cn(
-                                    "text-xs font-bold",
-                                    notification.actions.find(a => a.tier)?.tier <= 2
-                                      ? "bg-gold-100 text-gold-800 border-gold-300"
-                                      : "bg-gray-100 text-gray-700 border-gray-300"
-                                  )}
-                                  variant="outline"
-                                >
-                                  Tier {notification.actions.find(a => a.tier)?.tier}
-                                </Badge>
-                              )}
-                              {/* Priority indicator for urgent notifications */}
-                              {notification.daysWaiting && notification.daysWaiting >= 7 && (
-                                <Badge className="bg-red-100 text-red-800 border-red-300 text-xs" variant="outline">
-                                  {notification.daysWaiting >= 14 ? 'URGENT' : 'Overdue'}
-                                </Badge>
-                              )}
                             </div>
-                            <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 break-words">{notification.message}</p>
+                            {/* Client name on its own line */}
+                            {notification.clientName && (
+                              <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2 flex-wrap">
+                                <p className="font-medium text-foreground/90 text-lg md:text-xl break-words">
+                                  {notification.clientName}
+                                </p>
+                                {/* Tier indicator badge */}
+                                {notification.actions?.find(a => a.tier) && (
+                                  <Badge
+                                    className={cn(
+                                      "text-xs md:text-sm font-medium flex-shrink-0",
+                                      notification.actions.find(a => a.tier)?.tier <= 2
+                                        ? "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700"
+                                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700"
+                                    )}
+                                    variant="outline"
+                                  >
+                                    Tier {notification.actions.find(a => a.tier)?.tier}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                            <p className="text-sm md:text-base text-foreground/70 break-words">
+                              {notification.clientName
+                                ? notification.message.replace(notification.clientName, '').replace(/^\s*[-–]\s*/, '').trim()
+                                : notification.message}
+                            </p>
                             {(notification.daysWaiting || notification.lastContact) && (
-                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex flex-col gap-1.5 md:gap-2 mt-2 md:mt-3 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                                 {notification.daysWaiting && (
-                                  <span className="flex items-center gap-1">
-                                    🕐 {notification.daysWaiting} days since last contact
-                                  </span>
+                                  <div className="flex items-center gap-1.5 md:gap-2">
+                                    <ClockIcon className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                                    <span>{notification.daysWaiting} days since last contact</span>
+                                  </div>
                                 )}
                                 {notification.lastContact && (
-                                  <span className="flex items-center gap-1">
-                                    <PhoneIcon className="h-3 w-3" />
-                                    Last contact: {notification.lastContact}
-                                  </span>
+                                  <div className="flex items-center gap-1.5 md:gap-2">
+                                    <PhoneIcon className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                                    <span>Last contact: {notification.lastContact}</span>
+                                  </div>
                                 )}
                               </div>
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className={`grid gap-2 ${notification.actions.length === 3 ? 'grid-cols-1 md:grid-cols-3' : notification.actions.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                           {notification.actions.map((action, index) => (
                             <Button
                               key={index}
-                              size="sm"
+                              size="default"
                               variant={action.isPrimary ? "default" : "outline"}
                               onClick={(e) => {
                                 e.preventDefault()
@@ -598,7 +623,7 @@ export default function AnalyticsDashboard() {
                               }}
                               className={cn(
                                 action.isPrimary ? "bg-gold-600 hover:bg-gold-700 text-white" : "hover:bg-muted",
-                                "transition-all duration-200 active:scale-95 cursor-pointer"
+                                "transition-all duration-200 active:scale-95 cursor-pointer w-full h-11 md:h-10 text-sm md:text-base"
                               )}
                             >
                               {action.label}
@@ -632,38 +657,42 @@ export default function AnalyticsDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {clients
                     .filter(client => client.clientTier >= 1 && client.clientTier <= 2)
                     .sort((a, b) => b.lifetimeSpend - a.lifetimeSpend)
-                    .slice(0, 5)
+                    .slice(0, 2)
                     .map((client, index) => (
-                      <div key={client.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500 text-white font-bold text-sm flex-shrink-0">
+                      <motion.div
+                        key={client.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center gap-4 p-5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-yellow-500/30"
+                        onClick={() => setSelectedClient(client)}
+                      >
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-500 text-white font-bold text-lg flex-shrink-0">
                           {index + 1}
                         </div>
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className={cn("text-white font-semibold", getVipTierColor(client.clientTier.toString()))}>
+                        <Avatar className="h-14 w-14">
+                          <AvatarFallback className={cn("text-white font-semibold text-lg", getVipTierColor(client.clientTier.toString()))}>
                             {client.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold">{formatClientName(client.name)}</p>
-                            <Badge variant="outline" className={cn("text-xs", getVipTierColor(client.clientTier.toString()))}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-lg text-foreground">{formatClientName(client.name)}</p>
+                            <Badge variant="outline" className={cn("text-xs font-medium", getVipTierColor(client.clientTier.toString()))}>
                               Tier {client.clientTier}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-base text-foreground/70 font-medium">
                             {formatCurrency(client.lifetimeSpend)} lifetime spend
                           </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-foreground/60 mt-1">
                             {client.purchases?.length || 0} purchase{(client.purchases?.length || 0) !== 1 ? 's' : ''}
                           </p>
                         </div>
-                      </div>
+                      </motion.div>
                     ))
                   }
                 </div>

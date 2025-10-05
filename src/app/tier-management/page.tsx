@@ -108,8 +108,8 @@ export default function TierManagementPage() {
 
   return (
     <LenkersdorferSidebar>
-      <div className="flex-1 p-6 bg-background">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -470,7 +470,7 @@ export default function TierManagementPage() {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
+        </main>
       </div>
 
       {/* Client Profile Modal */}
