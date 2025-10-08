@@ -76,54 +76,110 @@ export const createAllocationSlice: StateCreator<
   },
 
   // Business logic for allocation suitability
-  getBusinessRecommendation: (client: any, watch: any) => {
+  getBusinessRecommendation: (client: any, watch: any, daysWaiting: number = 0) => {
     const capacity = get().calculateClientCapacity(client)
     const watchPrice = watch.price
+    let baseCategory: string
+    let baseLabel: string
+    let basePriority: number
+    let baseAction: string
+    let baseReasoning: string
+    let baseConfidence: string
 
-    // Perfect Match: Price within comfort zone (≤ 1.2x average order)
+    // First, determine base recommendation from price/capacity matching
     if (watchPrice <= capacity.avgOrder * 1.2) {
-      return {
-        category: 'PERFECT_MATCH',
-        label: 'PERFECT MATCH',
-        priority: 1,
-        action: 'CALL NOW - Ready to purchase',
-        reasoning: `Within comfort zone: Watch $${watchPrice.toLocaleString()} ≤ $${Math.round(capacity.avgOrder * 1.2).toLocaleString()} (1.2x avg order)`,
-        confidence: 'HIGH'
+      baseCategory = 'PERFECT_MATCH'
+      baseLabel = 'PERFECT MATCH'
+      basePriority = 1
+      baseAction = 'CALL NOW - Ready to purchase'
+      baseReasoning = `Within comfort zone: Watch $${watchPrice.toLocaleString()} ≤ $${Math.round(capacity.avgOrder * 1.2).toLocaleString()} (1.2x avg order)`
+      baseConfidence = 'HIGH'
+    } else if (watchPrice <= Math.max(capacity.avgOrder * 1.5, capacity.maxSingle)) {
+      baseCategory = 'STRETCH_PURCHASE'
+      baseLabel = 'STRETCH PURCHASE'
+      basePriority = 2
+      baseAction = 'DISCUSS FINANCING - Client can stretch with motivation'
+      baseReasoning = `Stretch territory: Watch $${watchPrice.toLocaleString()} vs avg order $${Math.round(capacity.avgOrder).toLocaleString()}`
+      baseConfidence = 'MEDIUM'
+    } else if (client.lifetimeSpend > 50000 && watchPrice <= capacity.avgOrder * 3) {
+      baseCategory = 'UPGRADE_OPPORTUNITY'
+      baseLabel = 'UPGRADE OPPORTUNITY'
+      basePriority = 3
+      baseAction = `SUGGEST ALTERNATIVES - Recommend $${Math.round(capacity.avgOrder * 0.8).toLocaleString()}-$${Math.round(capacity.avgOrder * 1.5).toLocaleString()} range`
+      baseReasoning = `Build relationship: Current capacity $${Math.round(capacity.avgOrder).toLocaleString()}, watch $${watchPrice.toLocaleString()}`
+      baseConfidence = 'LOW'
+    } else {
+      baseCategory = 'NOT_SUITABLE'
+      baseLabel = 'NOT SUITABLE'
+      basePriority = 4
+      baseAction = `FOCUS ELSEWHERE - Client needs $${Math.round(capacity.avgOrder * 0.8).toLocaleString()}-$${Math.round(capacity.avgOrder * 1.2).toLocaleString()} range`
+      baseReasoning = `Outside capacity: Watch $${watchPrice.toLocaleString()} >> client avg $${Math.round(capacity.avgOrder).toLocaleString()}`
+      baseConfidence = 'NONE'
+    }
+
+    // Apply waitlist overrides - if client has been waiting, they're serious
+    if (daysWaiting >= 540) {
+      // 540+ days (18 months) waiting = EXCEPTIONAL commitment, upgrade to PERFECT_MATCH
+      if (baseCategory === 'NOT_SUITABLE' || baseCategory === 'UPGRADE_OPPORTUNITY' || baseCategory === 'STRETCH_PURCHASE') {
+        return {
+          category: 'PERFECT_MATCH',
+          label: 'PERFECT MATCH',
+          priority: 1,
+          action: 'CALL NOW - 18+ months waitlist proves exceptional commitment',
+          reasoning: `🔥 WAITLIST PRIORITY: ${daysWaiting} days (${Math.round(daysWaiting / 30)} months) waiting! ${baseReasoning}`,
+          confidence: 'HIGH'
+        }
+      }
+    } else if (daysWaiting >= 180) {
+      // 180+ days (6 months) waiting = upgrade by one level
+      if (baseCategory === 'NOT_SUITABLE' || baseCategory === 'UPGRADE_OPPORTUNITY') {
+        const monthsWaiting = Math.round(daysWaiting / 30)
+        let commitmentLevel = ''
+
+        if (daysWaiting >= 360) {
+          // 12-17 months
+          commitmentLevel = `${monthsWaiting}+ months proves exceptional patience and commitment`
+        } else if (daysWaiting >= 270) {
+          // 9-11 months
+          commitmentLevel = `${monthsWaiting}+ months shows serious dedication despite price`
+        } else {
+          // 6-8 months
+          commitmentLevel = `${monthsWaiting}+ months shows commitment despite price`
+        }
+
+        return {
+          category: 'STRETCH_PURCHASE',
+          label: 'STRETCH PURCHASE',
+          priority: 2,
+          action: `DISCUSS - ${commitmentLevel}`,
+          reasoning: `⏰ ${daysWaiting} days (${monthsWaiting} months) waiting. ${baseReasoning}`,
+          confidence: 'MEDIUM'
+        }
       }
     }
 
-    // Stretch Purchase: Price within reach (1.2x - 1.5x average, or ≤ max single purchase)
-    if (watchPrice <= Math.max(capacity.avgOrder * 1.5, capacity.maxSingle)) {
-      return {
-        category: 'STRETCH_PURCHASE',
-        label: 'STRETCH PURCHASE',
-        priority: 2,
-        action: 'DISCUSS FINANCING - Client can stretch with motivation',
-        reasoning: `Stretch territory: Watch $${watchPrice.toLocaleString()} vs avg order $${Math.round(capacity.avgOrder).toLocaleString()}`,
-        confidence: 'MEDIUM'
+    // VIP override - Platinum/Gold clients on waitlist get priority
+    if (daysWaiting > 0 && (client.vipTier === 'Platinum' || client.vipTier === 'Gold')) {
+      if (baseCategory === 'NOT_SUITABLE') {
+        return {
+          category: 'STRETCH_PURCHASE',
+          label: 'STRETCH PURCHASE',
+          priority: 2,
+          action: `DISCUSS - ${client.vipTier} VIP on waitlist deserves attention`,
+          reasoning: `👑 ${client.vipTier} VIP waiting ${daysWaiting} days. ${baseReasoning}`,
+          confidence: 'MEDIUM'
+        }
       }
     }
 
-    // Upgrade Opportunity: Price too high, but client has potential
-    if (client.lifetimeSpend > 50000 && watchPrice <= capacity.avgOrder * 3) {
-      return {
-        category: 'UPGRADE_OPPORTUNITY',
-        label: 'UPGRADE OPPORTUNITY',
-        priority: 3,
-        action: `SUGGEST ALTERNATIVES - Recommend $${Math.round(capacity.avgOrder * 0.8).toLocaleString()}-$${Math.round(capacity.avgOrder * 1.5).toLocaleString()} range`,
-        reasoning: `Build relationship: Current capacity $${Math.round(capacity.avgOrder).toLocaleString()}, watch $${watchPrice.toLocaleString()}`,
-        confidence: 'LOW'
-      }
-    }
-
-    // Not Suitable: Price far exceeds client capacity
+    // Return base recommendation if no overrides applied
     return {
-      category: 'NOT_SUITABLE',
-      label: 'NOT SUITABLE',
-      priority: 4,
-      action: `FOCUS ELSEWHERE - Client needs $${Math.round(capacity.avgOrder * 0.8).toLocaleString()}-$${Math.round(capacity.avgOrder * 1.2).toLocaleString()} range`,
-      reasoning: `Outside capacity: Watch $${watchPrice.toLocaleString()} >> client avg $${Math.round(capacity.avgOrder).toLocaleString()}`,
-      confidence: 'NONE'
+      category: baseCategory,
+      label: baseLabel,
+      priority: basePriority,
+      action: baseAction,
+      reasoning: baseReasoning,
+      confidence: baseConfidence
     }
   },
 
@@ -177,13 +233,13 @@ export const createAllocationSlice: StateCreator<
       const { client, waitlistEntry } = item
       if (!client) return null
 
-      // Get business recommendation instead of arbitrary scoring
-      const recommendation = getBusinessRecommendation(client, watch)
-
       // Calculate days waiting for context
       const daysWaiting = waitlistEntry
         ? Math.floor((new Date().getTime() - new Date(waitlistEntry.dateAdded).getTime()) / (1000 * 60 * 60 * 24))
         : 0
+
+      // Get business recommendation with waitlist context
+      const recommendation = getBusinessRecommendation(client, watch, daysWaiting)
 
       // Build contextual reasons
       const reasons: string[] = [
@@ -258,12 +314,17 @@ export const createAllocationSlice: StateCreator<
   },
 
   allocateWatchToClient: (alertId: string, contactMethod: 'SMS' | 'CALL' | 'EMAIL' = 'SMS') => {
-    const { allocationContacts } = get()
+    const { allocationContacts, waitlist } = get()
     const allocation = allocationContacts.find(a => a.id === alertId)
     if (!allocation) return
 
-    // Remove client from waitlist
-    get().removeFromWaitlist(allocation.watchModelId)
+    // Remove client from waitlist - find the correct waitlist entry
+    const waitlistEntry = waitlist.find(
+      entry => entry.clientId === allocation.clientId && entry.watchModelId === allocation.watchModelId
+    )
+    if (waitlistEntry) {
+      get().removeFromWaitlist(waitlistEntry.id)
+    }
 
     // Mark allocation as contacted
     set(state => ({

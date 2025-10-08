@@ -812,3 +812,180 @@ a {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* ========================================
+   LUXURY MOBILE ENHANCEMENTS
+   ======================================== */
+
+/* Mobile-specific touch optimizations */
+@media (max-width: 768px) {
+  /* Larger tap targets for all interactive elements */
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection during touch interactions */
+  * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow text selection in inputs */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Improve touch response with luxury gold highlight */
+  * {
+    -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
+  }
+
+  /* Prevent zoom on double-tap */
+  * {
+    touch-action: manipulation;
+  }
+}
+
+/* Luxury card elevation */
+.card-luxury {
+  background: linear-gradient(145deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--card)) 100%
+  );
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.05),
+    0 10px 25px -5px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid hsl(var(--border));
+}
+
+.dark .card-luxury {
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.3),
+    0 10px 25px -5px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* Gold gradient text for VIP elements */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #d4af37 0%, #f4e5b0 50%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium button styles */
+.btn-premium {
+  background: linear-gradient(135deg, #d4af37 0%, #c9a02e 100%);
+  box-shadow:
+    0 4px 12px rgba(212, 175, 55, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-premium:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 16px rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 8px rgba(212, 175, 55, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Skeleton loading states */
+.skeleton {
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.8) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Smooth card hover lift */
+.card-hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+}
+
+/* VIP badge glow effect */
+.vip-glow {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+  }
+}
+
+/* ===================================
+   Reduced Motion Support (Accessibility)
+   =================================== */
+
+/* Respect user's motion preferences for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable hover scale animations */
+  .hover\:scale-\[1\.02\]:hover,
+  .hover\:scale-105:hover {
+    transform: none !important;
+  }
+
+  /* Disable active scale animations */
+  .active\:scale-\[0\.98\]:active,
+  .active\:scale-95:active {
+    transform: none !important;
+  }
+
+  /* Disable all keyframe animations */
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce,
+  .skeleton,
+  .vip-glow {
+    animation: none !important;
+  }
+
+  /* Disable transform transitions */
+  .transition-transform,
+  .transition-all {
+    transition: opacity 0.01ms !important;
+  }
+}

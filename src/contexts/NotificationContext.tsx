@@ -92,7 +92,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }, {} as Record<NotificationCategory, number>)
 
     // Ensure all categories are present
-    const categories: NotificationCategory[] = ['MESSAGES', 'SYSTEM']
+    const categories: NotificationCategory[] = ['URGENT', 'FOLLOW-UPS']
     categories.forEach(category => {
       if (!byCategory[category]) {
         byCategory[category] = 0

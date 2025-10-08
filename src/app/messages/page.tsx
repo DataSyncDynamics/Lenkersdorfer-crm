@@ -41,12 +41,26 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [messageInput, setMessageInput] = useState('')
   const [showTemplates, setShowTemplates] = useState(false)
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false)
+  const [clientSearchQuery, setClientSearchQuery] = useState('')
 
   const handleConversationSelect = (clientId: string) => {
     setSelectedClientId(clientId)
     // Mark conversation as read when selected
     markConversationAsRead(clientId)
   }
+
+  const handleStartNewMessage = (clientId: string) => {
+    setSelectedClientId(clientId)
+    setShowNewMessageModal(false)
+    setClientSearchQuery('')
+  }
+
+  // Filter clients for new message modal
+  const availableClients = clients.filter(client =>
+    client.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+    client.phone.includes(clientSearchQuery)
+  )
 
   // Handle client selection from URL parameter (e.g., from notifications)
   useEffect(() => {
@@ -115,7 +129,7 @@ export default function MessagesPage() {
 
   return (
     <LenkersdorferSidebar>
-      <div className="flex flex-1 flex-col bg-background h-screen overflow-hidden touch-pan-y">
+      <div className="flex flex-1 flex-col bg-background h-[calc(100vh-4rem)] md:h-screen overflow-hidden touch-pan-y">
         {/* Header - Sticky on Mobile, only show on conversation list */}
         {!selectedClientId && (
           <div className="sticky top-0 z-20 flex flex-col gap-4 p-4 md:p-6 border-b bg-background">
@@ -130,11 +144,18 @@ export default function MessagesPage() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Conversation List - Left Panel */}
           <div className={cn(
-            "w-full md:w-80 lg:w-96 border-r bg-muted/30 flex flex-col overflow-hidden",
+            "w-full md:w-80 lg:w-96 border-r border-border/10 bg-card/30 backdrop-blur-sm flex flex-col overflow-hidden",
             selectedClientId && "hidden md:flex"
           )}>
-            {/* Search */}
-            <div className="p-4">
+            {/* Search and New Message */}
+            <div className="p-4 bg-card/30 border-b border-border/20 space-y-3">
+              <Button
+                onClick={() => setShowNewMessageModal(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Message
+              </Button>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -161,7 +182,7 @@ export default function MessagesPage() {
                         key={conversation.clientId}
                         onClick={() => handleConversationSelect(conversation.clientId)}
                         className={cn(
-                          "p-3 md:p-4 cursor-pointer hover:bg-background/80 transition-colors border-l-4",
+                          "p-3 md:p-4 cursor-pointer hover:bg-background/80 transition-colors border-l-4 border-b border-border/10",
                           isSelected
                             ? "bg-background border-l-gold-500 shadow-sm"
                             : "border-l-transparent"
@@ -233,26 +254,26 @@ export default function MessagesPage() {
             {selectedConversation && selectedClient ? (
               <>
                 {/* Client Header */}
-                <div className="p-4 border-b bg-background">
+                <div className="p-1.5 md:p-4 border-b border-border/40 bg-card/50">
                   <div className="flex items-center justify-between">
                     {/* Back button for mobile */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="md:hidden mr-2"
+                      className="md:hidden mr-1"
                       onClick={() => setSelectedClientId(null)}
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                      <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                        <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-xs md:text-sm">
                           {selectedClient.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{selectedClient.name}</h3>
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                          <h3 className="font-semibold text-sm md:text-base">{selectedClient.name}</h3>
                           <Badge
                             className={cn(
                               "text-xs font-semibold",
@@ -270,7 +291,7 @@ export default function MessagesPage() {
                             <Crown className="h-4 w-4 text-gold-500" />
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground hidden md:block">
                           {formatCurrency(selectedClient.lifetimeSpend)} lifetime spend
                         </p>
                       </div>
@@ -289,7 +310,7 @@ export default function MessagesPage() {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
+                <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4">
                   {selectedConversation.messages.map((message) => (
                     <div
                       key={message.id}
@@ -300,14 +321,14 @@ export default function MessagesPage() {
                     >
                       <div
                         className={cn(
-                          "max-w-[85%] md:max-w-[70%] rounded-lg p-3",
+                          "max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3",
                           message.isFromClient
-                            ? "bg-messageGray-light dark:bg-messageGray-dark text-gray-900 dark:text-white"
-                            : "bg-messageBlue-light dark:bg-messageBlue-dark text-white"
+                            ? "bg-messageGray-light dark:bg-messageGray-dark text-gray-900 dark:text-white shadow-sm"
+                            : "bg-messageBlue-light dark:bg-messageBlue-dark text-white shadow-sm border border-white/5 dark:border-white/10"
                         )}
                       >
                         <p className="text-sm md:text-base break-words">{message.content}</p>
-                        <div className="flex items-center justify-between mt-2 gap-2">
+                        <div className="flex items-center justify-between mt-1 md:mt-2 gap-2">
                           <span className="text-xs opacity-70">
                             {formatMessageTime(message.timestamp)}
                           </span>
@@ -325,10 +346,10 @@ export default function MessagesPage() {
                 </div>
 
                 {/* Message Composer */}
-                <div className="border-t bg-background">
+                <div className="border-t border-border/30 bg-card/20 backdrop-blur-sm">
                   {/* Templates Panel */}
                   {showTemplates && selectedClient && (
-                    <div className="p-4 border-b bg-muted/30">
+                    <div className="p-2 md:p-4 border-b border-border/30 bg-card/40 backdrop-blur-sm">
                       <MessageTemplates
                         clientTier={selectedClient.clientTier}
                         clientName={selectedClient.name}
@@ -338,8 +359,8 @@ export default function MessagesPage() {
                   )}
 
                   {/* Composer */}
-                  <div className="p-3 md:p-4">
-                    <div className="flex gap-2 mb-2 md:mb-3">
+                  <div className="p-1 md:p-4">
+                    <div className="flex gap-2 mb-0.5 md:mb-3">
                       <Button
                         variant="outline"
                         size="sm"
@@ -380,12 +401,12 @@ export default function MessagesPage() {
                             handleSendMessage()
                           }
                         }}
-                        className="flex-1"
+                        className="flex-1 h-9 md:h-10"
                       />
                       <Button
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
-                        className="bg-messageBlue-light hover:bg-messageBlue-dark dark:bg-messageBlue-dark dark:hover:bg-messageBlue-light disabled:opacity-50 text-white flex-shrink-0"
+                        className="bg-messageBlue-light hover:bg-messageBlue-dark dark:bg-messageBlue-dark dark:hover:bg-messageBlue-light disabled:opacity-50 text-white flex-shrink-0 h-9 md:h-10"
                       >
                         <Send className="h-4 w-4" />
                       </Button>
@@ -416,6 +437,81 @@ export default function MessagesPage() {
             )}
           </div>
         </div>
+
+        {/* New Message Modal */}
+        {showNewMessageModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-card border border-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col shadow-xl">
+              {/* Modal Header */}
+              <div className="p-4 border-b border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xl font-bold">New Message</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setShowNewMessageModal(false)
+                      setClientSearchQuery('')
+                    }}
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search clients..."
+                    value={clientSearchQuery}
+                    onChange={(e) => setClientSearchQuery(e.target.value)}
+                    className="pl-10"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Client List */}
+              <div className="flex-1 overflow-y-auto p-2">
+                {availableClients.length > 0 ? (
+                  availableClients.map((client) => (
+                    <button
+                      key={client.id}
+                      onClick={() => handleStartNewMessage(client.id)}
+                      className="w-full p-3 hover:bg-accent rounded-lg transition-colors text-left flex items-center gap-3"
+                    >
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarFallback className={cn(
+                          "text-sm font-semibold",
+                          getVipTierColor(client.vipTier)
+                        )}>
+                          {client.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold truncate">{client.name}</span>
+                          {client.vipTier && (
+                            <Badge variant="outline" className="text-xs flex-shrink-0">
+                              T{client.vipTier}
+                            </Badge>
+                          )}
+                          {client.vipTier === 1 && (
+                            <Crown className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{client.phone}</p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <User className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No clients found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </LenkersdorferSidebar>
   )

@@ -22,15 +22,9 @@ export const LenkersdorferLogo: React.FC<LenkersdorferLogoProps> = ({
       <div className="h-6 w-6 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center flex-shrink-0">
         <Crown className="h-4 w-4 text-black" />
       </div>
-      {!collapsed && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="font-bold text-black dark:text-white whitespace-pre"
-        >
-          Lenkersdorfer
-        </motion.span>
-      )}
+      <span className="font-bold text-black dark:text-white whitespace-pre">
+        Lenkersdorfer
+      </span>
     </Link>
   )
 }

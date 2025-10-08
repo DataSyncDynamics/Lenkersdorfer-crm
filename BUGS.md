@@ -105,7 +105,7 @@ if (watch.availability === 'Available') {
 
 **Date Discovered:** 2025-10-04
 **Severity:** Critical
-**Status:** Open
+**Status:** ✅ Fixed (2025-10-06)
 
 ### Description
 The `allocateWatchToClient` function in `allocationStore.ts` calls `removeFromWaitlist()` with the wrong parameter. It passes `allocation.watchModelId` (the watch ID) when the function expects `entryId` (the waitlist entry ID). This causes the waitlist entry to never be removed when a watch is allocated to a client, leading to duplicate allocations and data corruption.
@@ -237,7 +237,7 @@ const avgOrderValue = activeClients > 0 ? totalRevenue / activeClients : 0
 
 **Date Discovered:** 2025-10-04
 **Severity:** High
-**Status:** Open
+**Status:** ✅ Fixed (2025-10-06)
 
 ### Description
 The "Add Client" form at `/clients/add` has a TODO comment indicating the API call is not implemented. When users submit the form, it only logs to console and manipulates localStorage, but never actually creates the client in the system. This is a critical gap in functionality.
@@ -422,7 +422,7 @@ if (process.env.NODE_ENV === 'development') {
 
 **Date Discovered:** 2025-10-04
 **Severity:** High
-**Status:** Open
+**Status:** ✅ Fixed (2025-10-06)
 
 ### Description
 The `AllocationContactPanel` component calls `removeFromWaitlist(contact.id)` at line 79, but this is incorrect. The `contact.id` is the allocation contact ID (format: `allocation_${id}`), not a waitlist entry ID. This is the same bug as #002 but in a different location.
@@ -745,8 +745,8 @@ Then import and use this function everywhere:
 - **High Bugs:** 4 (44%)
 - **Medium Bugs:** 2 (22%)
 - **Low Bugs:** 1 (11%)
-- **Fixed Bugs:** 1 (11%)
-- **Open Bugs:** 8 (89%)
+- **Fixed Bugs:** 4 (44%)
+- **Open Bugs:** 5 (56%)
 
 **Severity Breakdown:**
 - **Critical:** #002 (removeFromWaitlist parameter bug), #006 (AllocationContactPanel parameter bug)
@@ -754,4 +754,15 @@ Then import and use this function everywhere:
 - **Medium:** #005 (console.log statements), #007 (purchase history scoring)
 - **Low:** #008 (TypeScript type safety bypass)
 
-**Last Updated:** 2025-10-04
+**Last Updated:** 2025-10-06
+
+## Recent Fixes (2025-10-06)
+
+### Bug #002: Fixed ✅
+Fixed the critical parameter mismatch in `allocateWatchToClient` function. Now correctly finds the waitlist entry and passes `waitlistEntry.id` instead of `allocation.watchModelId`.
+
+### Bug #004: Fixed ✅
+Implemented the Add Client API integration. The form now uses `addClient()` from the Zustand store to properly create clients and navigate to the correct pages based on the selected action.
+
+### Bug #006: Fixed ✅
+Fixed the parameter issue in `AllocationContactPanel`. Now correctly finds the waitlist entry before removing it, preventing data integrity issues.

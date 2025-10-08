@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Phone,
@@ -47,7 +47,8 @@ export const AllocationContactPanel: React.FC<AllocationContactPanelProps> = ({
     generateSMSMessage,
     markContactAttempt,
     completeSale,
-    removeFromWaitlist
+    removeFromWaitlist,
+    waitlist
   } = useAppStore()
 
   const watch = getWatchModelById(watchId)
@@ -75,8 +76,13 @@ export const AllocationContactPanel: React.FC<AllocationContactPanelProps> = ({
       `Priority allocation contact - Rank ${contact.rank}`
     )
 
-    // Remove from waitlist (allocation complete)
-    removeFromWaitlist(contact.id)
+    // Remove from waitlist (allocation complete) - find the correct waitlist entry
+    const waitlistEntry = waitlist.find(
+      entry => entry.clientId === contact.clientId && entry.watchModelId === contact.watchModelId
+    )
+    if (waitlistEntry) {
+      removeFromWaitlist(waitlistEntry.id)
+    }
 
     // Callback for parent component
     onContactInitiated?.(contact.clientId, method)
@@ -115,6 +121,17 @@ export const AllocationContactPanel: React.FC<AllocationContactPanelProps> = ({
     return 'bg-muted text-muted-foreground border'
   }
 
+  // Lock body scroll when panel is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalStyle
+      }
+    }
+  }, [isOpen])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -128,13 +145,13 @@ export const AllocationContactPanel: React.FC<AllocationContactPanelProps> = ({
             onClick={onClose}
           />
 
-          {/* Panel */}
+          {/* Panel - Fixed positioning with vh units */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-[600px] bg-background border-l shadow-xl z-50 overflow-y-auto"
+            className="fixed right-0 top-0 h-[100vh] w-[600px] max-w-[90vw] bg-background border-l shadow-xl z-50 overflow-y-auto"
           >
             <div className="p-6">
               {/* Header */}

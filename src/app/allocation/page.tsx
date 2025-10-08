@@ -23,7 +23,9 @@ import {
   AlertTriangle,
   Info,
   XCircle,
-  DollarSign
+  DollarSign,
+  MessageSquare,
+  Phone
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -42,44 +44,48 @@ interface AllocationSuggestionCardProps {
   client: any
   rank: number
   onAllocate: (clientId: string) => void
+  onCall: (clientId: string) => void
+  onSMS: (clientId: string) => void
 }
 
 const AllocationSuggestionCard: React.FC<AllocationSuggestionCardProps> = ({
   suggestion,
   client,
   rank,
-  onAllocate
+  onAllocate,
+  onCall,
+  onSMS
 }) => {
   // Business category styling
   const getBusinessStyling = (category: string) => {
     switch (category) {
       case 'PERFECT_MATCH':
         return {
-          cardClass: 'border-green-200 bg-green-50/30',
-          badgeClass: 'bg-green-100 text-green-800 border-green-300',
-          iconClass: 'text-green-600',
-          buttonClass: 'bg-green-600 hover:bg-green-700 text-white'
+          cardClass: 'border-green-200 bg-green-50/30 dark:border-green-900/50 dark:bg-green-950/20',
+          badgeClass: 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/50 dark:text-green-300 dark:border-green-800/50',
+          iconClass: 'text-green-600 dark:text-green-400',
+          buttonClass: 'bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-700'
         }
       case 'STRETCH_PURCHASE':
         return {
-          cardClass: 'border-amber-200 bg-amber-50/30',
-          badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-          iconClass: 'text-amber-600',
-          buttonClass: 'bg-amber-600 hover:bg-amber-700 text-white'
+          cardClass: 'border-amber-200 bg-amber-50/30 dark:border-amber-900/50 dark:bg-amber-950/20',
+          badgeClass: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/50',
+          iconClass: 'text-amber-600 dark:text-amber-400',
+          buttonClass: 'bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700'
         }
       case 'UPGRADE_OPPORTUNITY':
         return {
-          cardClass: 'border-blue-200 bg-blue-50/30',
-          badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
-          iconClass: 'text-blue-600',
-          buttonClass: 'bg-blue-600 hover:bg-blue-700 text-white'
+          cardClass: 'border-blue-200 bg-blue-50/30 dark:border-blue-900/50 dark:bg-blue-950/20',
+          badgeClass: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/50',
+          iconClass: 'text-blue-600 dark:text-blue-400',
+          buttonClass: 'bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700'
         }
       case 'NOT_SUITABLE':
         return {
-          cardClass: 'border-red-200 bg-red-50/30',
-          badgeClass: 'bg-red-100 text-red-800 border-red-300',
-          iconClass: 'text-red-600',
-          buttonClass: 'bg-gray-400 hover:bg-gray-500 text-white'
+          cardClass: 'border-red-200 bg-red-50/30 dark:border-red-900/50 dark:bg-red-950/20',
+          badgeClass: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800/50',
+          iconClass: 'text-red-600 dark:text-red-400',
+          buttonClass: 'bg-gray-400 hover:bg-gray-500 text-white dark:bg-gray-700 dark:hover:bg-gray-600'
         }
       default:
         return {
@@ -148,26 +154,45 @@ const AllocationSuggestionCard: React.FC<AllocationSuggestionCardProps> = ({
             </div>
 
             {/* Action Recommendation */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0">
-              <div className="flex-1">
+            <div className="flex flex-col gap-2">
+              <div>
                 <div className="text-xs md:text-sm font-medium text-foreground mb-1">Recommended Action:</div>
                 <div className="text-xs md:text-sm text-muted-foreground break-words">
                   {suggestion.businessAction || 'Evaluate case-by-case'}
                 </div>
               </div>
-              <Button
-                onClick={() => onAllocate(client.id)}
-                className={cn(styling.buttonClass, "w-full md:w-auto flex-shrink-0")}
-                disabled={suggestion.businessCategory === 'NOT_SUITABLE'}
-              >
-                {suggestion.businessCategory === 'PERFECT_MATCH' && <CheckCircle2 className="h-4 w-4 mr-2" />}
-                {suggestion.businessCategory === 'STRETCH_PURCHASE' && <DollarSign className="h-4 w-4 mr-2" />}
-                {suggestion.businessCategory === 'UPGRADE_OPPORTUNITY' && <TrendingUp className="h-4 w-4 mr-2" />}
-                {suggestion.businessCategory === 'NOT_SUITABLE' && <X className="h-4 w-4 mr-2" />}
-                {suggestion.businessCategory === 'PERFECT_MATCH' ? 'Call Now' :
-                 suggestion.businessCategory === 'STRETCH_PURCHASE' ? 'Discuss' :
-                 suggestion.businessCategory === 'UPGRADE_OPPORTUNITY' ? 'Suggest Alt' : 'Skip'}
-              </Button>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => onCall(client.id)}
+                  size="sm"
+                  className="flex-1 min-w-[100px] bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={suggestion.businessCategory === 'NOT_SUITABLE'}
+                >
+                  <Phone className="h-4 w-4 mr-1" />
+                  Call
+                </Button>
+                <Button
+                  onClick={() => onSMS(client.id)}
+                  size="sm"
+                  className="flex-1 min-w-[100px] bg-green-600 hover:bg-green-700 text-white"
+                  disabled={suggestion.businessCategory === 'NOT_SUITABLE'}
+                >
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  SMS
+                </Button>
+                <Button
+                  onClick={() => onAllocate(client.id)}
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 min-w-[120px]"
+                  disabled={suggestion.businessCategory === 'NOT_SUITABLE'}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Mark Allocated
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -191,11 +216,14 @@ function AllocationContent() {
     getWatchModelById,
     getClientById,
     generateAllocationContacts,
+    allocateWatchToClient,
     removeFromWaitlist,
     waitlist,
     getPerfectMatches,
     getCriticalAlerts,
-    clients
+    clients,
+    generateSMSMessage,
+    markContactAttempt
   } = useAppStore()
 
   // Check if watch ID is provided in URL
@@ -240,14 +268,8 @@ function AllocationContent() {
         watch.collection.toLowerCase().includes(query) ||
         watch.description.toLowerCase().includes(query)
       )
-    } else {
-      // ONLY when NOT searching: Filter to watches with actionable clients
-      watches = watches.filter(watch => {
-        const suggestions = generateAllocationContacts(watch.id, showAllClients)
-        // Only show watches that have at least one GREEN, YELLOW, or waitlist client
-        return suggestions.length > 0
-      })
     }
+    // Note: Removed filtering by suggestions - ALL watches are now clickable
 
     // Sort: Available watches first, then by number of matches (descending), then by price (high to low)
     return watches.sort((a, b) => {
@@ -280,11 +302,26 @@ function AllocationContent() {
     } else {
       setExpandedWatchId(watchId)
       setSelectedWatchId(watchId)
+
+      // Scroll the expanded card into view smoothly after DOM updates
+      setTimeout(() => {
+        const watchElement = document.getElementById(`watch-${watchId}`)
+        if (watchElement) {
+          watchElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest' // Only scroll if needed, minimizes jump
+          })
+        }
+      }, 100) // Brief delay to ensure expansion animation has started
     }
   }
 
   const confirmAllocation = () => {
     if (selectedWatchId && selectedClientId) {
+      // Use the proper allocation tracking function instead of just removing from waitlist
+      allocateWatchToClient(`allocation_${selectedWatchId}_${selectedClientId}`, 'CALL')
+
+      // Also remove from waitlist if they were on it
       const waitlistEntry = waitlist.find(
         entry => entry.clientId === selectedClientId && entry.watchModelId === selectedWatchId
       )
@@ -294,6 +331,66 @@ function AllocationContent() {
     }
     setShowConfirmation(false)
     setSelectedClientId('')
+
+    // Close the expanded watch view to force refresh of suggestions
+    setExpandedWatchId(null)
+    setSelectedWatchId('')
+  }
+
+  const handleTextClient = (clientId: string, watchId: string) => {
+    const client = getClientById(clientId)
+    const watch = getWatchModelById(watchId)
+
+    if (!client || !watch) return
+
+    // Generate SMS message using priority match template
+    const message = generateSMSMessage('priority_match', client.name, watch.brand, watch.model)
+
+    // Mark contact attempt
+    markContactAttempt(clientId, watchId, 'SMS', message, true, 'Critical alert follow-up')
+
+    // Open native SMS app with pre-filled message
+    window.open(`sms:${client.phone}?body=${encodeURIComponent(message)}`)
+
+    // Trigger haptic feedback
+    triggerHapticFeedback()
+  }
+
+  const handleCallClient = (clientId: string) => {
+    const client = getClientById(clientId)
+    if (!client || !selectedWatchId) return
+
+    const watch = getWatchModelById(selectedWatchId)
+    if (!watch) return
+
+    // Mark contact attempt
+    markContactAttempt(clientId, selectedWatchId, 'CALL', '', true, 'Allocation call attempt')
+
+    // Open phone dialer
+    window.open(`tel:${client.phone}`)
+
+    // Trigger haptic feedback
+    triggerHapticFeedback()
+  }
+
+  const handleSMSClient = (clientId: string) => {
+    const client = getClientById(clientId)
+    if (!client || !selectedWatchId) return
+
+    const watch = getWatchModelById(selectedWatchId)
+    if (!watch) return
+
+    // Generate SMS message using priority match template
+    const message = generateSMSMessage('priority_match', client.name, watch.brand, watch.model)
+
+    // Mark contact attempt
+    markContactAttempt(clientId, selectedWatchId, 'SMS', message, true, 'Allocation SMS')
+
+    // Open native SMS app with pre-filled message
+    window.open(`sms:${client.phone}?body=${encodeURIComponent(message)}`)
+
+    // Trigger haptic feedback
+    triggerHapticFeedback()
   }
 
   return (
@@ -326,7 +423,7 @@ function AllocationContent() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-20 md:pb-8 overflow-y-auto">
           {/* Perfect Match Allocation Status Guide */}
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 mb-6">
             <CardHeader className="pb-3">
@@ -336,10 +433,15 @@ function AllocationContent() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* GREEN Status Guide */}
                 <div className="relative flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                  <div className="absolute top-2 right-2 h-3 w-3 bg-green-500/60 dark:bg-green-500/40 rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 right-2">
+                    <div className="relative h-3 w-3">
+                      <div className="absolute inset-0 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 bg-green-500/40 dark:bg-green-400/30 rounded-full animate-ping"></div>
+                    </div>
+                  </div>
                   <div className="flex-shrink-0">
                     <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
@@ -354,7 +456,12 @@ function AllocationContent() {
 
                 {/* YELLOW Status Guide */}
                 <div className="relative flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
-                  <div className="absolute top-2 right-2 h-3 w-3 bg-yellow-500/60 dark:bg-yellow-500/40 rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 right-2">
+                    <div className="relative h-3 w-3">
+                      <div className="absolute inset-0 bg-yellow-500 dark:bg-yellow-400 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 bg-yellow-500/40 dark:bg-yellow-400/30 rounded-full animate-ping"></div>
+                    </div>
+                  </div>
                   <div className="flex-shrink-0">
                     <Clock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
                   </div>
@@ -369,7 +476,12 @@ function AllocationContent() {
 
                 {/* RED Status Guide */}
                 <div className="relative flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-                  <div className="absolute top-2 right-2 h-3 w-3 bg-red-500/60 dark:bg-red-500/40 rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 right-2">
+                    <div className="relative h-3 w-3">
+                      <div className="absolute inset-0 bg-red-500 dark:bg-red-400 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 bg-red-500/40 dark:bg-red-400/30 rounded-full animate-ping"></div>
+                    </div>
+                  </div>
                   <div className="flex-shrink-0">
                     <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
                   </div>
@@ -507,6 +619,7 @@ function AllocationContent() {
                   return (
                     <motion.div
                       key={watch.id}
+                      id={`watch-${watch.id}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
@@ -630,7 +743,12 @@ function AllocationContent() {
                                 {watchSuggestions.length === 0 ? (
                                   <div className="text-center py-8 text-muted-foreground">
                                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                    <p>No client recommendations available</p>
+                                    <p className="font-medium mb-2">No strong match recommendations</p>
+                                    <p className="text-sm">
+                                      {watch.availability === 'Available' ?
+                                        "Toggle 'All Clients' above to see all potential buyers, or check the Waitlist page for clients interested in this watch." :
+                                        "No clients are currently on the waitlist for this watch. Visit the Clients page to add interested buyers."}
+                                    </p>
                                   </div>
                                 ) : (
                                   watchSuggestions.map((suggestion, suggestionIndex) => {
@@ -647,6 +765,8 @@ function AllocationContent() {
                                           setSelectedClientId(clientId)
                                           setShowConfirmation(true)
                                         }}
+                                        onCall={handleCallClient}
+                                        onSMS={handleSMSClient}
                                       />
                                     )
                                   })
@@ -795,7 +915,22 @@ function AllocationContent() {
                     </div>
                   ) : (
                     watchModels.filter(w => w.availability === 'Available').map((watch) => (
-                      <Card key={watch.id}>
+                      <Card
+                        key={watch.id}
+                        className="cursor-pointer hover:border-gold-400 transition-all duration-200"
+                        onClick={() => {
+                          // Close modal and expand this watch in main content
+                          setShowModal(null)
+                          setExpandedWatchId(watch.id)
+                          // Scroll to the watch in main content after a brief delay to ensure DOM updates
+                          setTimeout(() => {
+                            const watchElement = document.getElementById(`watch-${watch.id}`)
+                            if (watchElement) {
+                              watchElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                            }
+                          }, 100)
+                        }}
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -816,7 +951,8 @@ function AllocationContent() {
                               <div className="text-2xl font-bold text-green-600">{formatCurrency(watch.price)}</div>
                               <Button
                                 size="sm"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation() // Prevent card click when clicking Allocate button
                                   setSelectedWatchId(watch.id)
                                   setShowModal(null)
                                 }}
@@ -875,13 +1011,14 @@ function AllocationContent() {
                                 <div className="text-xs text-muted-foreground hidden md:block">{formatCurrency(client.lifetimeSpend)} lifetime</div>
                                 <Button
                                   size="sm"
-                                  onClick={() => {
-                                    setSelectedWatchId(watch.id)
-                                    setShowModal(null)
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleTextClient(client.id, watch.id)
                                   }}
-                                  className="mt-1 md:mt-2"
+                                  className="mt-1 md:mt-2 bg-green-600 hover:bg-green-700 text-white"
                                 >
-                                  Allocate
+                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  Text Client
                                 </Button>
                               </div>
                             </div>
@@ -908,43 +1045,44 @@ function AllocationContent() {
                       if (!client || !watch) return null
 
                       return (
-                        <Card key={`${alert.clientId}-${alert.watchModelId}`}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                        <Card key={`${alert.clientId}-${alert.watchModelId}`} className="border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800">
+                          <CardContent className="p-3 md:p-4">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs md:text-sm">
                                   {client.name.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold">{client.name}</h4>
-                                  <Badge variant="destructive">Critical</Badge>
-                                  <Badge variant="outline">Tier {client.clientTier}</Badge>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
+                                  <h4 className="font-semibold text-sm md:text-base break-words">{client.name}</h4>
+                                  <Badge className={cn("text-xs border flex-shrink-0", getTierColorClasses(client.clientTier))}>
+                                    Tier {client.clientTier}
+                                  </Badge>
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <Watch className="h-3 w-3" />
-                                    {watch.brand} {watch.model} - {watch.collection}
+                                <div className="text-xs md:text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5 md:gap-2">
+                                    <Watch className="h-3 w-3 flex-shrink-0" />
+                                    <span className="break-words">{watch.brand} {watch.model} - {watch.collection}</span>
                                   </div>
                                   {alert.reason && (
-                                    <div className="italic mt-1">"{alert.reason}"</div>
+                                    <div className="italic mt-1 break-words">"{alert.reason}"</div>
                                   )}
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-semibold">{formatCurrency(watch.price)}</div>
-                                <div className="text-xs text-muted-foreground">{formatCurrency(client.lifetimeSpend)} lifetime</div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="font-semibold text-sm md:text-base">{formatCurrency(watch.price)}</div>
+                                <div className="text-xs text-muted-foreground hidden md:block">{formatCurrency(client.lifetimeSpend)} lifetime</div>
                                 <Button
                                   size="sm"
-                                  onClick={() => {
-                                    setSelectedWatchId(watch.id)
-                                    setShowModal(null)
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleTextClient(client.id, watch.id)
                                   }}
-                                  className="mt-1"
-                                  variant="destructive"
+                                  className="mt-1 md:mt-2 bg-green-600 hover:bg-green-700 text-white"
                                 >
-                                  Urgent
+                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  Text Client
                                 </Button>
                               </div>
                             </div>

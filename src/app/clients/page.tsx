@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -25,12 +26,14 @@ import { useAppStore, formatCurrency } from '@/lib/store'
 import { NewClientData } from '@/types'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { ClientCard } from '@/components/clients/ClientCard'
-import { ClientModal } from '@/components/clients/ClientModal'
-import { AddClientModal } from '@/components/clients/AddClientModal'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { cn } from '@/lib/utils'
 import { getTierColorClasses, getAvatarInitials } from '@/lib/ui-utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
+
+// Lazy load modals
+const ClientModal = dynamic(() => import('@/components/clients/ClientModal').then(mod => ({ default: mod.ClientModal })), { ssr: false })
+const AddClientModal = dynamic(() => import('@/components/clients/AddClientModal').then(mod => ({ default: mod.AddClientModal })), { ssr: false })
 
 export default function ClientsPage() {
   const {
@@ -69,6 +72,21 @@ export default function ClientsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [tierFilter, setTierFilter] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
+
+  // Sync local search with global when changed externally
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery)
+  }, [searchQuery])
+
+  // Debounce search input (150ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(localSearchQuery)
+    }, 150)
+
+    return () => clearTimeout(timer)
+  }, [localSearchQuery, setSearchQuery])
 
   // Apply additional sorting and filtering
   const filteredAndSortedClients = useMemo(() => {
@@ -117,7 +135,7 @@ export default function ClientsPage() {
     })
 
     return results
-  }, [getFilteredClients, sortBy, sortOrder, tierFilter])
+  }, [searchQuery, sortBy, sortOrder, tierFilter, clients])
 
   const handleSaveClient = (clientData: any) => {
     if (!selectedClient) return
@@ -156,7 +174,8 @@ export default function ClientsPage() {
   const analytics = useMemo(() => {
     const totalRevenue = clients.reduce((sum, client) => sum + client.lifetimeSpend, 0)
     const avgSpend = totalRevenue / clients.length || 0
-    const vipClients = clients.filter(c => c.clientTier <= 2).length
+    // VIP clients = top 3 highest spenders (matches dashboard)
+    const vipClients = Math.min(3, clients.length)
     const activeClients = clients.filter(c => {
       const lastPurchase = new Date(c.lastPurchase)
       const sixMonthsAgo = new Date()
@@ -173,17 +192,11 @@ export default function ClientsPage() {
     }
   }, [clients])
 
-  // Get VIP clients for modal
+  // Get VIP clients for modal - top 3 highest spenders (matches dashboard)
   const vipClientsList = useMemo(() => {
     return clients
-      .filter(c => c.clientTier <= 2)
-      .sort((a, b) => {
-        // Sort by tier first, then by lifetime spend
-        if (a.clientTier !== b.clientTier) {
-          return a.clientTier - b.clientTier
-        }
-        return b.lifetimeSpend - a.lifetimeSpend
-      })
+      .sort((a, b) => b.lifetimeSpend - a.lifetimeSpend)
+      .slice(0, 3)
   }, [clients])
 
   return (
@@ -334,15 +347,18 @@ export default function ClientsPage() {
                     className="pl-10 pr-12 w-full"
                     style={{ fontSize: '16px' }}
                     placeholder="Search clients..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={localSearchQuery}
+                    onChange={(e) => setLocalSearchQuery(e.target.value)}
                   />
-                  {searchQuery && (
+                  {localSearchQuery && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 z-10"
-                      onClick={() => setSearchQuery('')}
+                      onClick={() => {
+                        setLocalSearchQuery('')
+                        setSearchQuery('')
+                      }}
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -401,9 +417,8 @@ export default function ClientsPage() {
           {/* Client Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
             {filteredAndSortedClients.map((client) => (
-              <div className="w-full min-w-0">
+              <div key={client.id} className="w-full min-w-0">
                 <ClientCard
-                  key={client.id}
                   client={client}
                   onClick={() => setSelectedClient(client)}
                 />

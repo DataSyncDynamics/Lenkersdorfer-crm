@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { motion } from 'framer-motion'
 import {
   Crown,
   Star,
@@ -33,7 +32,7 @@ const getTierIcon = (tier: number) => {
   return <Users className="h-3 w-3" />
 }
 
-export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
+const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => {
   const { notifications } = useNotifications()
 
   // Find notifications for this specific client
@@ -50,10 +49,8 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
   )
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="cursor-pointer"
+    <div
+      className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
       onClick={onClick}
     >
       <Card className={cn(
@@ -163,6 +160,20 @@ export const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }
+
+export const ClientCard = React.memo(ClientCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these specific properties change
+  return (
+    prevProps.client.id === nextProps.client.id &&
+    prevProps.client.name === nextProps.client.name &&
+    prevProps.client.lifetimeSpend === nextProps.client.lifetimeSpend &&
+    prevProps.client.email === nextProps.client.email &&
+    prevProps.client.phone === nextProps.client.phone &&
+    prevProps.client.lastPurchase === nextProps.client.lastPurchase
+  )
+})
+
+ClientCard.displayName = 'ClientCard'

@@ -12,6 +12,7 @@ import {
   MicrophoneIcon
 } from '@heroicons/react/24/outline'
 import { CreateClientRequest, VipTier } from '@/types'
+import { useAppStore } from '@/lib/store'
 
 // Quick select options for mobile
 const WATCH_BRANDS = ['ROLEX', 'CARTIER', 'OMEGA', 'PATEK PHILIPPE', 'AUDEMARS PIGUET', 'VACHERON CONSTANTIN', 'JAEGER-LECOULTRE', 'IWC', 'BREITLING', 'TAG HEUER']
@@ -52,6 +53,7 @@ interface FormData {
 
 export default function AddClientPage() {
   const router = useRouter()
+  const { addClient } = useAppStore()
   const [formData, setFormData] = useState<FormData>({
     name: '',
     phone: '',
@@ -133,20 +135,19 @@ export default function AddClientPage() {
 
     setIsSubmitting(true)
     try {
-      const clientData: CreateClientRequest = {
+      // Create the new client using the store
+      const newClientId = addClient({
         name: formData.name.trim(),
-        email: formData.email.trim() || undefined,
+        email: formData.email.trim() || 'unknown@example.com',
         phone: formData.phone.trim(),
-        preferred_brands: formData.interests,
+        preferredBrands: formData.interests,
         notes: [
           formData.notes,
           formData.budget > 0 ? `Estimated Budget: $${formData.budget.toLocaleString()}` : '',
           formData.source ? `Source: ${formData.source}` : ''
-        ].filter(Boolean).join('\n')
-      }
-
-      // TODO: Implement actual API call
-      console.log('Creating client:', clientData)
+        ].filter(Boolean).join('\n'),
+        joinDate: new Date().toISOString()
+      })
 
       // Clear draft
       localStorage.removeItem('draft-client')
@@ -155,11 +156,11 @@ export default function AddClientPage() {
       switch (action) {
         case 'call':
           // Navigate to client detail with call action
-          router.push(`/clients/new?action=call&phone=${encodeURIComponent(formData.phone)}`)
+          router.push(`/clients/${newClientId}?action=call`)
           break
         case 'schedule':
           // Navigate to client detail with schedule action
-          router.push(`/clients/new?action=schedule`)
+          router.push(`/clients/${newClientId}?action=schedule`)
           break
         case 'continue':
           // Reset form for another client
@@ -172,6 +173,8 @@ export default function AddClientPage() {
             source: '',
             notes: ''
           })
+          setSaveStatus('saved')
+          setTimeout(() => setSaveStatus(null), 2000)
           break
         default:
           router.push('/clients')

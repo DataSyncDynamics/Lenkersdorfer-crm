@@ -7,9 +7,11 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { useTheme } from "@/components/ui/theme-provider";
 import { LenkersdorferLogo } from "@/components/ui/lenkersdorfer-logo";
+import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { createMainNavigationLinks, createBottomNavigationItems } from "@/lib/navigation-utils";
 import { getNavigationLinkClasses } from "@/lib/ui-utils";
 import { Moon, Sun } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function LenkersdorferSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,11 +27,12 @@ export function LenkersdorferSidebar({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background w-full">
+      {/* Desktop Sidebar - Hidden on mobile */}
       <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="justify-between gap-4 overflow-visible">
+        <SidebarBody className="justify-between gap-3 overflow-visible">
           <div className="flex flex-col overflow-y-auto overflow-x-visible">
             <LenkersdorferLogo collapsed={!open} />
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-3 flex flex-col gap-1.5">
               {mainLinks.map((link, idx) => (
                 <SidebarLink
                   key={idx}
@@ -41,25 +44,27 @@ export function LenkersdorferSidebar({ children }: { children: React.ReactNode }
           </div>
 
           {/* Bottom Section */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex items-center justify-start gap-2 py-2 rounded-lg text-foreground hover:text-gold-500 hover:bg-muted transition-all duration-200 group border border-border hover:border-gold-400"
+              className={cn(
+                "flex items-center justify-start gap-2 py-1.5 rounded-lg text-foreground hover:text-gold-500 transition-all duration-200 group relative",
+                getNavigationLinkClasses(false)
+              )}
+              style={{ overflow: 'visible' }}
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
-              <div className="relative overflow-visible flex-shrink-0">
+              <div className="relative overflow-visible flex-shrink-0 flex items-center justify-center w-5 h-5">
                 {theme === "dark" ? (
                   <Sun className="h-5 w-5" />
                 ) : (
                   <Moon className="h-5 w-5" />
                 )}
               </div>
-              {open && (
-                <span className="text-sm font-medium">
-                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                </span>
-              )}
+              <span className="text-sm font-medium whitespace-pre">
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </span>
             </button>
 
             {bottomItems.map((item, idx) => (
@@ -73,10 +78,15 @@ export function LenkersdorferSidebar({ children }: { children: React.ReactNode }
         </SidebarBody>
       </Sidebar>
 
-      {/* Main Content */}
-      <div className="flex flex-1">
+      {/* Main Content with bottom padding on mobile for bottom nav */}
+      <div className="flex flex-1 pb-16 md:pb-0 md:ml-[300px]">
         {children}
       </div>
+
+      {/* Mobile Bottom Navigation - Only visible on mobile/tablet */}
+      <BottomNavigation
+        messageCount={messagingUnreadCount || 0}
+      />
     </div>
   );
 }

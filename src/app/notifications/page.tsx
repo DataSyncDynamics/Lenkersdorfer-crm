@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
   Bell,
@@ -23,15 +24,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { FollowUpModal } from '@/components/notifications/FollowUpModal'
 import { cn } from '@/lib/utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
+
+// Lazy load FollowUpModal
+const FollowUpModal = dynamic(() => import('@/components/notifications/FollowUpModal').then(mod => ({ default: mod.FollowUpModal })), { ssr: false })
 
 export default function NotificationsDemoPage() {
   const router = useRouter()
   const { notifications, getCounts, addNotification, removeNotification, markAllAsRead } = useNotifications()
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
-  const [showStatsModal, setShowStatsModal] = useState<'CRITICAL' | 'HIGH' | 'MESSAGES' | 'ALL' | null>(null)
+  const [showStatsModal, setShowStatsModal] = useState<'URGENT' | 'FOLLOW-UPS' | 'ALL' | null>(null)
   const [followUpModal, setFollowUpModal] = useState<{
     isOpen: boolean
     client?: any
@@ -44,59 +47,87 @@ export default function NotificationsDemoPage() {
   useEffect(() => {
     // Only add demo notifications if there are no notifications
     if (notifications.length === 0) {
-      // Critical notification example
+      // URGENT notification example
       addNotification({
-        category: 'MESSAGES',
-        urgency: 'CRITICAL',
-        title: 'VIP Client Waiting 120+ Days',
-        message: 'Sarah Chen (Tier 1) has been waiting 127 days for Rolex Daytona. Immediate follow-up required.',
+        category: 'URGENT',
+        title: 'Critical: Platinum Client Waiting 120+ Days',
+        message: 'Sarah Chen has been waiting 127 days for Rolex Daytona. Immediate follow-up required.',
         clientName: 'Sarah Chen',
         clientId: 'client-1',
         watchBrand: 'Rolex',
         watchModel: 'Daytona',
         daysWaiting: 127,
         actions: [
-          { type: 'CALL', label: 'Call Now', isPrimary: true, phoneNumber: '+1-555-0123' },
-          { type: 'SCHEDULE', label: 'Follow Up' },
+          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0123' },
+          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0123' },
           { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-1' },
           { type: 'DISMISS', label: 'Dismiss' }
         ]
       })
 
-      // High priority notification example
+      // URGENT notification example
       addNotification({
-        category: 'MESSAGES',
-        urgency: 'HIGH',
-        title: 'High-Value Client Inquiry',
-        message: 'Michael Rodriguez (Tier 2, $85K lifetime) is interested in Patek Philippe Nautilus. Recent purchase indicates strong buying intent.',
+        category: 'URGENT',
+        title: 'High-Value Client: Strong Buying Intent',
+        message: 'Michael Rodriguez ($85K lifetime spend) is interested in Patek Philippe Nautilus. Recent purchase indicates immediate opportunity.',
         clientName: 'Michael Rodriguez',
         clientId: 'client-2',
         watchBrand: 'Patek Philippe',
         watchModel: 'Nautilus',
         daysWaiting: 45,
         actions: [
-          { type: 'CALL', label: 'Call Now', isPrimary: true, phoneNumber: '+1-555-0124' },
-          { type: 'SCHEDULE', label: 'Follow Up' },
+          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0124' },
+          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0124' },
           { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-2' },
           { type: 'DISMISS', label: 'Dismiss' }
         ]
       })
 
-      // Message notification example
+      // FOLLOW-UPS notification example
       addNotification({
-        category: 'MESSAGES',
-        urgency: 'MEDIUM',
-        title: 'New Message from Client',
-        message: 'Emma Wilson inquired about availability of Omega Speedmaster Professional. Last purchase was 8 months ago.',
-        clientName: 'Emma Wilson',
+        category: 'FOLLOW-UPS',
+        title: '90-Day Check-in: David Martinez',
+        message: 'Relationship maintenance touchpoint due. Last contact was 92 days ago. Client has $45K lifetime spend.',
+        clientName: 'David Martinez',
         clientId: 'client-3',
-        watchBrand: 'Omega',
-        watchModel: 'Speedmaster',
-        daysWaiting: 12,
+        daysWaiting: 92,
         actions: [
-          { type: 'CALL', label: 'Call Now', isPrimary: true, phoneNumber: '+1-555-0125' },
-          { type: 'SCHEDULE', label: 'Follow Up' },
+          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0125' },
+          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0125' },
           { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-3' },
+          { type: 'DISMISS', label: 'Dismiss' }
+        ]
+      })
+
+      addNotification({
+        category: 'FOLLOW-UPS',
+        title: 'Scheduled Callback: Lisa Wang',
+        message: 'Appointment reminder for 2:30 PM today. Interested in Cartier Santos.',
+        clientName: 'Lisa Wang',
+        clientId: 'client-4',
+        watchBrand: 'Cartier',
+        watchModel: 'Santos',
+        actions: [
+          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0126' },
+          { type: 'SCHEDULE', label: 'Reschedule' },
+          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-4' },
+          { type: 'DISMISS', label: 'Dismiss' }
+        ]
+      })
+
+      addNotification({
+        category: 'FOLLOW-UPS',
+        title: 'Client Interest: Audemars Piguet Royal Oak',
+        message: 'James Chen (Bronze tier) expressed interest 15 days ago. Follow up to gauge continued interest.',
+        clientName: 'James Chen',
+        clientId: 'client-5',
+        watchBrand: 'Audemars Piguet',
+        watchModel: 'Royal Oak',
+        daysWaiting: 15,
+        actions: [
+          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0127' },
+          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0127' },
+          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-5' },
           { type: 'DISMISS', label: 'Dismiss' }
         ]
       })
@@ -104,8 +135,8 @@ export default function NotificationsDemoPage() {
   }, []) // Only run once on mount
 
   const categoryIcons = {
-    MESSAGES: Bell,
-    SYSTEM: Inbox
+    URGENT: Flame,
+    'FOLLOW-UPS': Clock
   }
 
 
@@ -116,12 +147,10 @@ export default function NotificationsDemoPage() {
   // Get filtered notifications for modal
   const getModalNotifications = () => {
     switch (showStatsModal) {
-      case 'CRITICAL':
-        return notifications.filter(n => n.urgency === 'CRITICAL')
-      case 'HIGH':
-        return notifications.filter(n => n.urgency === 'HIGH')
-      case 'MESSAGES':
-        return notifications.filter(n => n.category === 'MESSAGES')
+      case 'URGENT':
+        return notifications.filter(n => n.category === 'URGENT')
+      case 'FOLLOW-UPS':
+        return notifications.filter(n => n.category === 'FOLLOW-UPS')
       case 'ALL':
         return notifications
       default:
@@ -184,20 +213,20 @@ export default function NotificationsDemoPage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           <div
             className="cursor-pointer"
-            onClick={() => setShowStatsModal('CRITICAL')}
+            onClick={() => setShowStatsModal('URGENT')}
           >
             <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
                   <div className="bg-red-100 dark:bg-red-950 p-3 rounded-lg flex-shrink-0">
-                    <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-500" />
+                    <Flame className="w-7 h-7 text-red-600 dark:text-red-500" />
                   </div>
                   <div>
-                    <div className="text-red-600 dark:text-red-500 text-3xl font-bold">{counts.critical}</div>
-                    <div className="text-foreground/60 text-sm font-medium">Critical</div>
+                    <div className="text-red-600 dark:text-red-500 text-3xl font-bold">{counts.byCategory.URGENT || 0}</div>
+                    <div className="text-foreground/60 text-sm font-medium">Urgent</div>
                   </div>
                 </div>
               </CardContent>
@@ -206,36 +235,17 @@ export default function NotificationsDemoPage() {
 
           <div
             className="cursor-pointer"
-            onClick={() => setShowStatsModal('HIGH')}
+            onClick={() => setShowStatsModal('FOLLOW-UPS')}
           >
             <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-orange-100 dark:bg-orange-950 p-3 rounded-lg flex-shrink-0">
-                    <Flame className="w-7 h-7 text-orange-600 dark:text-orange-500" />
+                  <div className="bg-amber-100 dark:bg-amber-950 p-3 rounded-lg flex-shrink-0">
+                    <Clock className="w-7 h-7 text-amber-600 dark:text-amber-500" />
                   </div>
                   <div>
-                    <div className="text-orange-600 dark:text-orange-500 text-3xl font-bold">{counts.high}</div>
-                    <div className="text-foreground/60 text-sm font-medium">High</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div
-            className="cursor-pointer"
-            onClick={() => setShowStatsModal('MESSAGES')}
-          >
-            <Card className="hover:shadow-lg transition-all duration-200 h-full">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-blue-100 dark:bg-blue-950 p-3 rounded-lg flex-shrink-0">
-                    <Bell className="w-7 h-7 text-blue-600 dark:text-blue-500" />
-                  </div>
-                  <div>
-                    <div className="text-blue-600 dark:text-blue-500 text-3xl font-bold">{counts.byCategory.MESSAGES || 0}</div>
-                    <div className="text-foreground/60 text-sm font-medium">Messages</div>
+                    <div className="text-amber-600 dark:text-amber-500 text-3xl font-bold">{counts.byCategory['FOLLOW-UPS'] || 0}</div>
+                    <div className="text-foreground/60 text-sm font-medium">Follow-ups</div>
                   </div>
                 </div>
               </CardContent>
@@ -249,11 +259,11 @@ export default function NotificationsDemoPage() {
             <Card className="hover:shadow-lg transition-all duration-200 h-full">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-yellow-100 dark:bg-yellow-950 p-3 rounded-lg flex-shrink-0">
-                    <Bell className="w-7 h-7 text-yellow-600 dark:text-yellow-500" />
+                  <div className="bg-blue-100 dark:bg-blue-950 p-3 rounded-lg flex-shrink-0">
+                    <Bell className="w-7 h-7 text-blue-600 dark:text-blue-500" />
                   </div>
                   <div>
-                    <div className="text-yellow-600 dark:text-yellow-500 text-3xl font-bold">{counts.total}</div>
+                    <div className="text-blue-600 dark:text-blue-500 text-3xl font-bold">{counts.total}</div>
                     <div className="text-foreground/60 text-sm font-medium">Total</div>
                   </div>
                 </div>
@@ -275,8 +285,8 @@ export default function NotificationsDemoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">All Categories</SelectItem>
-                      <SelectItem value="MESSAGES">Messages</SelectItem>
-                      <SelectItem value="SYSTEM">System</SelectItem>
+                      <SelectItem value="URGENT">Urgent</SelectItem>
+                      <SelectItem value="FOLLOW-UPS">Follow-ups</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -286,17 +296,15 @@ export default function NotificationsDemoPage() {
                 {filteredNotifications.map((notification) => {
                   const CategoryIcon = categoryIcons[notification.category]
 
-                  const getUrgencyColors = (urgency: string) => {
-                    switch (urgency) {
-                      case 'CRITICAL': return { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-200' }
-                      case 'HIGH': return { bg: 'bg-orange-100', text: 'text-orange-600', border: 'border-orange-200' }
-                      case 'MEDIUM': return { bg: 'bg-yellow-100', text: 'text-yellow-600', border: 'border-yellow-200' }
-                      case 'LOW': return { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' }
-                      default: return { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' }
+                  const getCategoryColors = (category: string) => {
+                    switch (category) {
+                      case 'URGENT': return { bg: 'bg-red-100 dark:bg-red-950', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800' }
+                      case 'FOLLOW-UPS': return { bg: 'bg-amber-100 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' }
+                      default: return { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-200 dark:border-gray-700' }
                     }
                   }
 
-                  const urgencyColors = getUrgencyColors(notification.urgency)
+                  const categoryColors = getCategoryColors(notification.category)
 
                   return (
                     <motion.div
@@ -306,14 +314,14 @@ export default function NotificationsDemoPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start space-x-3 flex-1 min-w-0">
-                          <div className={`${urgencyColors.bg} p-2 rounded-lg flex-shrink-0`}>
-                            <CategoryIcon className={`w-5 h-5 ${urgencyColors.text}`} />
+                          <div className={`${categoryColors.bg} p-2 rounded-lg flex-shrink-0`}>
+                            <CategoryIcon className={`w-5 h-5 ${categoryColors.text}`} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-semibold">{notification.title}</h3>
-                              <Badge className={cn("text-xs", urgencyColors.bg, urgencyColors.text, urgencyColors.border)}>
-                                {notification.urgency}
+                              <Badge className={cn("text-xs", categoryColors.bg, categoryColors.text, categoryColors.border)}>
+                                {notification.category === 'FOLLOW-UPS' ? 'Follow-up' : notification.category}
                               </Badge>
                             </div>
                             <p className="text-muted-foreground text-sm mb-2">{notification.message}</p>
@@ -439,34 +447,26 @@ export default function NotificationsDemoPage() {
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] md:w-full">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {showStatsModal === 'CRITICAL' && (
+                {showStatsModal === 'URGENT' && (
                   <>
                     <div className="bg-red-100 dark:bg-red-950 p-2 rounded-lg">
-                      <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500" />
+                      <Flame className="h-5 w-5 text-red-600 dark:text-red-500" />
                     </div>
-                    Critical Notifications ({counts.critical})
+                    Urgent Notifications ({counts.byCategory.URGENT || 0})
                   </>
                 )}
-                {showStatsModal === 'HIGH' && (
+                {showStatsModal === 'FOLLOW-UPS' && (
                   <>
-                    <div className="bg-orange-100 dark:bg-orange-950 p-2 rounded-lg">
-                      <Flame className="h-5 w-5 text-orange-600 dark:text-orange-500" />
+                    <div className="bg-amber-100 dark:bg-amber-950 p-2 rounded-lg">
+                      <Clock className="h-5 w-5 text-amber-600 dark:text-amber-500" />
                     </div>
-                    High Priority Notifications ({counts.high})
-                  </>
-                )}
-                {showStatsModal === 'MESSAGES' && (
-                  <>
-                    <div className="bg-blue-100 dark:bg-blue-950 p-2 rounded-lg">
-                      <Bell className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-                    </div>
-                    Message Notifications ({counts.byCategory.MESSAGES || 0})
+                    Follow-up Notifications ({counts.byCategory['FOLLOW-UPS'] || 0})
                   </>
                 )}
                 {showStatsModal === 'ALL' && (
                   <>
-                    <div className="bg-yellow-100 dark:bg-yellow-950 p-2 rounded-lg">
-                      <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                    <div className="bg-blue-100 dark:bg-blue-950 p-2 rounded-lg">
+                      <Bell className="h-5 w-5 text-blue-600 dark:text-blue-500" />
                     </div>
                     All Notifications ({counts.total})
                   </>
@@ -483,17 +483,15 @@ export default function NotificationsDemoPage() {
               ) : (
                 getModalNotifications().map((notification) => {
                   const CategoryIcon = categoryIcons[notification.category]
-                  const getUrgencyColors = (urgency: string) => {
-                    switch (urgency) {
-                      case 'CRITICAL': return { bg: 'bg-red-100 dark:bg-red-950', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800' }
-                      case 'HIGH': return { bg: 'bg-orange-100 dark:bg-orange-950', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800' }
-                      case 'MEDIUM': return { bg: 'bg-yellow-100 dark:bg-yellow-950', text: 'text-yellow-600 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800' }
-                      case 'LOW': return { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-200 dark:border-gray-700' }
+                  const getCategoryColors = (category: string) => {
+                    switch (category) {
+                      case 'URGENT': return { bg: 'bg-red-100 dark:bg-red-950', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800' }
+                      case 'FOLLOW-UPS': return { bg: 'bg-amber-100 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' }
                       default: return { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-200 dark:border-gray-700' }
                     }
                   }
 
-                  const urgencyColors = getUrgencyColors(notification.urgency)
+                  const categoryColors = getCategoryColors(notification.category)
 
                   return (
                     <motion.div
@@ -503,14 +501,14 @@ export default function NotificationsDemoPage() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-3 flex-1">
-                          <div className={`${urgencyColors.bg} p-2 rounded-lg`}>
-                            <CategoryIcon className={`w-5 h-5 ${urgencyColors.text}`} />
+                          <div className={`${categoryColors.bg} p-2 rounded-lg`}>
+                            <CategoryIcon className={`w-5 h-5 ${categoryColors.text}`} />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-semibold text-foreground">{notification.title}</h3>
-                              <Badge className={cn("text-xs", urgencyColors.bg, urgencyColors.text, urgencyColors.border)}>
-                                {notification.urgency}
+                              <Badge className={cn("text-xs", categoryColors.bg, categoryColors.text, categoryColors.border)}>
+                                {notification.category === 'FOLLOW-UPS' ? 'Follow-up' : notification.category}
                               </Badge>
                             </div>
                             <p className="text-foreground/70 text-sm mb-2">{notification.message}</p>

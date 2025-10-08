@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Plus, Watch, Edit, Eye } from 'lucide-react'
+import { X, Plus, Watch, Edit, Eye, AlertTriangle, Flame, Clock, Phone, MessageSquare } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,9 +9,36 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, formatCurrency } from '@/lib/store'
+import { useNotifications } from '@/contexts/NotificationContext'
 import { Client, ClientTier, WatchTier } from '@/types'
-import { formatClientName } from '@/lib/ui-utils'
+import { formatClientName, getTierColorClasses } from '@/lib/ui-utils'
+import { cn } from '@/lib/utils'
+import { Crown, Star, Users } from 'lucide-react'
+
+// Comprehensive luxury watch brands list
+const LUXURY_WATCH_BRANDS = [
+  'ROLEX',
+  'OMEGA',
+  'PATEK PHILIPPE',
+  'AUDEMARS PIGUET',
+  'CARTIER',
+  'TAG HEUER',
+  'BREITLING',
+  'IWC',
+  'TUDOR',
+  'ZENITH',
+  'SEIKO',
+  'CHANEL',
+  'VACHERON CONSTANTIN',
+  'A. LANGE & SÖHNE',
+  'JAEGER-LECOULTRE',
+  'PANERAI',
+  'HUBLOT',
+  'RICHARD MILLE',
+  'F.P. JOURNE',
+  'GREUBEL FORSEY'
+]
 
 interface ClientModalProps {
   selectedClient: Client | null
@@ -29,6 +56,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     getWatchModelById,
     calculateMatchStatus
   } = useAppStore()
+
+  const { notifications, markAsRead, removeNotification } = useNotifications()
 
   // Form state for client editing
   const [formData, setFormData] = useState({
@@ -128,14 +157,131 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
 
   if (!selectedClient) return null
 
+  // Get notifications for this client
+  const clientNotifications = notifications.filter(n =>
+    n.clientId === selectedClient.id || n.clientName === selectedClient.name
+  )
+
+  const handleContactClient = () => {
+    if (selectedClient.phone) {
+      window.location.href = `sms:${selectedClient.phone}`
+    }
+  }
+
+  const getTierIcon = (tier: number) => {
+    if (tier <= 2) return <Crown className="h-4 w-4" />
+    if (tier <= 3) return <Star className="h-4 w-4" />
+    return <Users className="h-4 w-4" />
+  }
+
   return (
     <Dialog open={!!selectedClient} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[calc(100vw-2rem)] md:w-full">
-        <DialogHeader>
-          <DialogTitle>{formatClientName(selectedClient.name)}</DialogTitle>
+      <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] md:w-full max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-center justify-between gap-4 pr-8">
+            <DialogTitle className="text-2xl">{formatClientName(selectedClient.name)}</DialogTitle>
+            <Badge className={cn("text-sm font-medium flex-shrink-0", getTierColorClasses(selectedClient.clientTier))}>
+              {getTierIcon(selectedClient.clientTier)}
+              <span className="ml-1.5">Tier {selectedClient.clientTier}</span>
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-lg font-semibold text-green-600 dark:text-green-400">
+            {formatCurrency(selectedClient.lifetimeSpend)}
+            <span className="text-sm font-normal text-muted-foreground">lifetime spend</span>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Notification Alerts */}
+          {clientNotifications.length > 0 && (
+            <div className="space-y-3">
+              {clientNotifications.map((notification) => {
+                const isUrgent = notification.category === 'URGENT_CLIENTS'
+                const isOpportunity = notification.category === 'NEW_OPPORTUNITIES'
+
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      isUrgent
+                        ? 'bg-red-50 dark:bg-red-950/30 border-red-500'
+                        : isOpportunity
+                        ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-500'
+                        : 'bg-blue-50 dark:bg-blue-950/30 border-blue-500'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        {isUrgent && <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />}
+                        {isOpportunity && <Flame className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
+                        {!isUrgent && !isOpportunity && <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`font-semibold text-sm mb-1 ${
+                          isUrgent
+                            ? 'text-red-900 dark:text-red-100'
+                            : isOpportunity
+                            ? 'text-orange-900 dark:text-orange-100'
+                            : 'text-blue-900 dark:text-blue-100'
+                        }`}>
+                          {notification.title}
+                        </h4>
+                        <p className={`text-sm mb-3 ${
+                          isUrgent
+                            ? 'text-red-800 dark:text-red-200'
+                            : isOpportunity
+                            ? 'text-orange-800 dark:text-orange-200'
+                            : 'text-blue-800 dark:text-blue-200'
+                        }`}>
+                          {notification.message}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleContactClient}
+                            className="h-8 text-xs"
+                          >
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Contact Client
+                          </Button>
+                          {notification.actions
+                            ?.filter(action => action.type !== 'VIEW_CLIENT') // Hide "View Client" since we're already viewing
+                            .map((action, idx) => (
+                              <Button
+                                key={idx}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // Handle action based on type
+                                  if (action.type === 'TEXT_CLIENT' || action.type === 'CALL') {
+                                    handleContactClient()
+                                  } else if (action.type === 'MARK_CONTACTED') {
+                                    markAsRead(notification.id)
+                                  }
+                                }}
+                                className="h-8 text-xs"
+                              >
+                                {action.label}
+                              </Button>
+                            ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeNotification(notification.id)}
+                            className="h-8 text-xs"
+                          >
+                            Dismiss
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {/* Client Information */}
           <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
@@ -236,16 +382,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
             </div>
             {isEditing && (
               <div className="flex gap-2">
-                <Input
-                  placeholder="Add preferred brand..."
-                  className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddBrand(e.currentTarget.value)
-                      e.currentTarget.value = ''
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (value) {
+                      handleAddBrand(value)
                     }
                   }}
-                />
+                >
+                  <SelectTrigger className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600">
+                    <SelectValue placeholder="Select a brand to add..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LUXURY_WATCH_BRANDS
+                      .filter(brand => !formData.preferredBrands.includes(brand))
+                      .map((brand) => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

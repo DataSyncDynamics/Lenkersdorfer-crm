@@ -128,6 +128,12 @@ module.exports = {
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
         '5xl': ['3rem', { lineHeight: '1' }],
         '6xl': ['3.75rem', { lineHeight: '1' }],
+        // Typography standards for consistent heading sizes
+        'h1': ['32px', { lineHeight: '1.2', fontWeight: '700' }],
+        'h2': ['24px', { lineHeight: '1.3', fontWeight: '600' }],
+        'h3': ['18px', { lineHeight: '1.4', fontWeight: '600' }],
+        'body': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
+        'small': ['12px', { lineHeight: '1.4', fontWeight: '400' }],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

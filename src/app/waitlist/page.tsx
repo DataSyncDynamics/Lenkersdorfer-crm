@@ -14,7 +14,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   Watch,
-  TrendingUp
+  TrendingUp,
+  MessageSquare,
+  Phone,
+  User,
+  Target
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,11 +38,14 @@ export default function WaitlistPage() {
     getClientById,
     getWatchModelById,
     getWaitlistForWatch,
-    removeFromWaitlist
+    calculateMatchStatus,
+    removeFromWaitlist,
+    calculateEntryMatchScore
   } = useAppStore()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedWatchId, setExpandedWatchId] = useState<string | null>(null)
+  const [expandedModalWatchId, setExpandedModalWatchId] = useState<string | null>(null)
   const [showModal, setShowModal] = useState<'total' | 'watches' | 'vip' | 'urgent' | null>(null)
 
   // Calculate analytics with Urgent Follow-ups logic
@@ -73,20 +80,28 @@ export default function WaitlistPage() {
     }
   }, [waitlist, watchModels, getClientById])
 
-  // Group waitlist by watch model
+  // Group waitlist by watch model and sort by match quality
   const waitlistByWatch = useMemo(() => {
     return watchModels.map(watch => {
       const entries = getWaitlistForWatch(watch.id)
       return {
         watch,
-        entries: entries.map(entry => ({
-          ...entry,
-          client: getClientById(entry.clientId)!,
-          daysWaiting: calculateDaysBetween(entry.dateAdded)
-        }))
+        entries: entries
+          .map(entry => {
+            const client = getClientById(entry.clientId)
+            if (!client) return null
+            return {
+              ...entry,
+              client,
+              daysWaiting: calculateDaysBetween(entry.dateAdded),
+              matchScore: calculateEntryMatchScore(entry.clientId, watch.id, entry.dateAdded)
+            }
+          })
+          .filter(entry => entry !== null) // Remove null entries
+          .sort((a, b) => b.matchScore - a.matchScore) // Sort by match score descending (best matches first)
       }
     }).filter(group => group.entries.length > 0)
-  }, [watchModels, getWaitlistForWatch, getClientById])
+  }, [watchModels, getWaitlistForWatch, getClientById, calculateEntryMatchScore])
 
   // Filter based on search
   const filteredWaitlistByWatch = useMemo(() => {
@@ -116,7 +131,8 @@ export default function WaitlistPage() {
       case 'watches':
         return waitlistByWatch.map(({ watch, entries }) => ({
           watch,
-          clientCount: entries.length
+          clientCount: entries.length,
+          entries: entries // Include the entries array for expansion
         }))
 
       case 'vip':
@@ -198,7 +214,7 @@ export default function WaitlistPage() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
+        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-y-auto">
           {/* Analytics Cards - Matching Allocation Page */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             {/* Total Entries */}
@@ -321,18 +337,34 @@ export default function WaitlistPage() {
             {/* Watch Cards Grid - Matching Allocation Page */}
             <div className="space-y-3">
               {filteredWaitlistByWatch.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <Watch className="h-12 w-12 mx-auto mb-4 text-foreground/50" />
-                  <h3 className="text-lg font-semibold mb-2 text-foreground">No waitlist entries found</h3>
-                  <p className="text-foreground/60">
-                    {searchQuery ? 'Try adjusting your search query' : 'No watches have waitlist entries yet'}
-                  </p>
+                <Card className="p-12 text-center border-2 border-dashed border-foreground/20">
+                  <div className="max-w-md mx-auto">
+                    <div className="relative mb-6">
+                      <Watch className="h-16 w-16 mx-auto text-foreground/30" />
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">0</span>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 text-foreground">
+                      {searchQuery ? 'No matches found' : 'No waitlist entries yet'}
+                    </h3>
+                    <p className="text-foreground/60 mb-4">
+                      {searchQuery
+                        ? 'Try adjusting your search query or filters'
+                        : 'Waitlist entries will appear here when clients request watches that are not currently available'}
+                    </p>
+                    {!searchQuery && (
+                      <p className="text-sm text-foreground/50 mt-4">
+                        💡 Tip: Add clients to the waitlist from the Allocation page when watches are reserved or unavailable
+                      </p>
+                    )}
+                  </div>
                 </Card>
               ) : (
                 filteredWaitlistByWatch.map(({ watch, entries }, index) => {
                   const isExpanded = expandedWatchId === watch.id
                   const watchWaitlistCount = entries.length
-                  const vipCount = entries.filter(e => e.client.clientTier <= 2).length
+                  const vipCount = entries.filter(e => e.client && e.client.clientTier <= 2).length
 
                   return (
                     <motion.div
@@ -457,7 +489,15 @@ export default function WaitlistPage() {
                                       </div>
                                       {entry.notes && (
                                         <div className="text-xs text-foreground/60 mt-1 italic break-words">
-                                          "{entry.notes}"
+                                          "{entry.notes.split(/(PERFECT MATCH|STRETCH PURCHASE)/g).map((part, i) => {
+                                            if (part === 'PERFECT MATCH') {
+                                              return <span key={i} className="text-green-600 dark:text-green-500 font-semibold not-italic">{part}</span>
+                                            }
+                                            if (part === 'STRETCH PURCHASE') {
+                                              return <span key={i} className="text-orange-600 dark:text-orange-500 font-semibold not-italic">{part}</span>
+                                            }
+                                            return part
+                                          })}"
                                         </div>
                                       )}
                                     </div>
@@ -518,19 +558,153 @@ export default function WaitlistPage() {
 
           <div className="space-y-2 md:space-y-3">
             {showModal === 'watches' ? (
-              // Watches list
-              (getModalData() as any[]).map((item: any) => (
-                <div key={item.watch.id} className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-muted/50">
-                  <div className="flex-1 min-w-0 mr-3">
-                    <h4 className="font-semibold text-sm md:text-base text-foreground break-words">{item.watch.brand} {item.watch.model}</h4>
-                    <p className="text-xs md:text-sm text-foreground/70 break-words">{item.watch.collection}</p>
+              // Watches list - Expandable
+              (getModalData() as any[]).map((item: any) => {
+                const isExpanded = expandedModalWatchId === item.watch.id
+                const entries = item.entries || []
+
+                return (
+                  <div key={item.watch.id} className="rounded-lg bg-muted/50 overflow-hidden">
+                    <div
+                      className="flex items-center justify-between p-3 md:p-4 cursor-pointer hover:bg-muted/70 transition-colors"
+                      onClick={() => setExpandedModalWatchId(isExpanded ? null : item.watch.id)}
+                    >
+                      <div className="flex-1 min-w-0 mr-3">
+                        <h4 className="font-semibold text-sm md:text-base text-foreground break-words">{item.watch.brand} {item.watch.model}</h4>
+                        <p className="text-xs md:text-sm text-foreground/70 break-words">{item.watch.collection}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0 mr-3">
+                        <div className="font-bold text-base md:text-lg text-foreground">{formatCurrency(item.watch.price)}</div>
+                        <div className="text-xs md:text-sm text-foreground/70">{item.clientCount} waiting</div>
+                      </div>
+                      <ArrowRight className={cn(
+                        "h-5 w-5 text-foreground/70 transition-transform duration-200 flex-shrink-0",
+                        isExpanded && "rotate-90"
+                      )} />
+                    </div>
+
+                    {/* Expanded Client List */}
+                    {isExpanded && entries.length > 0 && (
+                      <div className="px-3 md:px-4 pb-3 md:pb-4 space-y-3 border-t border-border/50">
+                        <p className="text-xs text-foreground/60 pt-3">Clients waiting for this watch:</p>
+                        {entries
+                          .filter((entry: any) => entry.client) // Filter out entries without client data
+                          .map((entry: any, idx: number) => {
+                            // Calculate match status
+                            const matchStatus = calculateMatchStatus(
+                              entry.client.clientTier,
+                              item.watch.watchTier,
+                              entry.client.lifetimeSpend,
+                              item.watch.price
+                            )
+                            const matchColor = matchStatus === 'GREEN' ? 'text-green-500' : matchStatus === 'YELLOW' ? 'text-yellow-500' : 'text-red-500'
+                            const matchLabel = matchStatus === 'GREEN' ? 'Perfect Match' : matchStatus === 'YELLOW' ? 'Upgrade Opp.' : 'Not Suitable'
+
+                            return (
+                              <div key={entry.id} className="p-3 rounded-lg bg-background border border-border/50 hover:border-primary/30 transition-all">
+                                {/* Client Header Row */}
+                                <div className="flex items-start gap-2 mb-2">
+                                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                                    {idx + 1}
+                                  </div>
+                                  <Avatar className="h-9 w-9 flex-shrink-0">
+                                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-xs">
+                                      {getAvatarInitials(entry.client.name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                      <span className="font-semibold text-sm text-foreground">{entry.client.name}</span>
+                                      <Badge className={cn("text-xs", getTierColorClasses(entry.client.clientTier))}>
+                                        Tier {entry.client.clientTier}
+                                      </Badge>
+                                    </div>
+                                    {/* Sales Intelligence */}
+                                    <div className="flex items-center gap-2 text-xs text-foreground/70 flex-wrap">
+                                      <span className="font-medium text-green-600 dark:text-green-400">
+                                        {formatCurrency(entry.client.lifetimeSpend)} lifetime
+                                      </span>
+                                      <span>•</span>
+                                      <span>{entry.daysWaiting} days waiting</span>
+                                      {entry.daysWaiting >= 90 && (
+                                        <>
+                                          <span>•</span>
+                                          <Badge variant="outline" className="bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-300 dark:border-orange-700 text-xs">
+                                            URGENT
+                                          </Badge>
+                                        </>
+                                      )}
+                                    </div>
+                                    {/* Match Score */}
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <div className={cn("w-2 h-2 rounded-full", matchColor.replace('text-', 'bg-'))} />
+                                      <span className={cn("text-xs font-medium", matchColor)}>{matchLabel}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 mt-2 flex-wrap">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs flex-1 min-w-[80px]"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      window.location.href = `sms:${entry.client.phone}`
+                                    }}
+                                  >
+                                    <MessageSquare className="h-3 w-3 mr-1" />
+                                    Text
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs flex-1 min-w-[80px]"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      window.location.href = `tel:${entry.client.phone}`
+                                    }}
+                                  >
+                                    <Phone className="h-3 w-3 mr-1" />
+                                    Call
+                                  </Button>
+                                  <Link
+                                    href={`/clients`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-1 min-w-[80px]"
+                                  >
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs w-full"
+                                    >
+                                      <User className="h-3 w-3 mr-1" />
+                                      View
+                                    </Button>
+                                  </Link>
+                                  <Link
+                                    href={`/allocation?watch=${item.watch.id}&client=${entry.client.id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-1 min-w-[80px]"
+                                  >
+                                    <Button
+                                      size="sm"
+                                      className="h-7 text-xs w-full bg-primary hover:bg-primary/90"
+                                    >
+                                      <Target className="h-3 w-3 mr-1" />
+                                      Allocate
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            )
+                          })}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="font-bold text-base md:text-lg text-foreground">{formatCurrency(item.watch.price)}</div>
-                    <div className="text-xs md:text-sm text-foreground/70">{item.clientCount} waiting</div>
-                  </div>
-                </div>
-              ))
+                )
+              })
             ) : (
               // Client entries
               (getModalData() as any[]).map((entry: any) => (

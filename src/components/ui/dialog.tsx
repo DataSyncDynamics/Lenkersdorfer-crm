@@ -32,37 +32,46 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        // Base styles
-        "fixed z-50 grid w-full gap-4 border bg-background p-4 md:p-6 shadow-lg duration-200",
-        // Mobile: Full-height modal from top
-        "top-0 left-1/2 -translate-x-1/2 rounded-b-2xl max-h-screen overflow-y-auto",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-        // Desktop: Centered modal styles (md breakpoint and up)
-        "md:bottom-auto md:left-[50%] md:top-[50%] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:max-h-[90vh]",
-        "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
-        "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
-        "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",
-        "max-w-lg",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute right-3 top-3 md:right-4 md:top-4 p-1.5 md:p-2 rounded-md ring-offset-background transition-all bg-muted/80 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none text-foreground hover:text-foreground">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-))
+>(({ className, children, ...props }, ref) => {
+  // Prevent body scroll when modal is open
+  React.useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = originalStyle
+    }
+  }, [])
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          // Base styles
+          "fixed z-50 grid w-full gap-4 border bg-background p-4 md:p-6 shadow-lg duration-200",
+          // Mobile: Fixed position centered with absolute measurements
+          "left-1/2 top-[50vh] -translate-x-1/2 -translate-y-1/2",
+          "rounded-2xl max-h-[85vh] overflow-y-auto",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          // Desktop: Same positioning
+          "md:max-h-[90vh] md:rounded-lg",
+          "max-w-lg",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute right-3 top-3 md:right-4 md:top-4 p-1.5 md:p-2 rounded-md ring-offset-background transition-all bg-muted/80 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none text-foreground hover:text-foreground z-10">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

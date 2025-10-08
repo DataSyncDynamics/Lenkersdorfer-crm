@@ -85,23 +85,17 @@ export const DesktopSidebar = ({
   children,
   ...props
 }: React.ComponentProps<typeof motion.div>) => {
-  const { open, setOpen, animate } = useSidebar();
   return (
-    <motion.div
+    <div
       className={cn(
-        "h-screen px-4 py-4 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] flex-shrink-0",
+        "fixed left-0 top-0 h-screen px-3 py-3 hidden md:flex md:flex-col bg-neutral-100 dark:bg-black/40 border-r border-border/10 w-[300px] flex-shrink-0 z-30",
         className
       )}
       style={{ overflow: 'visible' }} // Ensure badges can overflow
-      animate={{
-        width: animate ? (open ? "300px" : "60px") : "300px",
-      }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -115,7 +109,7 @@ export const MobileSidebar = ({
     <>
       <div
         className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
+          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-black/40 border-b border-border/10 w-full"
         )}
         {...props}
       >
@@ -136,7 +130,7 @@ export const MobileSidebar = ({
                 ease: "easeInOut",
               }}
               className={cn(
-                "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
+                "fixed h-full w-full inset-0 bg-white dark:bg-background p-10 z-[100] flex flex-col justify-between",
                 className
               )}
             >
@@ -164,29 +158,22 @@ export const SidebarLink = ({
   className?: string;
   props?: LinkProps;
 }) => {
-  const { open, animate } = useSidebar();
   return (
     <Link
       href={link.href}
       className={cn(
-        "flex items-center justify-start gap-2 group/sidebar py-2 relative",
+        "flex items-center justify-start gap-2 group/sidebar py-1.5 relative",
         className
       )}
       style={{ overflow: 'visible' }} // Ensure notification badges are not clipped
       {...props}
     >
-      <div className="relative overflow-visible flex-shrink-0">
+      <div className="relative overflow-visible flex-shrink-0 flex items-center justify-center w-5 h-5">
         {link.icon}
       </div>
-      <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1,
-        }}
-        className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
-      >
+      <span className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0">
         {link.label}
-      </motion.span>
+      </span>
     </Link>
   );
 };

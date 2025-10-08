@@ -115,15 +115,11 @@ export function createMainNavigationLinks(pathname: string, counts: any, messagi
 }
 
 /**
- * Creates bottom navigation items (notifications and user profile)
+ * Creates bottom navigation items (user profile only)
+ * Note: Notifications are now in the header, not sidebar
  */
 export function createBottomNavigationItems(pathname: string, counts: any) {
   return [
-    {
-      label: `Notifications (${counts.total})`,
-      href: "/notifications",
-      icon: createNavigationIcon(Bell, pathname === "/notifications", counts.total)
-    },
     {
       label: "Jason Jolly",
       href: "#",

@@ -93,6 +93,11 @@ export default function ImportPage() {
         // Update store with imported clients
         if (result.clients && result.clients.length > 0) {
           replaceAllClients(result.clients)
+
+          // Show success toast
+          setTimeout(() => {
+            alert(`✅ Successfully imported ${result.clients.length} clients!\n\n💰 Total Revenue: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.totalRevenue)}\n👥 Average Spend: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.averageSpend)}\n\nData has been saved and will persist across page refreshes.`)
+          }, 500)
         }
       } else {
         setError(result.error || 'Failed to import data')
@@ -138,8 +143,8 @@ export default function ImportPage() {
 
   return (
     <LenkersdorferSidebar>
-      <div className="flex h-screen flex-col overflow-hidden bg-background">
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-background overflow-hidden">
+        <main className="flex-1 w-full overflow-y-auto px-4 md:px-6 lg:px-8 py-6 pb-20 md:pb-8">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -157,10 +162,10 @@ export default function ImportPage() {
         </div>
 
         {/* Current Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
           <div className="bg-card/80 backdrop-blur-sm rounded-xl p-6 border border-border">
             <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-gold-400 mr-3" />
+              <UsersIcon className="h-6 w-6 text-gold-400 mr-3" />
               <div>
                 <p className="text-sm text-muted-foreground">Current Clients</p>
                 <p className="text-2xl font-bold text-foreground">{currentClients.length}</p>
@@ -169,7 +174,7 @@ export default function ImportPage() {
           </div>
           <div className="bg-card/80 backdrop-blur-sm rounded-xl p-6 border border-border">
             <div className="flex items-center">
-              <CurrencyDollarIcon className="h-8 w-8 text-gold-400 mr-3" />
+              <CurrencyDollarIcon className="h-6 w-6 text-gold-400 mr-3" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
                 <p className="text-2xl font-bold text-foreground">
@@ -180,7 +185,7 @@ export default function ImportPage() {
           </div>
           <div className="bg-card/80 backdrop-blur-sm rounded-xl p-6 border border-border">
             <div className="flex items-center">
-              <ChartBarIcon className="h-8 w-8 text-gold-400 mr-3" />
+              <ChartBarIcon className="h-6 w-6 text-gold-400 mr-3" />
               <div>
                 <p className="text-sm text-muted-foreground">Avg. Spend</p>
                 <p className="text-2xl font-bold text-foreground">

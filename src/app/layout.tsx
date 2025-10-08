@@ -4,13 +4,22 @@ import './globals.css'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { MessagingProvider } from '@/contexts/MessagingContext'
 import { ThemeProvider } from '@/components/ui/theme-provider'
+import { NotificationGenerator } from '@/components/notifications/NotificationGenerator'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Lenkersdorfer CRM - Luxury Watch Sales',
   description: 'Professional CRM for luxury watch sales and client management',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+}
+
+export function generateViewport() {
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  }
 }
 
 export default function RootLayout({
@@ -29,6 +38,7 @@ export default function RootLayout({
         >
           <NotificationProvider>
             <MessagingProvider>
+              <NotificationGenerator />
               <div className="min-h-screen bg-background text-foreground">
                 {children}
               </div>

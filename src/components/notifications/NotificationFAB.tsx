@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   BellIcon,
@@ -15,8 +16,10 @@ import {
   StarIcon as StarSolid
 } from '@heroicons/react/24/solid'
 import UrgentNotificationDashboard from './UrgentNotificationDashboard'
-import { FollowUpModal } from './FollowUpModal'
 import { useNotifications } from '@/contexts/NotificationContext'
+
+// Lazy load FollowUpModal
+const FollowUpModal = dynamic(() => import('./FollowUpModal').then(mod => ({ default: mod.FollowUpModal })), { ssr: false })
 
 interface NotificationFABProps {
   className?: string

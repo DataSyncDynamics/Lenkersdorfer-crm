@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -216,6 +216,17 @@ export function FollowUpModal({
     return SMS_TEMPLATES[contextKey as keyof typeof SMS_TEMPLATES] || SMS_TEMPLATES.HOT_LEADS
   }
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalStyle
+      }
+    }
+  }, [isOpen])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -227,20 +238,20 @@ export function FollowUpModal({
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="border-b p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="border-b border-gray-200 dark:border-gray-700 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Follow Up Action</h2>
-                  <p className="text-sm text-gray-600 mt-1">{context.reason}</p>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Follow Up Action</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{context.reason}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onClose}>
+                <Button variant="ghost" size="sm" onClick={onClose} className="dark:hover:bg-white/10">
                   <X className="w-5 h-5" />
                 </Button>
               </div>
@@ -248,14 +259,14 @@ export function FollowUpModal({
               {/* Client Info */}
               <div className="mt-4 flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{client.name}</span>
+                  <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <span className="font-medium text-gray-900 dark:text-white">{client.name}</span>
                 </div>
                 <Badge className={getTierBadgeColor(client.tier)}>
                   Tier {client.tier}
                 </Badge>
                 {context.daysWaiting && (
-                  <div className="flex items-center gap-1 text-sm text-orange-600">
+                  <div className="flex items-center gap-1 text-sm text-orange-600 dark:text-orange-400">
                     <Clock className="w-4 h-4" />
                     {context.daysWaiting} days waiting
                   </div>
@@ -263,11 +274,11 @@ export function FollowUpModal({
               </div>
             </div>
 
-            <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-200px)] bg-white dark:bg-gray-900">
               {!selectedAction ? (
                 /* Quick Action Selection */
                 <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Choose your next action:</h3>
+                  <h3 className="font-medium text-gray-900 dark:text-white">Choose your next action:</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {QUICK_ACTIONS.map((action) => (
                       <motion.button
@@ -290,15 +301,15 @@ export function FollowUpModal({
                   </div>
 
                   {/* Custom Note */}
-                  <div className="pt-4 border-t">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Add a note (optional)
                     </label>
                     <Textarea
                       value={customNote}
                       onChange={(e) => setCustomNote(e.target.value)}
                       placeholder="Any additional context or notes..."
-                      className="resize-none"
+                      className="resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                       rows={2}
                     />
                   </div>
@@ -307,11 +318,12 @@ export function FollowUpModal({
                 /* SMS Composition */
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900">Send SMS to {client.name}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-white">Send SMS to {client.name}</h3>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setSelectedAction(null)}
+                      className="dark:hover:bg-white/10"
                     >
                       Back
                     </Button>
@@ -319,7 +331,7 @@ export function FollowUpModal({
 
                   {/* Quick Templates */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Quick Templates
                     </label>
                     <div className="space-y-2">
@@ -327,7 +339,7 @@ export function FollowUpModal({
                         <button
                           key={index}
                           onClick={() => setSmsMessage(formatTemplate(template))}
-                          className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                          className="w-full text-left p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-white"
                         >
                           <p className="text-sm">{formatTemplate(template)}</p>
                         </button>
@@ -337,17 +349,17 @@ export function FollowUpModal({
 
                   {/* Custom Message */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Message to {client.name}
                     </label>
                     <Textarea
                       value={smsMessage}
                       onChange={(e) => setSmsMessage(e.target.value)}
                       placeholder="Type your message..."
-                      className="resize-none"
+                      className="resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                       rows={4}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {smsMessage.length}/160 characters
                     </p>
                   </div>
@@ -365,30 +377,31 @@ export function FollowUpModal({
                 /* Schedule Viewing */
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900">Schedule Viewing with {client.name}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-white">Schedule Viewing with {client.name}</h3>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setSelectedAction(null)}
+                      className="dark:hover:bg-white/10"
                     >
                       Back
                     </Button>
                   </div>
 
                   {/* Calendar Picker */}
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <h4 className="font-medium text-gray-900 mb-3">Select Date & Time</h4>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Select Date & Time</h4>
 
                     {/* Calendar Days */}
                     <div className="space-y-4">
                       {calendarDays.map((day) => (
-                        <div key={day.date.toISOString()} className="border-b pb-4 last:border-b-0">
+                        <div key={day.date.toISOString()} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0">
                           <div
                             className={cn(
                               "font-medium mb-2 cursor-pointer p-2 rounded",
                               selectedDate?.toDateString() === day.date.toDateString()
-                                ? "bg-blue-100 text-blue-800"
-                                : "hover:bg-gray-100"
+                                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300"
+                                : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
                             )}
                             onClick={() => {
                               setSelectedDate(day.date)
@@ -413,7 +426,7 @@ export function FollowUpModal({
                                     "px-3 py-2 text-sm rounded border transition-colors",
                                     selectedTimeSlot === slot.value
                                       ? "bg-blue-500 text-white border-blue-500"
-                                      : "bg-white hover:bg-blue-50 border-gray-200"
+                                      : "bg-white dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
                                   )}
                                 >
                                   {slot.time}
@@ -427,10 +440,10 @@ export function FollowUpModal({
 
                     {/* Selected DateTime Summary */}
                     {selectedDate && selectedTimeSlot && (
-                      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-900">
+                          <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
                             {selectedDate.toLocaleDateString('en-US', {
                               weekday: 'long',
                               year: 'numeric',
@@ -449,14 +462,14 @@ export function FollowUpModal({
 
                   {/* Appointment Note */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Appointment Notes
                     </label>
                     <Textarea
                       value={customNote}
                       onChange={(e) => setCustomNote(e.target.value)}
                       placeholder="Watch viewing, discussion topics, preparation notes..."
-                      className="resize-none"
+                      className="resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                       rows={3}
                     />
                   </div>

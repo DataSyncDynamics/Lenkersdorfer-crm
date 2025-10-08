@@ -2,10 +2,25 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AllocationContactPanel } from '@/components/allocation/AllocationContactPanel'
-import { ClientModal } from '@/components/clients/ClientModal'
+import dynamic from 'next/dynamic'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { motion, useInView, useSpring, useTransform, AnimatePresence } from 'framer-motion'
+
+// Lazy load heavy modals/panels
+const AllocationContactPanel = dynamic(() => import('@/components/allocation/AllocationContactPanel').then(mod => ({ default: mod.AllocationContactPanel })), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-400"></div></div>
+})
+
+const ClientModal = dynamic(() => import('@/components/clients/ClientModal').then(mod => ({ default: mod.ClientModal })), {
+  ssr: false,
+  loading: () => null
+})
+
+const NotificationPanel = dynamic(() => import('@/components/notifications/NotificationPanel').then(mod => ({ default: mod.NotificationPanel })), {
+  ssr: false,
+  loading: () => null
+})
 import {
   DollarSign,
   Users,
@@ -37,6 +52,8 @@ import type { Client } from '@/types'
 import { cn } from '@/lib/utils'
 import { formatClientName } from '@/lib/ui-utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
+import { RevenueChart } from '@/components/analytics/RevenueChart'
+import { PriorityActionsCard } from '@/components/dashboard/PriorityActionsCard'
 
 
 interface MetricCardProps {
@@ -193,67 +210,12 @@ export default function AnalyticsDashboard() {
   } = useAppStore()
 
   const { notifications, getCounts, removeNotification, markAsRead, addNotification } = useNotifications()
+  const counts = getCounts()
 
   const [showAllocationPanel, setShowAllocationPanel] = useState(false)
   const [selectedWatchForAllocation, setSelectedWatchForAllocation] = useState<string>('')
-  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false)
   const [selectedClientForView, setSelectedClientForView] = useState<string | null>(null)
-
-
-  // Generate priority notifications for high-value clients and important business events
-  useEffect(() => {
-    // Only generate priority notifications if none exist
-    if (notifications.length === 0) {
-      const priorityNotifications = []
-
-      // Find high-value clients who haven't purchased recently (7+ days ago)
-      const highValueClients = clients
-        .filter(client => client.clientTier <= 2 && client.lifetimeSpend > 50000)
-        .sort((a, b) => a.clientTier - b.clientTier) // Sort by tier priority
-        .slice(0, 3) // Top 3 priority clients
-
-      highValueClients.forEach(client => {
-        const daysSinceContact = Math.floor(Math.random() * 14) + 7 // 7-21 days
-
-        priorityNotifications.push({
-          category: 'MESSAGES' as const,
-          title: `Priority Follow-up: ${formatClientName(client.name)}`,
-          message: `Tier ${client.clientTier} client (${formatCurrency(client.lifetimeSpend)} lifetime) needs follow-up on watch availability`,
-          clientName: formatClientName(client.name),
-          clientId: client.id,
-          watchBrand: client.preferredBrands?.[0] || 'Rolex',
-          watchModel: 'Submariner',
-          daysWaiting: daysSinceContact,
-          lastContact: `${daysSinceContact} days ago`,
-          actions: [
-            {
-              type: 'TEXT_CLIENT' as const,
-              label: 'Send Update',
-              isPrimary: true,
-              phoneNumber: client.phone,
-              tier: client.clientTier
-            },
-            {
-              type: 'CALL' as const,
-              label: 'Call Now',
-              phoneNumber: client.phone,
-              tier: client.clientTier
-            },
-            {
-              type: 'VIEW_CLIENT' as const,
-              label: 'View Profile',
-              clientId: client.id
-            }
-          ]
-        })
-      })
-
-      // Add priority notifications to context
-      priorityNotifications.forEach(notification => {
-        addNotification(notification)
-      })
-    }
-  }, [clients, notifications.length, addNotification])
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false)
 
   // SMS template function for relationship-based messaging
   const getTierSMSTemplate = (clientName: string, tier: number, watchBrand: string, watchModel: string): string => {
@@ -271,9 +233,27 @@ export default function AnalyticsDashboard() {
 
 
 
+  // Handle priority action card interactions
+  const handlePriorityTextClient = (notification: any) => {
+    const textAction = notification.actions?.find((a: any) => a.type === 'TEXT_CLIENT')
+    if (textAction) {
+      handleNotificationAction(notification.id, textAction)
+    }
+  }
+
+  const handlePriorityCallClient = (notification: any) => {
+    const callAction = notification.actions?.find((a: any) => a.type === 'CALL')
+    if (callAction) {
+      handleNotificationAction(notification.id, callAction)
+    }
+  }
+
+  const handlePriorityViewClient = (clientId: string) => {
+    setSelectedClientForView(clientId)
+  }
+
   // Handle notification actions
   const handleNotificationAction = (notificationId: string, action: any) => {
-    console.log('Handling notification action:', action.type, 'for notification:', notificationId)
 
     const notification = notifications.find(n => n.id === notificationId)
 
@@ -341,10 +321,7 @@ export default function AnalyticsDashboard() {
         break
       case 'VIEW_CLIENT':
         if (action.clientId) {
-          console.log('Opening client modal for clientId:', action.clientId)
           setSelectedClientForView(action.clientId)
-        } else {
-          console.error('No clientId provided for VIEW_CLIENT action')
         }
         break
       case 'FOLLOW_UP':
@@ -369,7 +346,6 @@ export default function AnalyticsDashboard() {
         }
         break
       default:
-        console.warn('Unknown notification action type:', action.type)
         break
     }
   }
@@ -378,15 +354,76 @@ export default function AnalyticsDashboard() {
 
   // Calculate analytics data
   const analytics = useMemo(() => {
-    const totalRevenue = clients.reduce((sum, client) => sum + client.lifetimeSpend, 0)
-    const activeClients = clients.length
-    const avgOrderValue = totalRevenue / activeClients || 0
+    // Get current date info
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
 
-    // Calculate conversion rate (mock data for now)
-    const conversionRate = 24.8
+    // Calculate last month's date range
+    const lastMonthDate = new Date(currentYear, currentMonth - 1, 1)
+    const lastMonth = lastMonthDate.getMonth()
+    const lastMonthYear = lastMonthDate.getFullYear()
+
+    // Revenue calculation from actual purchases
+    let currentMonthRevenue = 0
+    let lastMonthRevenue = 0
+    let currentMonthOrders = 0
+    let lastMonthOrders = 0
+
+    clients.forEach(client => {
+      if (client.purchases && Array.isArray(client.purchases)) {
+        client.purchases.forEach(purchase => {
+          const purchaseDate = new Date(purchase.date)
+          const purchaseMonth = purchaseDate.getMonth()
+          const purchaseYear = purchaseDate.getFullYear()
+
+          if (purchaseYear === currentYear && purchaseMonth === currentMonth) {
+            currentMonthRevenue += purchase.price
+            currentMonthOrders++
+          } else if (purchaseYear === lastMonthYear && purchaseMonth === lastMonth) {
+            lastMonthRevenue += purchase.price
+            lastMonthOrders++
+          }
+        })
+      }
+    })
+
+    // Calculate total revenue from all purchases for consistency
+    const totalRevenue = clients.reduce((sum, client) => {
+      if (client.purchases && Array.isArray(client.purchases)) {
+        return sum + client.purchases.reduce((pSum, p) => pSum + p.price, 0)
+      }
+      return sum
+    }, 0)
+
+    // Calculate revenue change percentage
+    const revenueChange = lastMonthRevenue > 0
+      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      : 0
+
+    const activeClients = clients.length
+
+    // Calculate average order value from all purchases
+    const totalOrders = clients.reduce((sum, client) =>
+      sum + (client.purchases?.length || 0), 0
+    )
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+    // Calculate avg order value change
+    const currentMonthAvg = currentMonthOrders > 0 ? currentMonthRevenue / currentMonthOrders : 0
+    const lastMonthAvg = lastMonthOrders > 0 ? lastMonthRevenue / lastMonthOrders : 0
+    const avgOrderChange = lastMonthAvg > 0
+      ? ((currentMonthAvg - lastMonthAvg) / lastMonthAvg) * 100
+      : 0
+
+    // Calculate conversion rate (waitlist to purchase)
+    const totalPurchases = totalOrders
+    const totalWaitlist = waitlist.length
+    const conversionRate = (totalWaitlist + totalPurchases) > 0
+      ? (totalPurchases / (totalWaitlist + totalPurchases)) * 100
+      : 0
 
     const availableWatches = watchModels.filter(w => w.availability === 'Available').length
-    const totalWaitlist = waitlist.length
 
     return {
       totalRevenue,
@@ -394,38 +431,47 @@ export default function AnalyticsDashboard() {
       avgOrderValue,
       conversionRate,
       availableWatches,
-      totalWaitlist
+      totalWaitlist,
+      revenueChange,
+      avgOrderChange,
+      clientChange: 0 // We don't track client join dates yet
     }
   }, [clients, watchModels, waitlist])
 
-  // Metrics data
+  // Metrics data with real calculations
   const metrics = [
     {
       title: "Total Revenue",
       value: formatCurrency(analytics.totalRevenue),
-      change: "+12.5%",
-      changeType: "positive" as const,
+      change: analytics.revenueChange !== 0
+        ? `${analytics.revenueChange > 0 ? '+' : ''}${analytics.revenueChange.toFixed(1)}%`
+        : "No data",
+      changeType: (analytics.revenueChange >= 0 ? "positive" : "negative") as const,
       icon: <DollarSign className="h-4 w-4 text-muted-foreground" />
     },
     {
       title: "Active Clients",
       value: analytics.activeClients.toString(),
-      change: "+8.2%",
-      changeType: "positive" as const,
+      change: analytics.clientChange !== 0
+        ? `${analytics.clientChange > 0 ? '+' : ''}${analytics.clientChange.toFixed(1)}%`
+        : "No change",
+      changeType: (analytics.clientChange >= 0 ? "positive" : "negative") as const,
       icon: <Users className="h-4 w-4 text-muted-foreground" />
     },
     {
       title: "Avg. Order Value",
       value: formatCurrency(analytics.avgOrderValue),
-      change: "+15.3%",
-      changeType: "positive" as const,
+      change: analytics.avgOrderChange !== 0
+        ? `${analytics.avgOrderChange > 0 ? '+' : ''}${analytics.avgOrderChange.toFixed(1)}%`
+        : "No data",
+      changeType: (analytics.avgOrderChange >= 0 ? "positive" : "negative") as const,
       icon: <TrendingUp className="h-4 w-4 text-muted-foreground" />
     },
     {
       title: "Conversion Rate",
-      value: `${analytics.conversionRate}%`,
-      change: "-2.1%",
-      changeType: "negative" as const,
+      value: `${analytics.conversionRate.toFixed(1)}%`,
+      change: "Lifetime",
+      changeType: "positive" as const,
       icon: <Watch className="h-4 w-4 text-muted-foreground" />
     }
   ]
@@ -439,6 +485,26 @@ export default function AnalyticsDashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Lenkersdorfer Analytics</h1>
             <p className="text-muted-foreground">Professional luxury watch sales dashboard</p>
           </div>
+
+          {/* Notification Bell */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+            onClick={() => setShowNotificationPanel(true)}
+            title={`${counts.total} notifications`}
+          >
+            <Bell className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+            {counts.total > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+              >
+                {counts.total > 9 ? '9+' : counts.total}
+              </motion.span>
+            )}
+          </Button>
         </div>
 
         {/* Main Content */}
@@ -454,280 +520,100 @@ export default function AnalyticsDashboard() {
             ))}
           </div>
 
-          {/* Notifications Section */}
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-1">
+          {/* Revenue Chart */}
+          <div className="grid gap-6 mb-6">
+            <RevenueChart clients={clients} />
+          </div>
+
+          {/* Dashboard Content - Priority-First Layout */}
+          <div className="space-y-6">
+            {/* Priority Actions - FULL WIDTH AT TOP */}
+            <div className="w-full">
+              <PriorityActionsCard
+                notifications={notifications}
+                onTextClient={handlePriorityTextClient}
+                onCallClient={handlePriorityCallClient}
+                onViewClient={handlePriorityViewClient}
+              />
+            </div>
+
+            {/* Secondary Cards - Two Column Below */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Top VIP Clients */}
+              <Card>
+                <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
-                    <BellIcon className="h-5 w-5 text-gold-500" />
-                    Priority Notifications
+                    <Crown className="h-5 w-5 text-yellow-500" />
+                    Top VIP Clients
                   </CardTitle>
-                  <p className="text-xs text-foreground/60">
-                    Sorted by client tier & urgency
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {getCounts().total} active notification{getCounts().total !== 1 ? 's' : ''}
-                  </span>
-                  {notifications.length > 4 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowNotificationsPanel(!showNotificationsPanel)}
-                      className="text-gold-600 border-gold-300 hover:bg-gold-50"
-                    >
-                      {showNotificationsPanel ? 'Show Less' : 'View All'}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {(showNotificationsPanel ? notifications : notifications.slice(0, 4))
-                  .sort((a, b) => {
-                    // Sort by tier priority (tier 1 = highest priority), then by days waiting
-                    const tierA = a.actions?.find(action => action.tier)?.tier || 5
-                    const tierB = b.actions?.find(action => action.tier)?.tier || 5
-
-                    if (tierA !== tierB) {
-                      return tierA - tierB // Lower tier number = higher priority
-                    }
-
-                    // Within same tier, sort by days waiting (descending)
-                    return (b.daysWaiting || 0) - (a.daysWaiting || 0)
-                  })
-                  .map(notification => {
-                  const categoryConfig = {
-                    URGENT: {
-                      icon: AlertTriangle,
-                      color: 'text-red-700 dark:text-red-400',
-                      bgColor: 'bg-red-50 dark:bg-red-950/30',
-                      borderColor: 'border-red-200 dark:border-red-800/50'
-                    },
-                    FOLLOW_UPS: {
-                      icon: ClockIcon,
-                      color: 'text-amber-700 dark:text-amber-400',
-                      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-                      borderColor: 'border-amber-200 dark:border-amber-800/50'
-                    },
-                    ALLOCATIONS: {
-                      icon: StarIcon,
-                      color: 'text-emerald-700 dark:text-emerald-400',
-                      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-                      borderColor: 'border-emerald-200 dark:border-emerald-800/50'
-                    },
-                    MESSAGES: {
-                      icon: InboxIcon,
-                      color: 'text-blue-700 dark:text-blue-400',
-                      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-                      borderColor: 'border-blue-200 dark:border-blue-800/50'
-                    },
-                    OPPORTUNITIES: {
-                      icon: FireIcon,
-                      color: 'text-orange-700 dark:text-orange-400',
-                      bgColor: 'bg-orange-50 dark:bg-orange-950/30',
-                      borderColor: 'border-orange-200 dark:border-orange-800/50'
-                    },
-                    SYSTEM: {
-                      icon: InboxIcon,
-                      color: 'text-gray-700 dark:text-gray-400',
-                      bgColor: 'bg-gray-50 dark:bg-gray-950/30',
-                      borderColor: 'border-gray-200 dark:border-gray-800/50'
-                    }
-                  }
-
-                  const config = categoryConfig[notification.category]
-                  const NotificationIcon = config.icon
-
-                  return (
-                    <motion.div
-                      key={notification.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`p-4 md:p-6 rounded-lg border hover:shadow-lg transition-all duration-200 ${config.bgColor} ${config.borderColor} relative w-full`}
-                    >
-                      {/* Priority indicator for urgent notifications - Top Right */}
-                      {notification.daysWaiting && notification.daysWaiting >= 7 && (
-                        <Badge className="absolute top-3 right-3 md:top-4 md:right-4 bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700 text-xs md:text-sm font-semibold" variant="outline">
-                          {notification.daysWaiting >= 14 ? 'URGENT' : 'Overdue'}
-                        </Badge>
-                      )}
-                      <div className="space-y-3 md:space-y-4">
-                        <div className="flex items-start gap-2 md:gap-3">
-                          <NotificationIcon className={`h-5 w-5 md:h-6 md:w-6 ${config.color} flex-shrink-0 mt-0.5`} />
-                          <div className="min-w-0 flex-1 pr-16 md:pr-20">
-                            <div className="mb-1.5 md:mb-2">
-                              <p className="font-semibold text-foreground break-words text-base md:text-lg">
-                                {notification.clientName
-                                  ? notification.title.replace(notification.clientName, '').replace(/^\s*[-–]\s*/, '').replace(/\s*[-–]\s*$/, '').trim()
-                                  : notification.title}
-                              </p>
-                            </div>
-                            {/* Client name on its own line */}
-                            {notification.clientName && (
-                              <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2 flex-wrap">
-                                <p className="font-medium text-foreground/90 text-lg md:text-xl break-words">
-                                  {notification.clientName}
-                                </p>
-                                {/* Tier indicator badge */}
-                                {notification.actions?.find(a => a.tier) && (
-                                  <Badge
-                                    className={cn(
-                                      "text-xs md:text-sm font-medium flex-shrink-0",
-                                      notification.actions.find(a => a.tier)?.tier <= 2
-                                        ? "bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700"
-                                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700"
-                                    )}
-                                    variant="outline"
-                                  >
-                                    Tier {notification.actions.find(a => a.tier)?.tier}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                            <p className="text-sm md:text-base text-foreground/70 break-words">
-                              {notification.clientName
-                                ? notification.message.replace(notification.clientName, '').replace(/^\s*[-–]\s*/, '').trim()
-                                : notification.message}
-                            </p>
-                            {(notification.daysWaiting || notification.lastContact) && (
-                              <div className="flex flex-col gap-1.5 md:gap-2 mt-2 md:mt-3 text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                                {notification.daysWaiting && (
-                                  <div className="flex items-center gap-1.5 md:gap-2">
-                                    <ClockIcon className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
-                                    <span>{notification.daysWaiting} days since last contact</span>
-                                  </div>
-                                )}
-                                {notification.lastContact && (
-                                  <div className="flex items-center gap-1.5 md:gap-2">
-                                    <PhoneIcon className="h-3.5 w-3.5 md:h-4 md:w-4 flex-shrink-0" />
-                                    <span>Last contact: {notification.lastContact}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`grid gap-2 ${notification.actions.length === 3 ? 'grid-cols-1 md:grid-cols-3' : notification.actions.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                          {notification.actions.map((action, index) => (
-                            <Button
-                              key={index}
-                              size="default"
-                              variant={action.isPrimary ? "default" : "outline"}
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                console.log('Button clicked:', action.label, action.type)
-                                handleNotificationAction(notification.id, action)
-                              }}
-                              className={cn(
-                                action.isPrimary ? "bg-gold-600 hover:bg-gold-700 text-white" : "hover:bg-muted",
-                                "transition-all duration-200 active:scale-95 cursor-pointer w-full h-11 md:h-10 text-sm md:text-base"
-                              )}
-                            >
-                              {action.label}
-                            </Button>
-                          ))}
-                        </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {clients.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Crown className="h-12 w-12 mx-auto mb-4 opacity-50 text-yellow-500" />
+                        <p className="text-sm text-muted-foreground">No VIP clients yet</p>
+                        <p className="text-xs text-muted-foreground mt-2">Add clients to see your top performers here</p>
                       </div>
-                    </motion.div>
-                  )
-                })}
-
-                {notifications.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BellIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No notifications at this time</p>
-                    <p className="text-xs mt-1">You're all caught up!</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Rest of Dashboard Content */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Top VIP Clients */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-yellow-500" />
-                  Top VIP Clients
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {clients
-                    .filter(client => client.clientTier >= 1 && client.clientTier <= 2)
-                    .sort((a, b) => b.lifetimeSpend - a.lifetimeSpend)
-                    .slice(0, 2)
-                    .map((client, index) => (
-                      <motion.div
-                        key={client.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="flex items-center gap-4 p-5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-yellow-500/30"
-                        onClick={() => setSelectedClient(client)}
-                      >
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-500 text-white font-bold text-lg flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <Avatar className="h-14 w-14">
-                          <AvatarFallback className={cn("text-white font-semibold text-lg", getVipTierColor(client.clientTier.toString()))}>
-                            {client.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-bold text-lg text-foreground">{formatClientName(client.name)}</p>
-                            <Badge variant="outline" className={cn("text-xs font-medium", getVipTierColor(client.clientTier.toString()))}>
-                              Tier {client.clientTier}
-                            </Badge>
+                    ) : (
+                      clients
+                        .sort((a, b) => b.lifetimeSpend - a.lifetimeSpend)
+                        .slice(0, 3)
+                        .map((client, index) => (
+                        <div
+                          key={client.id}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-yellow-500/30 hover:scale-[1.02] active:scale-[0.98]"
+                          onClick={() => setSelectedClientForView(client.id)}
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500 text-white font-bold text-sm flex-shrink-0">
+                            {index + 1}
                           </div>
-                          <p className="text-base text-foreground/70 font-medium">
-                            {formatCurrency(client.lifetimeSpend)} lifetime spend
-                          </p>
-                          <p className="text-sm text-foreground/60 mt-1">
-                            {client.purchases?.length || 0} purchase{(client.purchases?.length || 0) !== 1 ? 's' : ''}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-sm text-foreground truncate">{formatClientName(client.name)}</p>
+                              <Badge variant="outline" className={cn("text-xs", getVipTierColor(client.clientTier.toString()))}>
+                                T{client.clientTier}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-foreground/70">
+                              {formatCurrency(client.lifetimeSpend)} • {client.purchases?.length || 0} purchase{(client.purchases?.length || 0) !== 1 ? 's' : ''}
+                            </p>
+                          </div>
                         </div>
-                      </motion.div>
-                    ))
-                  }
-                </div>
-              </CardContent>
-            </Card>
+                        ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-blue-500" />
-                  Quick Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Available Watches</span>
-                    <Badge variant="outline">{analytics.availableWatches}</Badge>
+              {/* Quick Stats */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-blue-500" />
+                    Quick Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all">
+                      <span className="text-sm text-foreground/80">Available Watches</span>
+                      <Badge variant="outline" className="text-xs">{analytics.availableWatches}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all">
+                      <span className="text-sm text-foreground/80">Waitlist Entries</span>
+                      <Badge variant="outline" className="text-xs">{analytics.totalWaitlist}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all">
+                      <span className="text-sm text-foreground/80">Active Notifications</span>
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400">
+                        {getCounts().total}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Waitlist Entries</span>
-                    <Badge variant="outline">{analytics.totalWaitlist}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Active Notifications</span>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      {getCounts().total}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </main>
 
@@ -740,7 +626,6 @@ export default function AnalyticsDashboard() {
           onClose={() => setShowAllocationPanel(false)}
           watchId={selectedWatchForAllocation}
           onContactInitiated={(clientId, method) => {
-            console.log(`Contact initiated: ${clientId} via ${method}`)
             // Handle allocation complete
           }}
         />
@@ -750,17 +635,23 @@ export default function AnalyticsDashboard() {
           <ClientModal
             selectedClient={getClientById(selectedClientForView) || null}
             onClose={() => {
-              console.log('Closing client modal')
               setSelectedClientForView(null)
             }}
             onSave={(clientData) => {
-              console.log('Saving client data:', clientData)
-              // Handle client updates here if needed
+              const client = getClientById(selectedClientForView)
+              if (client) {
+                updateClient(client.id, clientData)
+              }
               setSelectedClientForView(null)
             }}
-            readonly={true}
           />
         )}
+
+        {/* Notification Panel */}
+        <NotificationPanel
+          isOpen={showNotificationPanel}
+          onClose={() => setShowNotificationPanel(false)}
+        />
       </div>
     </LenkersdorferSidebar>
   )
