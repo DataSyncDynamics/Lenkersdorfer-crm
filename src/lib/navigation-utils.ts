@@ -93,7 +93,7 @@ export function createMainNavigationLinks(pathname: string, counts: any, messagi
       icon: createNavigationIcon(
         Clock,
         pathname === "/waitlist",
-        getNotificationCountForCategories(counts, ['URGENT', 'FOLLOW_UPS'])
+        getNotificationCountForCategories(counts, ['URGENT', 'FOLLOW-UPS'])
       )
     },
     {
