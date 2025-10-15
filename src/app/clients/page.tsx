@@ -239,7 +239,7 @@ export default function ClientsPage() {
                   <SelectItem value="name">Name</SelectItem>
                   <SelectItem value="tier">Tier</SelectItem>
                   <SelectItem value="spend">Spend</SelectItem>
-                  <SelectItem value="joinDate">Join Date</SelectItem>
+                  <SelectItem value="lastPurchase">Last Purchase</SelectItem>
                 </SelectContent>
               </Select>
 
