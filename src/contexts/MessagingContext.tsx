@@ -45,6 +45,14 @@ interface MessagingProviderProps {
 export function MessagingProvider({ children }: MessagingProviderProps) {
   const { clients } = useAppStore()
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [readConversations, setReadConversations] = useState<Set<string>>(() => {
+    // Load read conversations from localStorage
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('readConversations')
+      return stored ? new Set(JSON.parse(stored)) : new Set()
+    }
+    return new Set()
+  })
 
   const generateMockConversations = () => {
     if (clients.length === 0) return
@@ -127,8 +135,9 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
       }
 
       const lastMessage = messages[messages.length - 1]
-      // Generate realistic unread counts: VIP clients more likely to have unread messages
-      const unreadCount = client.clientTier <= 2 ? Math.floor(Math.random() * 3) : Math.floor(Math.random() * 2)
+      // Start with all messages read (unreadCount = 0)
+      // In a real app, this would come from the backend
+      const unreadCount = 0
 
       mockConversations.push({
         clientId: client.id,
@@ -158,6 +167,16 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
           : conversation
       )
     )
+
+    // Persist to localStorage
+    setReadConversations(prev => {
+      const newSet = new Set(prev)
+      newSet.add(clientId)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('readConversations', JSON.stringify(Array.from(newSet)))
+      }
+      return newSet
+    })
   }
 
   // Generate conversations when clients are loaded
@@ -165,7 +184,20 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
     if (clients.length > 0 && conversations.length === 0) {
       generateMockConversations()
     }
-  }, [clients])
+  }, [clients, readConversations])
+
+  // Update conversations when read status changes
+  useEffect(() => {
+    if (conversations.length > 0) {
+      setConversations(prevConversations =>
+        prevConversations.map(conversation =>
+          readConversations.has(conversation.clientId)
+            ? { ...conversation, unreadCount: 0 }
+            : conversation
+        )
+      )
+    }
+  }, [readConversations])
 
   const value: MessagingContextType = {
     conversations,

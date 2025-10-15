@@ -75,23 +75,41 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
           </div>
         )}
 
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
-                  {getAvatarInitials(client.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <CardTitle className="text-lg font-semibold truncate">{formatClientName(client.name)}</CardTitle>
+        <CardHeader className="pb-3 pt-4 relative">
+          {/* Tier Badge - Positioned in top-right corner */}
+          <Badge
+            className={cn("absolute top-4 right-4 text-xs font-medium whitespace-nowrap", getTierColorClasses(client.clientTier))}
+            style={client.clientTier === 3 ? { backgroundColor: 'rgb(2, 44, 34)', color: 'rgb(110, 231, 183)', borderColor: 'rgb(4, 120, 87)' } : undefined}
+          >
+            {getTierIcon(client.clientTier)}
+            <span className="ml-1">Tier {client.clientTier}</span>
+          </Badge>
+
+          {/* Client Info - Below tier badge with full name visible */}
+          {(() => {
+            const formattedName = formatClientName(client.name);
+            const nameParts = formattedName.split(' ');
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ');
+
+            return (
+              <div className="flex items-center gap-3 mt-48">
+                <Avatar className="h-12 w-12 flex-shrink-0">
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
+                    {getAvatarInitials(client.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg font-semibold leading-tight">
+                    <div className="flex flex-col">
+                      <span>{firstName}</span>
+                      {lastName && <span>{lastName}</span>}
+                    </div>
+                  </CardTitle>
+                </div>
               </div>
-            </div>
-            <Badge className={cn("text-xs font-medium flex-shrink-0", getTierColorClasses(client.clientTier))}>
-              {getTierIcon(client.clientTier)}
-              <span className="ml-1">Tier {client.clientTier}</span>
-            </Badge>
-          </div>
+            );
+          })()}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Lifetime Spend */}
@@ -112,9 +130,12 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
               <Phone className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               <span>{client.phone}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-              <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <span>Last purchase: {client.lastPurchase ? new Date(client.lastPurchase).toLocaleDateString() : 'No purchases yet'}</span>
+            <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex flex-col">
+                <span>Last purchase:</span>
+                <span>{client.lastPurchase ? new Date(client.lastPurchase).toLocaleDateString() : 'No purchases yet'}</span>
+              </div>
             </div>
           </div>
 

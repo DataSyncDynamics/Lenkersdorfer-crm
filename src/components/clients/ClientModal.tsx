@@ -180,7 +180,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
         <DialogHeader className="space-y-3">
           <div className="flex items-center justify-between gap-4 pr-8">
             <DialogTitle className="text-2xl">{formatClientName(selectedClient.name)}</DialogTitle>
-            <Badge className={cn("text-sm font-medium flex-shrink-0", getTierColorClasses(selectedClient.clientTier))}>
+            <Badge
+              className={cn("text-sm font-medium flex-shrink-0", getTierColorClasses(selectedClient.clientTier))}
+              style={selectedClient.clientTier === 3 ? { backgroundColor: 'rgb(2, 44, 34)', color: 'rgb(110, 231, 183)', borderColor: 'rgb(4, 120, 87)' } : undefined}
+            >
               {getTierIcon(selectedClient.clientTier)}
               <span className="ml-1.5">Tier {selectedClient.clientTier}</span>
             </Badge>
@@ -247,7 +250,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                           </Button>
                           {notification.actions
                             ?.filter(action => action.type !== 'VIEW_CLIENT') // Hide "View Client" since we're already viewing
-                            .map((action, idx) => (
+                            ?.map((action, idx) => (
                               <Button
                                 key={idx}
                                 size="sm"

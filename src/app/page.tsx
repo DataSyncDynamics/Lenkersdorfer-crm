@@ -486,11 +486,11 @@ export default function AnalyticsDashboard() {
             <p className="text-muted-foreground">Professional luxury watch sales dashboard</p>
           </div>
 
-          {/* Notification Bell */}
+          {/* Notification Bell - Hidden on mobile, shown on desktop */}
           <Button
             variant="ghost"
             size="icon"
-            className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+            className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors hidden md:flex"
             onClick={() => setShowNotificationPanel(true)}
             title={`${counts.total} notifications`}
           >
@@ -515,7 +515,7 @@ export default function AnalyticsDashboard() {
               <MetricCard
                 key={metric.title}
                 {...metric}
-                className="transform hover:scale-105 transition-transform duration-200"
+                className="transition-all duration-200 hover:shadow-lg hover:border-primary/20"
               />
             ))}
           </div>

@@ -13,8 +13,13 @@ export function useNotificationGenerator() {
   const { getPerfectMatches, getCriticalAlerts, getClientById, getWatchModelById } = useAppStore()
   const { addNotification, notifications } = useNotifications()
   const processedMatchesRef = useRef<Set<string>>(new Set())
+  const isInitialized = useRef(false)
 
   useEffect(() => {
+    // Only run once on mount to prevent infinite loops
+    if (isInitialized.current) return
+    isInitialized.current = true
+
     // Get current perfect matches and critical alerts
     const perfectMatches = getPerfectMatches()
     const criticalAlerts = getCriticalAlerts()
@@ -151,7 +156,7 @@ export function useNotificationGenerator() {
       processedMatchesRef.current = new Set(array.slice(-100))
     }
 
-  }, [getPerfectMatches, getCriticalAlerts, getClientById, getWatchModelById, addNotification])
+  }, []) // Empty dependency array - only run once on mount
 
   // Return nothing - this hook just generates notifications in the background
   return null

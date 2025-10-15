@@ -86,6 +86,7 @@ export function LenkersdorferSidebar({ children }: { children: React.ReactNode }
       {/* Mobile Bottom Navigation - Only visible on mobile/tablet */}
       <BottomNavigation
         messageCount={messagingUnreadCount || 0}
+        notificationCount={counts.total || 0}
       />
     </div>
   );

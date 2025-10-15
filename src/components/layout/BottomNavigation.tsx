@@ -9,7 +9,8 @@ import {
   Users,
   Zap,
   MessageSquare,
-  Watch
+  Watch,
+  Bell
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
@@ -23,10 +24,12 @@ interface NavItem {
 
 interface BottomNavigationProps {
   messageCount?: number
+  notificationCount?: number
 }
 
 export function BottomNavigation({
-  messageCount = 0
+  messageCount = 0,
+  notificationCount = 0
 }: BottomNavigationProps) {
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(true)
@@ -54,6 +57,12 @@ export function BottomNavigation({
       icon: MessageSquare,
       label: 'Messages',
       badge: messageCount,
+    },
+    {
+      href: '/notifications',
+      icon: Bell,
+      label: 'Alerts',
+      badge: notificationCount,
     },
     {
       href: '/waitlist',

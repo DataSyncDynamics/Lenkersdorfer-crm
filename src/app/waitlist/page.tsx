@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import {
   Search,
   Clock,
@@ -50,19 +49,27 @@ export default function WaitlistPage() {
 
   // Calculate analytics with Urgent Follow-ups logic
   const analytics = useMemo(() => {
-    const totalEntries = waitlist.length
+    // Only count entries that have valid client AND watch data
+    const validEntries = waitlist.filter(entry => {
+      const client = getClientById(entry.clientId)
+      const watch = getWatchModelById(entry.watchModelId)
+      return client && watch
+    })
 
+    const totalEntries = validEntries.length
+
+    // Only count watches that have at least one valid entry
     const watchesWithInterest = watchModels.filter(watch =>
-      waitlist.some(entry => entry.watchModelId === watch.id)
+      validEntries.some(entry => entry.watchModelId === watch.id)
     ).length
 
-    const vipEntries = waitlist.filter(entry => {
+    const vipEntries = validEntries.filter(entry => {
       const client = getClientById(entry.clientId)
       return client?.clientTier <= 2
     }).length
 
     // Urgent Follow-ups: High-value clients (Tier 1-2 OR $50K+ lifetime) waiting 90+ days
-    const urgentFollowups = waitlist.filter(entry => {
+    const urgentFollowups = validEntries.filter(entry => {
       const client = getClientById(entry.clientId)
       if (!client) return false
 
@@ -78,7 +85,7 @@ export default function WaitlistPage() {
       vipEntries,
       urgentFollowups
     }
-  }, [waitlist, watchModels, getClientById])
+  }, [waitlist, watchModels, getClientById, getWatchModelById])
 
   // Group waitlist by watch model and sort by match quality
   const waitlistByWatch = useMemo(() => {
@@ -218,13 +225,11 @@ export default function WaitlistPage() {
           {/* Analytics Cards - Matching Allocation Page */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             {/* Total Entries */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <div
               className="cursor-pointer"
               onClick={() => setShowModal('total')}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-foreground/70">
                     Total Entries
@@ -236,16 +241,14 @@ export default function WaitlistPage() {
                   <p className="text-xs text-foreground/60">Active waitlist positions</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
             {/* Watches with Interest */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <div
               className="cursor-pointer"
               onClick={() => setShowModal('watches')}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-foreground/70">
                     Watches with Interest
@@ -257,16 +260,14 @@ export default function WaitlistPage() {
                   <p className="text-xs text-foreground/60">Models in demand</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
             {/* VIP Entries */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <div
               className="cursor-pointer"
               onClick={() => setShowModal('vip')}
             >
-              <Card className="hover:shadow-lg transition-all duration-200">
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-foreground/70">
                     VIP Entries
@@ -278,17 +279,15 @@ export default function WaitlistPage() {
                   <p className="text-xs text-foreground/60">Tier 1-2 clients</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
             {/* Urgent Follow-ups */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <div
               className="cursor-pointer"
               onClick={() => setShowModal('urgent')}
             >
               <Card className={cn(
-                "hover:shadow-lg transition-all duration-200",
+                "hover:shadow-lg hover:border-primary/20 transition-all duration-200",
                 analytics.urgentFollowups > 0 && "border-orange-500/50"
               )}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -310,7 +309,7 @@ export default function WaitlistPage() {
                   <p className="text-xs text-foreground/60">High-value clients waiting 90+ days</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           </div>
 
           {/* Modern Search Interface - Matching Allocation Page */}
@@ -367,11 +366,8 @@ export default function WaitlistPage() {
                   const vipCount = entries.filter(e => e.client && e.client.clientTier <= 2).length
 
                   return (
-                    <motion.div
+                    <div
                       key={watch.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
                     >
                       <Card
                         className={cn(
@@ -445,11 +441,7 @@ export default function WaitlistPage() {
 
                           {/* Expanded Content */}
                           {isExpanded && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            <div
                               className="mt-4 md:mt-6 pt-4 md:pt-6 border-t w-full"
                             >
                               <div className="mb-3 md:mb-4">
@@ -531,11 +523,11 @@ export default function WaitlistPage() {
                                   </Button>
                                 </Link>
                               </div>
-                            </motion.div>
+                            </div>
                           )}
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
                   )
                 })
               )}

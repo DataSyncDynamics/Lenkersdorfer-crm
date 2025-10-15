@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
 import {
   Search,
   Users,
@@ -13,7 +12,8 @@ import {
   ArrowUp,
   ArrowDown,
   X,
-  DollarSign
+  DollarSign,
+  Info
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAppStore, formatCurrency } from '@/lib/store'
 import { NewClientData } from '@/types'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
@@ -73,6 +74,7 @@ export default function ClientsPage() {
   const [tierFilter, setTierFilter] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
   // Sync local search with global when changed externally
   useEffect(() => {
@@ -95,6 +97,18 @@ export default function ClientsPage() {
     // Apply tier filter
     if (tierFilter !== null) {
       results = results.filter(client => client.clientTier === tierFilter)
+    }
+
+    // Apply active filter
+    if (activeFilter !== 'all') {
+      const sixMonthsAgo = new Date()
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+
+      results = results.filter(client => {
+        const lastPurchase = new Date(client.lastPurchase)
+        const isActive = lastPurchase >= sixMonthsAgo
+        return activeFilter === 'active' ? isActive : !isActive
+      })
     }
 
     // Apply sorting
@@ -135,7 +149,7 @@ export default function ClientsPage() {
     })
 
     return results
-  }, [searchQuery, sortBy, sortOrder, tierFilter, clients])
+  }, [searchQuery, sortBy, sortOrder, tierFilter, activeFilter, clients])
 
   const handleSaveClient = (clientData: any) => {
     if (!selectedClient) return
@@ -251,6 +265,17 @@ export default function ClientsPage() {
                   <SelectItem value="5">T5</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={activeFilter} onValueChange={(value: 'all' | 'active' | 'inactive') => setActiveFilter(value)}>
+                <SelectTrigger className="w-24 h-10">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -259,11 +284,8 @@ export default function ClientsPage() {
         <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
           {/* Analytics Cards */}
           <div className="grid grid-cols-5 md:grid-cols-2 lg:grid-cols-5 gap-1.5 md:gap-4 mb-4">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+            <div>
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 h-full">
                 <CardHeader className="p-2 pb-1">
                   <Users className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
                   <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Total</CardTitle>
@@ -272,13 +294,10 @@ export default function ClientsPage() {
                   <div className="text-sm font-bold">{analytics.totalClients}</div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+            <div>
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 h-full">
                 <CardHeader className="p-2 pb-1">
                   <DollarSign className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
                   <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Revenue</CardTitle>
@@ -287,13 +306,10 @@ export default function ClientsPage() {
                   <div className="text-[11px] font-bold leading-tight">{formatCurrency(analytics.totalRevenue)}</div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+            <div>
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 h-full">
                 <CardHeader className="p-2 pb-1">
                   <Star className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
                   <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Avg</CardTitle>
@@ -302,15 +318,13 @@ export default function ClientsPage() {
                   <div className="text-[11px] font-bold leading-tight">{formatCurrency(analytics.avgSpend)}</div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <div
               className="cursor-pointer"
               onClick={() => setShowVipModal(true)}
             >
-              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 h-full">
                 <CardHeader className="p-2 pb-1">
                   <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-500 mx-auto mb-1" />
                   <CardTitle className="text-[10px] text-center text-foreground/70 font-medium">VIP</CardTitle>
@@ -319,13 +333,10 @@ export default function ClientsPage() {
                   <div className="text-sm font-bold text-foreground">{analytics.vipClients}</div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card className="hover:shadow-lg transition-all duration-200 h-full">
+            <div className="relative group">
+              <Card className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 h-full">
                 <CardHeader className="p-2 pb-1">
                   <Users className="h-3 w-3 text-muted-foreground mx-auto mb-1" />
                   <CardTitle className="text-[10px] text-center text-muted-foreground font-medium">Active</CardTitle>
@@ -334,7 +345,10 @@ export default function ClientsPage() {
                   <div className="text-sm font-bold">{analytics.activeClients}</div>
                 </CardContent>
               </Card>
-            </motion.div>
+              <div className="absolute top-full right-0 mt-2 px-3 py-1.5 bg-popover text-popover-foreground text-xs rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border z-50">
+                Clients who made a purchase within the last 6 months
+              </div>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -376,6 +390,15 @@ export default function ClientsPage() {
                       />
                     </Badge>
                   )}
+                  {activeFilter !== 'all' && (
+                    <Badge variant="secondary" className="gap-1 whitespace-nowrap">
+                      {activeFilter === 'active' ? 'Active Only' : 'Inactive Only'}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => setActiveFilter('all')}
+                      />
+                    </Badge>
+                  )}
                   {sortBy !== 'name' && (
                     <Badge variant="outline" className="gap-1 whitespace-nowrap">
                       Sort: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
@@ -402,6 +425,11 @@ export default function ClientsPage() {
               {tierFilter !== null && (
                 <span className="ml-2 text-xs">
                   • Tier {tierFilter} only
+                </span>
+              )}
+              {activeFilter !== 'all' && (
+                <span className="ml-2 text-xs">
+                  • {activeFilter === 'active' ? 'Active' : 'Inactive'} only
                 </span>
               )}
             </p>

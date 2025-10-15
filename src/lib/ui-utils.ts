@@ -12,7 +12,7 @@ export function getTierColorClasses(tier: number): string {
   switch (tier) {
     case 1: return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700'
     case 2: return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700'
-    case 3: return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-700/50 dark:text-slate-200 dark:border-slate-600'
+    case 3: return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700'
     case 4: return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700'
     case 5: return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700'
     default: return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-700/50 dark:text-slate-200 dark:border-slate-600'
@@ -140,14 +140,38 @@ export function truncateText(text: string, maxLength: number): string {
 
 /**
  * Formats client names to consistent Title Case (proper case)
- * Handles various input formats: "JOHN DOE", "john doe", "John Doe"
+ * Removes middle names/initials and handles various input formats
+ * Examples: "Edward L. Labarge" -> "Edward Labarge", "JOHN DOE" -> "John Doe"
  */
 export function formatClientName(name: string): string {
   if (!name) return ''
 
-  return name
-    .toLowerCase()
-    .split(' ')
+  const words = name.toLowerCase().split(' ')
+
+  // Filter out middle initials (single letters with or without period) and middle names
+  // Keep only first and last name
+  const filteredWords = words.filter((word, index) => {
+    // Remove periods for checking
+    const cleanWord = word.replace('.', '')
+
+    // Keep first word (first name)
+    if (index === 0) return true
+
+    // Keep last word (last name)
+    if (index === words.length - 1) return true
+
+    // Remove single letters/initials (middle initials like "L" or "L.")
+    if (cleanWord.length === 1) return false
+
+    // If there are only 2 words total, keep both
+    if (words.length === 2) return true
+
+    // For 3+ words, remove middle words
+    return false
+  })
+
+  return filteredWords
+    .map(word => word.replace('.', '')) // Remove any remaining periods
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }

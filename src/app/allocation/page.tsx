@@ -28,6 +28,7 @@ import {
   Phone
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -244,7 +245,12 @@ function AllocationContent() {
   const analytics = useMemo(() => {
     const perfectMatches = getPerfectMatches()
     const criticalAlerts = getCriticalAlerts()
-    const totalWaitlistEntries = waitlist.length
+    // Only count waitlist entries that have valid client AND watch data
+    const totalWaitlistEntries = waitlist.filter(entry => {
+      const client = getClientById(entry.clientId)
+      const watch = getWatchModelById(entry.watchModelId)
+      return client && watch
+    }).length
     const availableWatches = watchModels.filter(w => w.availability === 'Available').length
 
     return {
@@ -253,7 +259,7 @@ function AllocationContent() {
       perfectMatches: perfectMatches.length,
       criticalAlerts: criticalAlerts.length
     }
-  }, [waitlist, watchModels, getPerfectMatches, getCriticalAlerts])
+  }, [waitlist, watchModels, getPerfectMatches, getCriticalAlerts, getClientById, getWatchModelById])
 
   // Filter and sort watches - Only show watches with actionable clients
   const filteredWatches = useMemo(() => {
@@ -430,6 +436,11 @@ function AllocationContent() {
               <div className="flex items-center gap-2">
                 <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <CardTitle className="text-lg text-blue-900 dark:text-blue-100">Allocation Status Guide</CardTitle>
+                <InfoTooltip
+                  title="Smart Allocation System"
+                  description="Our intelligent allocation system automatically matches available watches with ideal clients based on their tier, purchase history, and price point. Green indicates perfect matches (immediate allocation), Yellow shows upgrade opportunities (requires follow-up), and Red signals mismatches (watch too expensive for client tier)."
+                  variant="default"
+                />
               </div>
             </CardHeader>
             <CardContent>
