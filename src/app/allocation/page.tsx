@@ -1076,9 +1076,6 @@ function AllocationContent() {
                                     <Watch className="h-3 w-3 flex-shrink-0" />
                                     <span className="break-words">{watch.brand} {watch.model} - {watch.collection}</span>
                                   </div>
-                                  {alert.reason && (
-                                    <div className="italic mt-1 break-words">"{alert.reason}"</div>
-                                  )}
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">

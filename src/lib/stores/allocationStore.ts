@@ -13,7 +13,7 @@ export interface AllocationState {
 }
 
 export interface AllocationActions {
-  generateAllocationContacts: (watchId: string) => AllocationContact[]
+  generateAllocationContacts: (watchId: string, showAllClients?: boolean) => AllocationContact[]
   allocateWatchToClient: (alertId: string, contactMethod?: 'SMS' | 'CALL' | 'EMAIL') => void
   markContactAttempt: (clientId: string, watchId: string, method: 'SMS' | 'CALL' | 'EMAIL', message?: string, successful?: boolean, notes?: string) => void
   completeSale: (clientId: string, watchId: string) => void
@@ -22,7 +22,7 @@ export interface AllocationActions {
   getContactHistory: (clientId: string, watchId: string) => ContactAttempt[]
   // New business logic functions
   calculateClientCapacity: (client: any) => { maxSingle: number; avgOrder: number }
-  getBusinessRecommendation: (client: any, watch: any) => {
+  getBusinessRecommendation: (client: any, watch: any, daysWaiting?: number) => {
     category: string
     label: string
     priority: number

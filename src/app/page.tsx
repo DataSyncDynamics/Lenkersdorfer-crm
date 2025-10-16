@@ -206,7 +206,8 @@ export default function AnalyticsDashboard() {
     generateAllocationContacts,
     getPerfectMatches,
     getClientById,
-    getWatchModelById
+    getWatchModelById,
+    updateClient
   } = useAppStore()
 
   const { notifications, getCounts, removeNotification, markAsRead, addNotification } = useNotifications()
@@ -562,7 +563,7 @@ export default function AnalyticsDashboard() {
                         .map((client, index) => (
                         <div
                           key={client.id}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-yellow-500/30 hover:scale-[1.02] active:scale-[0.98]"
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-yellow-500/30 hover:scale-105 active:scale-95"
                           onClick={() => setSelectedClientForView(client.id)}
                         >
                           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500 text-white font-bold text-sm flex-shrink-0">

@@ -50,7 +50,7 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
 
   return (
     <div
-      className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+      className="cursor-pointer transition-transform hover:scale-105 active:scale-95"
       onClick={onClick}
     >
       <Card className={cn(
