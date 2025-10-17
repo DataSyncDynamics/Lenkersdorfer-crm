@@ -2,15 +2,19 @@
 
 import { StateCreator } from 'zustand'
 import { Client, ClientTier } from '@/types'
-import { mockClients, calculateClientTier } from '@/data/mockData'
+import { calculateClientTier } from '@/data/mockData'
+import * as clientDb from '@/lib/db/clients'
 
 export interface ClientState {
   clients: Client[]
   selectedClient: Client | null
   searchQuery: string
+  isLoading: boolean
+  error: string | null
 }
 
 export interface ClientActions {
+  initializeClients: () => Promise<void>
   setSelectedClient: (client: Client | null) => void
   setSearchQuery: (query: string) => void
   getFilteredClients: () => Client[]
@@ -19,8 +23,8 @@ export interface ClientActions {
   recalculateClientTiers: () => void
   importClients: (importedClients: Client[]) => void
   replaceAllClients: (newClients: Client[]) => void
-  updateClient: (clientId: string, updates: Partial<Client>) => void
-  addClient: (newClient: Omit<Client, 'id'>) => string
+  updateClient: (clientId: string, updates: Partial<Client>) => Promise<void>
+  addClient: (newClient: Omit<Client, 'id'>) => Promise<string>
 }
 
 export type ClientSlice = ClientState & ClientActions
@@ -32,9 +36,24 @@ export const createClientSlice: StateCreator<
   ClientSlice
 > = (set, get) => ({
   // Initial state
-  clients: mockClients,
+  clients: [],
   selectedClient: null,
   searchQuery: '',
+  isLoading: true,
+  error: null,
+
+  // Initialize - fetch from Supabase
+  initializeClients: async () => {
+    try {
+      set({ isLoading: true, error: null })
+      const clients = await clientDb.getAllClients()
+      set({ clients, isLoading: false })
+      get().recalculateClientTiers()
+    } catch (error) {
+      console.error('Error initializing clients:', error)
+      set({ error: 'Failed to load clients', isLoading: false })
+    }
+  },
 
   // Actions
   setSelectedClient: (client: Client | null) => set({ selectedClient: client }),
@@ -98,42 +117,70 @@ export const createClientSlice: StateCreator<
     get().recalculateClientTiers()
   },
 
-  updateClient: (clientId: string, updates: Partial<Client>) => {
+  updateClient: async (clientId: string, updates: Partial<Client>) => {
+    // Optimistic update
     set(state => ({
       clients: state.clients.map(client =>
         client.id === clientId ? { ...client, ...updates } : client
       )
     }))
-    // Recalculate tiers after update if lifetime spend changed
-    if (updates.lifetimeSpend !== undefined) {
-      get().recalculateClientTiers()
-    }
-    // Update selected client if it's the one being updated
-    const state = get()
-    if (state.selectedClient?.id === clientId) {
-      set({ selectedClient: { ...state.selectedClient, ...updates } })
+
+    try {
+      const updatedClient = await clientDb.updateClient(clientId, updates)
+
+      set(state => ({
+        clients: state.clients.map(client =>
+          client.id === clientId ? updatedClient : client
+        )
+      }))
+
+      if (updates.lifetimeSpend !== undefined) {
+        get().recalculateClientTiers()
+      }
+
+      const state = get()
+      if (state.selectedClient?.id === clientId) {
+        set({ selectedClient: updatedClient })
+      }
+    } catch (error) {
+      console.error('Error updating client:', error)
+      await get().initializeClients()
+      throw error
     }
   },
 
-  addClient: (newClient: Omit<Client, 'id'>) => {
-    const client: Client = {
+  addClient: async (newClient: Omit<Client, 'id'>): Promise<string> => {
+    const tempId = `temp_${Date.now()}`
+    const tempClient: Client = {
       ...newClient,
-      id: `client_${Date.now()}`,
+      id: tempId,
       lifetimeSpend: 0,
       spendPercentile: 0,
       clientTier: 5,
       vipTier: 'Bronze',
-      lastPurchase: '', // No purchase history for new clients
+      lastPurchase: '',
       purchases: []
     }
 
     set(state => ({
-      clients: [...state.clients, client]
+      clients: [...state.clients, tempClient]
     }))
 
-    // Recalculate tiers after adding new client
-    get().recalculateClientTiers()
+    try {
+      const createdClient = await clientDb.createClient(newClient)
 
-    return client.id
+      set(state => ({
+        clients: state.clients.map(c => c.id === tempId ? createdClient : c)
+      }))
+
+      get().recalculateClientTiers()
+      return createdClient.id
+    } catch (error) {
+      console.error('Error adding client:', error)
+      set(state => ({
+        clients: state.clients.filter(c => c.id !== tempId)
+      }))
+      throw error
+    }
   }
 })

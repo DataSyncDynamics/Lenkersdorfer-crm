@@ -1,21 +1,24 @@
 'use client'
 
 import { StateCreator } from 'zustand'
-import { WaitlistEntry, AllocationSuggestion } from '@/types'
-import { mockWaitlist } from '@/data/mockData'
+import { WaitlistEntry, AllocationSuggestion, WatchModel } from '@/types'
 import { ClientSlice } from './clientStore'
 import { WatchSlice } from './watchStore'
+import * as waitlistDb from '@/lib/db/waitlist'
 
 export interface WaitlistState {
   waitlist: WaitlistEntry[]
+  isLoading: boolean
+  error: string | null
 }
 
 export interface WaitlistActions {
+  initializeWaitlist: () => Promise<void>
   getWaitlistForClient: (clientId: string) => WaitlistEntry[]
   getWaitlistForWatch: (watchId: string) => WaitlistEntry[]
   generateAllocationSuggestions: (watchId: string) => AllocationSuggestion[]
-  addToWaitlist: (clientId: string, watchId: string, notes?: string) => void
-  removeFromWaitlist: (entryId: string) => void
+  addToWaitlist: (clientId: string, watchId: string, notes?: string) => Promise<void>
+  removeFromWaitlist: (entryId: string) => Promise<void>
   calculateEntryMatchScore: (clientId: string, watchId: string, dateAdded: string) => number
 }
 
@@ -90,7 +93,21 @@ export const createWaitlistSlice: StateCreator<
   WaitlistSlice
 > = (set, get) => ({
   // Initial state
-  waitlist: mockWaitlist,
+  waitlist: [],
+  isLoading: true,
+  error: null,
+
+  // Initialize - fetch from Supabase
+  initializeWaitlist: async () => {
+    try {
+      set({ isLoading: true, error: null })
+      const waitlist = await waitlistDb.getAllWaitlistEntries()
+      set({ waitlist, isLoading: false })
+    } catch (error) {
+      console.error('Error initializing waitlist:', error)
+      set({ error: 'Failed to load waitlist', isLoading: false })
+    }
+  },
 
   // Actions
   getWaitlistForClient: (clientId: string) => {
@@ -127,23 +144,46 @@ export const createWaitlistSlice: StateCreator<
     return suggestions.sort((a, b) => b.score - a.score)
   },
 
-  addToWaitlist: (clientId: string, watchId: string, notes = '') => {
-    set(state => ({
-      waitlist: [...state.waitlist, {
-        id: `wl_${Date.now()}`,
-        clientId,
-        watchModelId: watchId,
-        dateAdded: new Date().toISOString().split('T')[0],
-        priority: 1,
-        notes
-      }]
-    }))
+  addToWaitlist: async (clientId: string, watchId: string, notes = '') => {
+    try {
+      const { getWatchModelById } = get() as unknown as WatchSlice
+      const watch = getWatchModelById(watchId)
+
+      if (!watch) {
+        throw new Error('Watch not found')
+      }
+
+      const entry = await waitlistDb.createWaitlistEntry(
+        {
+          clientId,
+          watchModelId: watchId,
+          notes,
+          priority: 1,
+          dateAdded: new Date().toISOString().split('T')[0]
+        },
+        watch
+      )
+
+      set(state => ({
+        waitlist: [...state.waitlist, entry]
+      }))
+    } catch (error) {
+      console.error('Error adding to waitlist:', error)
+      throw error
+    }
   },
 
-  removeFromWaitlist: (entryId: string) => {
-    set(state => ({
-      waitlist: state.waitlist.filter(entry => entry.id !== entryId)
-    }))
+  removeFromWaitlist: async (entryId: string) => {
+    try {
+      await waitlistDb.deleteWaitlistEntry(entryId)
+
+      set(state => ({
+        waitlist: state.waitlist.filter(entry => entry.id !== entryId)
+      }))
+    } catch (error) {
+      console.error('Error removing from waitlist:', error)
+      throw error
+    }
   },
 
   calculateEntryMatchScore: (clientId: string, watchId: string, dateAdded: string) => {

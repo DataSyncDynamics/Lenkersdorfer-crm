@@ -5,6 +5,9 @@ import { NotificationProvider } from '@/contexts/NotificationContext'
 import { MessagingProvider } from '@/contexts/MessagingContext'
 import { ThemeProvider } from '@/components/ui/theme-provider'
 import { NotificationGenerator } from '@/components/notifications/NotificationGenerator'
+import { AuthProvider } from '@/components/auth/AuthProvider'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AppInitializer } from '@/components/AppInitializer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -30,21 +33,27 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <NotificationProvider>
-            <MessagingProvider>
-              <NotificationGenerator />
-              <div className="min-h-screen bg-background text-foreground">
-                {children}
-              </div>
-            </MessagingProvider>
-          </NotificationProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
+              <AppInitializer>
+                <NotificationProvider>
+                  <MessagingProvider>
+                    <NotificationGenerator />
+                    <div className="min-h-screen bg-background text-foreground">
+                      {children}
+                    </div>
+                  </MessagingProvider>
+                </NotificationProvider>
+              </AppInitializer>
+            </AuthProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )
