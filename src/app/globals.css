@@ -97,10 +97,14 @@ a {
     box-sizing: border-box;
   }
 
-  /* Ensure all children respect container width */
+  /* Ensure box-sizing for all elements, but don't force max-width */
   * {
-    max-width: 100%;
     box-sizing: border-box;
+  }
+
+  /* Only apply max-width to specific elements that need it */
+  img, video, iframe, input, textarea, select {
+    max-width: 100%;
   }
 }
 
