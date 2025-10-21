@@ -13,6 +13,7 @@ export interface Client {
   clientTier: ClientTier // 1-5 based on lifetime spend percentiles
   spendPercentile: number // 0-100 percentile ranking
   lastPurchase: string
+  lastContactDate?: string | null // When the client was last contacted
   preferredBrands: string[]
   notes: string
   avatar?: string

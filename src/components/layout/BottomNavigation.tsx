@@ -24,12 +24,12 @@ interface NavItem {
 
 interface BottomNavigationProps {
   messageCount?: number
-  notificationCount?: number
+  alertCount?: number
 }
 
 export function BottomNavigation({
   messageCount = 0,
-  notificationCount = 0
+  alertCount = 0
 }: BottomNavigationProps) {
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(true)
@@ -62,7 +62,7 @@ export function BottomNavigation({
       href: '/notifications',
       icon: Bell,
       label: 'Alerts',
-      badge: notificationCount,
+      badge: alertCount,
     },
     {
       href: '/waitlist',
@@ -124,7 +124,8 @@ export function BottomNavigation({
         {navItems.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon
-          const showBadge = item.badge && item.badge > 0
+          // Only show badge if count is a number greater than 0
+          const showBadge = typeof item.badge === 'number' && item.badge > 0
 
           return (
             <Link
@@ -151,7 +152,7 @@ export function BottomNavigation({
                     isActive ? "text-gold-400" : "text-neutral-400"
                   )}
                 />
-                {showBadge && !isNaN(item.badge!) && (
+                {showBadge && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}

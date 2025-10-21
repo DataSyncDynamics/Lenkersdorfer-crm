@@ -1,8 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAppStore, formatCurrency } from '@/lib/store'
 import MobileNavigation from '@/components/layout/MobileNavigation'
+import { AddToWaitlistModal } from '@/components/clients/AddToWaitlistModal'
+import { SetReminderModal } from '@/components/reminders/SetReminderModal'
 import {
   ArrowLeftIcon,
   PhoneIcon,
@@ -16,10 +19,31 @@ import {
   CheckCircleIcon,
   PencilIcon,
   ChatBubbleLeftIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 
+const WATCH_BRANDS = [
+  'ROLEX', 'PATEK PHILIPPE', 'AUDEMARS PIGUET', 'CARTIER',
+  'OMEGA', 'VACHERON CONSTANTIN', 'JAEGER-LECOULTRE', 'IWC',
+  'BREITLING', 'TAG HEUER', 'PANERAI', 'HUBLOT', 'Other'
+]
+
 export default function ClientDetailPage() {
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false)
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false)
+  const [showReminderModal, setShowReminderModal] = useState(false)
+  const [lastContactDate, setLastContactDate] = useState<string | null>(null)
+  const [isMarkingContacted, setIsMarkingContacted] = useState(false)
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false)
+  const [purchaseFormData, setPurchaseFormData] = useState({
+    brand: '',
+    model: '',
+    price: '',
+    commissionRate: '15',
+    serialNumber: '',
+    purchaseDate: new Date().toISOString().split('T')[0]
+  })
   const params = useParams()
   const router = useRouter()
   const {
@@ -39,6 +63,23 @@ export default function ClientDetailPage() {
   // Get GREEN BOX matches for this specific client
   const allPerfectMatches = getPerfectMatches()
   const clientPerfectMatches = allPerfectMatches.filter(match => match.clientId === clientId)
+
+  // Load last contact date - MUST be before early return to follow Rules of Hooks
+  useEffect(() => {
+    if (!client) return
+    const loadLastContact = async () => {
+      try {
+        const response = await fetch(`/api/clients/${clientId}`)
+        const data = await response.json()
+        if (data.last_contact_date) {
+          setLastContactDate(data.last_contact_date)
+        }
+      } catch (error) {
+        console.error('Error loading last contact date:', error)
+      }
+    }
+    loadLastContact()
+  }, [clientId, client])
 
   if (!client) {
     return (
@@ -87,6 +128,98 @@ export default function ClientDetailPage() {
 
   const stars = getVipStars(client.vipTier)
   const clientTierInfo = getClientTierInfo(client.clientTier)
+
+  // Mark as contacted
+  const handleMarkAsContacted = async () => {
+    setIsMarkingContacted(true)
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ last_contact_date: new Date().toISOString() })
+      })
+
+      if (response.ok) {
+        setLastContactDate(new Date().toISOString())
+      }
+    } catch (error) {
+      console.error('Error marking as contacted:', error)
+    } finally {
+      setIsMarkingContacted(false)
+    }
+  }
+
+  // Format time ago
+  const getTimeAgo = (dateString: string | null) => {
+    if (!dateString) return 'Never contacted'
+
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+    if (diffDays === 0) {
+      if (diffHours === 0) return 'Just now'
+      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+    }
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) !== 1 ? 's' : ''} ago`
+    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) !== 1 ? 's' : ''} ago`
+  }
+
+  const handleSubmitPurchase = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmittingPurchase(true)
+
+    try {
+      const price = parseFloat(purchaseFormData.price)
+      const commissionRate = parseFloat(purchaseFormData.commissionRate)
+
+      const response = await fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          brand: purchaseFormData.brand,
+          model: purchaseFormData.model,
+          price,
+          commission_rate: commissionRate,
+          commission_amount: (price * commissionRate) / 100,
+          purchase_date: purchaseFormData.purchaseDate
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create purchase')
+      }
+
+      // Success! Refresh to show new purchase
+      window.location.reload()
+    } catch (error) {
+      console.error('Error creating purchase:', error)
+      alert('Failed to add purchase. Please try again.')
+      setIsSubmittingPurchase(false)
+    }
+  }
+
+  const handleCancelPurchaseForm = () => {
+    setShowPurchaseForm(false)
+    setPurchaseFormData({
+      brand: '',
+      model: '',
+      price: '',
+      commissionRate: '15',
+      serialNumber: '',
+      purchaseDate: new Date().toISOString().split('T')[0]
+    })
+  }
+
+  const handleWaitlistSuccess = () => {
+    // Refresh page to show new waitlist entry
+    window.location.reload()
+  }
 
   return (
     <div className="min-h-screen bg-black safe-area-pt">
@@ -147,13 +280,24 @@ export default function ClientDetailPage() {
               <div className="text-sm text-gray-400">
                 Lifetime Value
               </div>
+
+              {/* Last Contacted */}
+              <div className="mt-3 flex items-center gap-2">
+                <ClockIcon className="h-4 w-4 text-gray-500" />
+                <span className="text-xs text-gray-400">
+                  Last contacted: <span className="text-gray-300">{getTimeAgo(lastContactDate)}</span>
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-3 mt-6">
             <button
-              onClick={() => window.location.href = `tel:${client.phone}`}
+              onClick={() => {
+                window.location.href = `tel:${client.phone}`
+                handleMarkAsContacted()
+              }}
               className="luxury-button-primary flex items-center justify-center"
             >
               <PhoneIcon className="h-4 w-4 mr-2" />
@@ -174,14 +318,30 @@ export default function ClientDetailPage() {
               Text
             </button>
             <button
-              onClick={() => {
-                // Add functionality to navigate to add to waitlist
-                console.log('Add to waitlist functionality')
-              }}
+              onClick={() => setShowWaitlistModal(true)}
               className="luxury-button-secondary flex items-center justify-center"
             >
               <ClockIcon className="h-4 w-4 mr-2" />
               Waitlist
+            </button>
+          </div>
+
+          {/* Additional Actions */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button
+              onClick={handleMarkAsContacted}
+              disabled={isMarkingContacted}
+              className="luxury-button-secondary flex items-center justify-center text-xs"
+            >
+              <CheckCircleIcon className="h-3 w-3 mr-1" />
+              {isMarkingContacted ? 'Updating...' : 'Contacted'}
+            </button>
+            <button
+              onClick={() => setShowReminderModal(true)}
+              className="luxury-button-secondary flex items-center justify-center text-xs bg-blue-900/20 border-blue-500/30 text-blue-400 hover:bg-blue-900/30"
+            >
+              <CalendarIcon className="h-3 w-3 mr-1" />
+              Reminder
             </button>
           </div>
         </div>
@@ -300,11 +460,170 @@ export default function ClientDetailPage() {
         </div>
 
         {/* Purchase History */}
-        <div className="luxury-card p-6 mb-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Purchase History</h3>
+        <div className="luxury-card p-6 mb-6 overflow-visible">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white flex items-center">
+              <CurrencyEuroIcon className="h-5 w-5 mr-2 text-gold-400" />
+              Purchase History
+            </h3>
+            {!showPurchaseForm && (
+              <button
+                onClick={() => setShowPurchaseForm(true)}
+                className="luxury-button-secondary flex items-center bg-green-900/20 border-green-500/30 text-green-400 hover:bg-green-900/30 px-4 py-2"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Purchase
+              </button>
+            )}
+          </div>
 
-          <div className="space-y-4">
-            {client.purchases.map((purchase) => (
+          {/* Inline Purchase Form */}
+          {showPurchaseForm && (
+            <form onSubmit={handleSubmitPurchase} className="mb-4 p-4 bg-gray-800 rounded-lg border border-green-500/30 relative overflow-visible">
+              <div className="space-y-3">
+                {/* Brand */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Watch Brand *
+                  </label>
+                  <select
+                    value={purchaseFormData.brand}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, brand: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select brand...</option>
+                    {WATCH_BRANDS.map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Model */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Model *
+                  </label>
+                  <input
+                    type="text"
+                    value={purchaseFormData.model}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, model: e.target.value }))}
+                    placeholder="e.g., Submariner 126610LN"
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Sale Price *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={purchaseFormData.price}
+                        onChange={(e) => setPurchaseFormData(prev => ({ ...prev, price: e.target.value }))}
+                        placeholder="0.00"
+                        className="w-full pl-7 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Commission Rate */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Commission %
+                    </label>
+                    <select
+                      value={purchaseFormData.commissionRate}
+                      onChange={(e) => setPurchaseFormData(prev => ({ ...prev, commissionRate: e.target.value }))}
+                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="5">5%</option>
+                      <option value="10">10%</option>
+                      <option value="15">15%</option>
+                      <option value="20">20%</option>
+                      <option value="25">25%</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Serial Number */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Serial Number
+                  </label>
+                  <input
+                    type="text"
+                    value={purchaseFormData.serialNumber || ''}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, serialNumber: e.target.value }))}
+                    placeholder="Optional"
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+
+                {/* Purchase Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Purchase Date
+                  </label>
+                  <input
+                    type="date"
+                    value={purchaseFormData.purchaseDate}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 text-center"
+                    required
+                  />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelPurchaseForm}
+                    className="flex-1 luxury-button-secondary"
+                    disabled={isSubmittingPurchase}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 luxury-button-primary bg-green-600 hover:bg-green-700 border-green-500"
+                    disabled={isSubmittingPurchase}
+                  >
+                    {isSubmittingPurchase ? 'Saving...' : 'Save Purchase'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {client.purchases.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-800 mb-4">
+                <CurrencyEuroIcon className="h-8 w-8 text-gray-600" />
+              </div>
+              <h4 className="text-white font-medium mb-2">No purchases yet</h4>
+              <p className="text-sm text-gray-400 mb-4">
+                Record this client's first purchase to start tracking their history
+              </p>
+              <button
+                onClick={() => setShowPurchaseModal(true)}
+                className="luxury-button-primary inline-flex items-center"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add First Purchase
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {client.purchases.map((purchase) => (
               <div key={purchase.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
                 <div className="flex-1">
                   <h4 className="text-white font-medium mb-1">
@@ -324,7 +643,8 @@ export default function ClientDetailPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Current Waitlist */}
@@ -402,6 +722,23 @@ export default function ClientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <AddToWaitlistModal
+        isOpen={showWaitlistModal}
+        onClose={() => setShowWaitlistModal(false)}
+        clientId={clientId}
+        clientName={client.name}
+        onSuccess={handleWaitlistSuccess}
+      />
+
+      <SetReminderModal
+        isOpen={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        clientId={clientId}
+        clientName={client.name}
+        onSuccess={() => console.log('Reminder set successfully')}
+      />
 
       {/* Mobile Navigation */}
       <MobileNavigation />

@@ -55,6 +55,18 @@ export const AllocationContactPanel: React.FC<AllocationContactPanelProps> = ({
   const allocationContacts = generateAllocationContacts(watchId)
   const smsTemplates = getSMSTemplates('ALLOCATION')
 
+  // Lock body scroll when panel is open - ALL HOOKS MUST BE BEFORE EARLY RETURNS
+  useEffect(() => {
+    // Only lock scroll if panel is open AND we have valid data
+    if (!watch || !isOpen) return
+
+    const originalStyle = window.getComputedStyle(document.body).overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = originalStyle
+    }
+  }, [isOpen, watch])
+
   if (!watch) return null
 
   const handleContact = (contact: AllocationContact, method: 'SMS' | 'CALL' | 'EMAIL') => {
@@ -120,17 +132,6 @@ export const AllocationContactPanel: React.FC<AllocationContactPanelProps> = ({
     if (rank === 3) return 'bg-gradient-to-r from-orange-400 to-orange-600 text-black'
     return 'bg-muted text-muted-foreground border'
   }
-
-  // Lock body scroll when panel is open
-  useEffect(() => {
-    if (isOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = originalStyle
-      }
-    }
-  }, [isOpen])
 
   return (
     <AnimatePresence>

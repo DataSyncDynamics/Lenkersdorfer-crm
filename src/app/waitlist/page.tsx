@@ -221,7 +221,7 @@ export default function WaitlistPage() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-y-auto">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 pb-8 overflow-y-auto">
           {/* Analytics Cards - Matching Allocation Page */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             {/* Total Entries */}

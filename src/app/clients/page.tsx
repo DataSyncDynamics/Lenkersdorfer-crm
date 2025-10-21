@@ -281,7 +281,7 @@ export default function ClientsPage() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 pb-8 overflow-hidden">
           {/* Analytics Cards */}
           <div className="grid grid-cols-5 md:grid-cols-2 lg:grid-cols-5 gap-1.5 md:gap-4 mb-4">
             <div>

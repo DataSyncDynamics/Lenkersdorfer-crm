@@ -10,6 +10,7 @@ interface NotificationContextType {
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   clearAll: () => void
+  refreshReminders: () => Promise<void>
   getCounts: () => {
     total: number
     byCategory: Record<NotificationCategory, number>
@@ -41,14 +42,84 @@ const initialNotifications: UrgentNotification[] = []
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<UrgentNotification[]>(initialNotifications)
 
-  // Real-time notification updates - disabled for now
-  // In production, this would check for new notifications from an API
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     // Check for new notifications from API
-  //   }, 60000)
-  //   return () => clearInterval(interval)
-  // }, [])
+  // Load due reminders from API and convert to notifications
+  const refreshReminders = async () => {
+    try {
+      const response = await fetch('/api/reminders?filter=due')
+      if (!response.ok) return
+
+      const reminders = await response.json()
+
+      // Convert reminders to notifications
+      const reminderNotifications: UrgentNotification[] = await Promise.all(
+        reminders.map(async (reminder: any) => {
+          // Fetch client info
+          let clientName = 'Unknown Client'
+          try {
+            const clientResponse = await fetch(`/api/clients/${reminder.client_id}`)
+            if (clientResponse.ok) {
+              const client = await clientResponse.json()
+              clientName = client.name
+            }
+          } catch {}
+
+          // Determine urgency based on how overdue
+          const reminderDate = new Date(reminder.reminder_date)
+          const now = new Date()
+          const diffHours = Math.floor((now.getTime() - reminderDate.getTime()) / (1000 * 60 * 60))
+
+          let urgency: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM'
+          if (diffHours > 24) urgency = 'CRITICAL'
+          else if (diffHours > 6) urgency = 'HIGH'
+
+          return {
+            id: `reminder-${reminder.id}`,
+            category: 'FOLLOW-UPS' as NotificationCategory,
+            urgency,
+            title: `${reminder.reminder_type === 'follow-up' ? 'Follow-Up' : reminder.reminder_type === 'call-back' ? 'Call Back' : reminder.reminder_type === 'meeting' ? 'Meeting' : 'Reminder'} Due`,
+            message: reminder.notes || `${reminder.reminder_type} reminder for ${clientName}`,
+            clientName,
+            clientId: reminder.client_id,
+            actions: [
+              {
+                type: 'CALL',
+                label: 'Call Now',
+                isPrimary: true,
+                phoneNumber: '' // Would need to fetch from client
+              },
+              {
+                type: 'MARK_CONTACTED',
+                label: 'Complete',
+              },
+              {
+                type: 'VIEW_CLIENT',
+                label: 'View Client',
+                clientId: reminder.client_id
+              }
+            ],
+            createdAt: new Date(reminder.created_at),
+            isRead: false,
+            data: { reminderId: reminder.id }
+          }
+        })
+      )
+
+      // Remove old reminder notifications and add new ones
+      setNotifications(prev => {
+        const nonReminderNotifications = prev.filter(n => !n.id.startsWith('reminder-'))
+        return [...nonReminderNotifications, ...reminderNotifications]
+      })
+    } catch (error) {
+      console.error('Error loading reminders:', error)
+    }
+  }
+
+  // Load reminders on mount and set up refresh interval
+  useEffect(() => {
+    refreshReminders()
+    const interval = setInterval(refreshReminders, 60000) // Refresh every minute
+    return () => clearInterval(interval)
+  }, [])
 
   const addNotification = (notification: Omit<UrgentNotification, 'id' | 'createdAt' | 'isRead'>) => {
     const newNotification: UrgentNotification = {
@@ -83,10 +154,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }
 
   const getCounts = () => {
-    const unreadNotifications = notifications.filter(n => !n.isRead)
-    const total = unreadNotifications.length
+    // Show ALL notifications in badge (not just unread) for better visibility
+    const total = notifications.length
 
-    const byCategory = unreadNotifications.reduce((acc, notification) => {
+    const byCategory = notifications.reduce((acc, notification) => {
       acc[notification.category] = (acc[notification.category] || 0) + 1
       return acc
     }, {} as Record<NotificationCategory, number>)
@@ -99,11 +170,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
     })
 
-    // Count by urgency
-    const critical = unreadNotifications.filter(n => n.urgency === 'CRITICAL').length
-    const high = unreadNotifications.filter(n => n.urgency === 'HIGH').length
-    const medium = unreadNotifications.filter(n => n.urgency === 'MEDIUM').length
-    const low = unreadNotifications.filter(n => n.urgency === 'LOW').length
+    // Count by urgency (all notifications, not just unread)
+    const critical = notifications.filter(n => n.urgency === 'CRITICAL').length
+    const high = notifications.filter(n => n.urgency === 'HIGH').length
+    const medium = notifications.filter(n => n.urgency === 'MEDIUM').length
+    const low = notifications.filter(n => n.urgency === 'LOW').length
 
     return {
       total,
@@ -126,6 +197,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     markAsRead,
     markAllAsRead,
     clearAll,
+    refreshReminders,
     getCounts,
     getNotificationsByCategory
   }

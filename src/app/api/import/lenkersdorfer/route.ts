@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client, Purchase, ClientTier } from '@/types'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 // CSV data interface based on Lenkersdorfer sales format
 interface SalesRecord {
@@ -114,12 +115,30 @@ function parseCSV(csvContent: string): SalesRecord[] {
 
   // Find column indices dynamically
   const columnMap = {
-    invoice_id: headers.findIndex(h => h.includes('invoice') || h.includes('id')),
+    invoice_id: headers.findIndex(h => h.includes('invoice') || h.includes('number')),
     date: headers.findIndex(h => h.includes('date')),
-    description: headers.findIndex(h => h.includes('description') || h.includes('item') || h.includes('product')),
-    retail: headers.findIndex(h => h.includes('retail') || h.includes('list')),
-    total: headers.findIndex(h => h.includes('total') || h.includes('amount') || h.includes('price')),
-    customer_name: headers.findIndex(h => h.includes('customer') || h.includes('name') || h.includes('client')),
+    description: headers.findIndex(h => h.includes('description') || h.includes('watch') || h.includes('item') || h.includes('product')),
+    retail: headers.findIndex(h => h.includes('retail') && !h.includes('sale')),
+    total: (() => {
+      // Look for 'total' or 'sale price', but prefer the last occurrence of 'total'
+      const indices = headers.reduce((acc: number[], h, i) => {
+        if (h.includes('total') || h.includes('saleprice') || h.includes('amount')) {
+          acc.push(i)
+        }
+        return acc
+      }, [])
+      return indices.length > 0 ? indices[0] : -1 // Use first 'total' for the sale price
+    })(),
+    customer_name: (() => {
+      // Look for customer/client name - prefer 'client name' specifically
+      const clientNameIdx = headers.findIndex(h => h.includes('clientname') || h.includes('customername'))
+      if (clientNameIdx !== -1) return clientNameIdx
+
+      // Fallback: look for standalone 'name' but not 'invoice' or 'product'
+      return headers.findIndex((h, idx) =>
+        h.includes('name') && !h.includes('invoice') && !h.includes('product')
+      )
+    })(),
     source: headers.findIndex(h => h.includes('source') || h.includes('store'))
   }
 
@@ -384,17 +403,150 @@ export async function POST(request: NextRequest) {
       ).sort(([,a], [,b]) => b - a).slice(0, 5)
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Successfully processed ${salesRecords.length} sales records into ${clients.length} clients`,
-      clients,
-      stats,
-      processing: {
-        recordsProcessed: salesRecords.length,
-        clientsCreated: clients.length,
-        duplicatesRemoved: salesRecords.length - lifetimeSpends.length
+    // Save clients to Supabase database directly
+    console.log('Saving clients to Supabase database...')
+
+    try {
+      const supabase = await createServerSupabaseClient()
+
+      const importResults = {
+        totalClients: clients.length,
+        clientsCreated: 0,
+        purchasesCreated: 0,
+        errors: [] as string[],
+        createdClientIds: [] as string[]
       }
-    })
+
+      // Process each client
+      for (const client of clients) {
+        try {
+          // Prepare client data for Supabase
+          const clientData = {
+            name: client.name,
+            email: client.email,
+            phone: client.phone || null,
+            vip_tier: client.vipTier,
+            lifetime_spend: 0, // Database trigger will calculate from purchases
+            notes: client.notes || null,
+            preferred_brands: client.preferredBrands || []
+          }
+
+          // Check if client already exists
+          const { data: existingClients, error: checkError } = await supabase
+            .from('clients')
+            .select('id')
+            .or(`name.eq.${client.name},email.eq.${client.email}`)
+            .limit(1)
+
+          if (checkError) {
+            console.error(`Error checking for existing client ${client.name}:`, checkError)
+            importResults.errors.push(`Failed to check existing client: ${client.name}`)
+            continue
+          }
+
+          let clientId: string
+
+          if (existingClients && existingClients.length > 0) {
+            clientId = existingClients[0].id
+            console.log(`Client ${client.name} already exists with ID ${clientId}`)
+          } else {
+            // Create new client
+            const { data: newClient, error: clientError } = await supabase
+              .from('clients')
+              .insert([clientData])
+              .select()
+              .single()
+
+            if (clientError) {
+              console.error(`Error creating client ${client.name}:`, clientError)
+              importResults.errors.push(`Failed to create client: ${client.name}`)
+              continue
+            }
+
+            clientId = newClient.id
+            importResults.clientsCreated++
+            importResults.createdClientIds.push(clientId)
+            console.log(`Created client ${client.name} with ID ${clientId}`)
+          }
+
+          // Insert purchases for this client
+          if (client.purchases && client.purchases.length > 0) {
+            const purchasesData = client.purchases.map(purchase => ({
+              client_id: clientId,
+              brand: purchase.brand,
+              model: purchase.watchModel,
+              price: purchase.price,
+              purchase_date: purchase.date,
+              commission_rate: 15,
+              commission_amount: purchase.price * 0.15
+            }))
+
+            // Check for existing purchases to avoid duplicates
+            const { data: existingPurchases } = await supabase
+              .from('purchases')
+              .select('brand, model, price, purchase_date')
+              .eq('client_id', clientId)
+
+            const existingKeys = new Set(
+              existingPurchases?.map(p => `${p.brand}-${p.model}-${p.price}-${p.purchase_date}`) || []
+            )
+
+            const newPurchases = purchasesData.filter(p => {
+              const key = `${p.brand}-${p.model}-${p.price}-${p.purchase_date}`
+              return !existingKeys.has(key)
+            })
+
+            if (newPurchases.length > 0) {
+              const { error: purchasesError } = await supabase
+                .from('purchases')
+                .insert(newPurchases)
+
+              if (purchasesError) {
+                console.error(`Error creating purchases for ${client.name}:`, purchasesError)
+                importResults.errors.push(`Failed to create purchases for: ${client.name}`)
+              } else {
+                importResults.purchasesCreated += newPurchases.length
+                console.log(`Created ${newPurchases.length} purchases for ${client.name}`)
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing client ${client.name}:`, error)
+          importResults.errors.push(`Error processing client: ${client.name}`)
+        }
+      }
+
+      console.log('Successfully saved to database:', importResults)
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully processed ${salesRecords.length} sales records and saved ${importResults.clientsCreated} clients to database`,
+        clients,
+        stats,
+        processing: {
+          recordsProcessed: salesRecords.length,
+          clientsCreated: clients.length,
+          duplicatesRemoved: salesRecords.length - lifetimeSpends.length
+        },
+        database: importResults
+      })
+    } catch (dbError) {
+      console.error('Error saving to database:', dbError)
+      // Return the parsed data anyway, but indicate database save failed
+      return NextResponse.json({
+        success: true, // Parsing succeeded
+        warning: 'Data parsed successfully but failed to save to database',
+        message: `Processed ${salesRecords.length} sales records into ${clients.length} clients (not persisted)`,
+        clients,
+        stats,
+        processing: {
+          recordsProcessed: salesRecords.length,
+          clientsCreated: clients.length,
+          duplicatesRemoved: salesRecords.length - lifetimeSpends.length
+        },
+        databaseError: dbError instanceof Error ? dbError.message : 'Unknown database error'
+      })
+    }
 
   } catch (error) {
     console.error('CSV import error:', error)

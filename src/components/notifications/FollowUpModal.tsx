@@ -251,9 +251,12 @@ export function FollowUpModal({
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Follow Up Action</h2>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{context.reason}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onClose} className="dark:hover:bg-white/10">
-                  <X className="w-5 h-5" />
-                </Button>
+                <button
+                  onClick={onClose}
+                  className="h-8 w-8 flex items-center justify-center rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <X className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+                </button>
               </div>
 
               {/* Client Info */}

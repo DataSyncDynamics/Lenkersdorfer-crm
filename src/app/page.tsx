@@ -54,6 +54,7 @@ import { formatClientName } from '@/lib/ui-utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
 import { RevenueChart } from '@/components/analytics/RevenueChart'
 import { PriorityActionsCard } from '@/components/dashboard/PriorityActionsCard'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
 
 interface MetricCardProps {
@@ -207,16 +208,114 @@ export default function AnalyticsDashboard() {
     getPerfectMatches,
     getClientById,
     getWatchModelById,
-    updateClient
+    updateClient,
+    isLoading,
+    isInitialized
   } = useAppStore()
 
   const { notifications, getCounts, removeNotification, markAsRead, addNotification } = useNotifications()
   const counts = getCounts()
 
+  // All hooks must be called before any conditional returns
   const [showAllocationPanel, setShowAllocationPanel] = useState(false)
   const [selectedWatchForAllocation, setSelectedWatchForAllocation] = useState<string>('')
   const [selectedClientForView, setSelectedClientForView] = useState<string | null>(null)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
+
+  // ⚠️ CRITICAL: Calculate analytics data BEFORE early return - useMemo is a HOOK
+  const analytics = useMemo(() => {
+    // Get current date info
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    // Calculate last month's date range
+    const lastMonthDate = new Date(currentYear, currentMonth - 1, 1)
+    const lastMonth = lastMonthDate.getMonth()
+    const lastMonthYear = lastMonthDate.getFullYear()
+
+    // Revenue calculation from actual purchases
+    let currentMonthRevenue = 0
+    let lastMonthRevenue = 0
+    let currentMonthOrders = 0
+    let lastMonthOrders = 0
+
+    clients.forEach(client => {
+      if (client.purchases && Array.isArray(client.purchases)) {
+        client.purchases.forEach(purchase => {
+          const purchaseDate = new Date(purchase.date)
+          const purchaseMonth = purchaseDate.getMonth()
+          const purchaseYear = purchaseDate.getFullYear()
+
+          if (purchaseYear === currentYear && purchaseMonth === currentMonth) {
+            currentMonthRevenue += purchase.price
+            currentMonthOrders++
+          } else if (purchaseYear === lastMonthYear && purchaseMonth === lastMonth) {
+            lastMonthRevenue += purchase.price
+            lastMonthOrders++
+          }
+        })
+      }
+    })
+
+    // Calculate total revenue from all purchases for consistency
+    const totalRevenue = clients.reduce((sum, client) => {
+      if (client.purchases && Array.isArray(client.purchases)) {
+        return sum + client.purchases.reduce((pSum, p) => pSum + p.price, 0)
+      }
+      return sum
+    }, 0)
+
+    // Calculate revenue change percentage
+    const revenueChange = lastMonthRevenue > 0
+      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      : 0
+
+    const activeClients = clients.length
+
+    // Calculate average order value from all purchases
+    const totalOrders = clients.reduce((sum, client) =>
+      sum + (client.purchases?.length || 0), 0
+    )
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+    // Calculate avg order value change
+    const currentMonthAvg = currentMonthOrders > 0 ? currentMonthRevenue / currentMonthOrders : 0
+    const lastMonthAvg = lastMonthOrders > 0 ? lastMonthRevenue / lastMonthOrders : 0
+    const avgOrderChange = lastMonthAvg > 0
+      ? ((currentMonthAvg - lastMonthAvg) / lastMonthAvg) * 100
+      : 0
+
+    // Calculate conversion rate (waitlist to purchase)
+    const totalPurchases = totalOrders
+    const totalWaitlist = waitlist.length
+    const conversionRate = (totalWaitlist + totalPurchases) > 0
+      ? (totalPurchases / (totalWaitlist + totalPurchases)) * 100
+      : 0
+
+    const availableWatches = watchModels.filter(w => w.availability === 'Available').length
+
+    return {
+      totalRevenue,
+      activeClients,
+      avgOrderValue,
+      conversionRate,
+      availableWatches,
+      totalWaitlist,
+      revenueChange,
+      avgOrderChange,
+      clientChange: 0 // We don't track client join dates yet
+    }
+  }, [clients, watchModels, waitlist])
+
+  // Show loading skeleton while data initializes
+  if (!isInitialized || isLoading) {
+    return (
+      <LenkersdorferSidebar>
+        <DashboardSkeleton />
+      </LenkersdorferSidebar>
+    )
+  }
 
   // SMS template function for relationship-based messaging
   const getTierSMSTemplate = (clientName: string, tier: number, watchBrand: string, watchModel: string): string => {
@@ -351,94 +450,6 @@ export default function AnalyticsDashboard() {
     }
   }
 
-
-
-  // Calculate analytics data
-  const analytics = useMemo(() => {
-    // Get current date info
-    const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
-
-    // Calculate last month's date range
-    const lastMonthDate = new Date(currentYear, currentMonth - 1, 1)
-    const lastMonth = lastMonthDate.getMonth()
-    const lastMonthYear = lastMonthDate.getFullYear()
-
-    // Revenue calculation from actual purchases
-    let currentMonthRevenue = 0
-    let lastMonthRevenue = 0
-    let currentMonthOrders = 0
-    let lastMonthOrders = 0
-
-    clients.forEach(client => {
-      if (client.purchases && Array.isArray(client.purchases)) {
-        client.purchases.forEach(purchase => {
-          const purchaseDate = new Date(purchase.date)
-          const purchaseMonth = purchaseDate.getMonth()
-          const purchaseYear = purchaseDate.getFullYear()
-
-          if (purchaseYear === currentYear && purchaseMonth === currentMonth) {
-            currentMonthRevenue += purchase.price
-            currentMonthOrders++
-          } else if (purchaseYear === lastMonthYear && purchaseMonth === lastMonth) {
-            lastMonthRevenue += purchase.price
-            lastMonthOrders++
-          }
-        })
-      }
-    })
-
-    // Calculate total revenue from all purchases for consistency
-    const totalRevenue = clients.reduce((sum, client) => {
-      if (client.purchases && Array.isArray(client.purchases)) {
-        return sum + client.purchases.reduce((pSum, p) => pSum + p.price, 0)
-      }
-      return sum
-    }, 0)
-
-    // Calculate revenue change percentage
-    const revenueChange = lastMonthRevenue > 0
-      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
-      : 0
-
-    const activeClients = clients.length
-
-    // Calculate average order value from all purchases
-    const totalOrders = clients.reduce((sum, client) =>
-      sum + (client.purchases?.length || 0), 0
-    )
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
-
-    // Calculate avg order value change
-    const currentMonthAvg = currentMonthOrders > 0 ? currentMonthRevenue / currentMonthOrders : 0
-    const lastMonthAvg = lastMonthOrders > 0 ? lastMonthRevenue / lastMonthOrders : 0
-    const avgOrderChange = lastMonthAvg > 0
-      ? ((currentMonthAvg - lastMonthAvg) / lastMonthAvg) * 100
-      : 0
-
-    // Calculate conversion rate (waitlist to purchase)
-    const totalPurchases = totalOrders
-    const totalWaitlist = waitlist.length
-    const conversionRate = (totalWaitlist + totalPurchases) > 0
-      ? (totalPurchases / (totalWaitlist + totalPurchases)) * 100
-      : 0
-
-    const availableWatches = watchModels.filter(w => w.availability === 'Available').length
-
-    return {
-      totalRevenue,
-      activeClients,
-      avgOrderValue,
-      conversionRate,
-      availableWatches,
-      totalWaitlist,
-      revenueChange,
-      avgOrderChange,
-      clientChange: 0 // We don't track client join dates yet
-    }
-  }, [clients, watchModels, waitlist])
-
   // Metrics data with real calculations
   const metrics = [
     {
@@ -481,17 +492,17 @@ export default function AnalyticsDashboard() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header with Alert Bell */}
-        <div className="sticky top-0 z-10 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
+        <div className="sticky top-0 z-10 bg-background md:static flex flex-row items-start md:items-center justify-between gap-4 p-4 md:p-6 lg:p-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Lenkersdorfer Analytics</h1>
             <p className="text-muted-foreground">Professional luxury watch sales dashboard</p>
           </div>
 
-          {/* Notification Bell - Hidden on mobile, shown on desktop */}
+          {/* Notification Bell - Visible on all devices */}
           <Button
             variant="ghost"
             size="icon"
-            className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors hidden md:flex"
+            className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex-shrink-0"
             onClick={() => setShowNotificationPanel(true)}
             title={`${counts.total} notifications`}
           >
@@ -509,7 +520,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-full mx-auto px-4 lg:px-8 pb-8">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 pb-8">
           {/* Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             {metrics.map((metric, index) => (

@@ -142,7 +142,7 @@ export default function UrgentNotificationDashboard({
   const counts = getCounts()
 
   // Handle notification action
-  const handleAction = useCallback((notificationId: string, action: NotificationAction) => {
+  const handleAction = useCallback(async (notificationId: string, action: NotificationAction) => {
     console.log('Handling action:', action.type, 'for notification:', notificationId)
 
     // Find the notification to get context
@@ -164,7 +164,20 @@ export default function UrgentNotificationDashboard({
         removeNotification(notificationId)
         break
       case 'MARK_CONTACTED':
+        // If this is a reminder notification, complete it in the database
+        if (notification?.id.startsWith('reminder-') && notification.data?.reminderId) {
+          try {
+            await fetch(`/api/reminders/${notification.data.reminderId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'complete' })
+            })
+          } catch (error) {
+            console.error('Error completing reminder:', error)
+          }
+        }
         markAsRead(notificationId)
+        removeNotification(notificationId)
         break
       case 'VIEW_CLIENT':
         if (action.clientId) {

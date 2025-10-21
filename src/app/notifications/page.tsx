@@ -24,17 +24,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { useNotifications } from '@/contexts/NotificationContext'
+import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
-// Lazy load FollowUpModal
+// Lazy load FollowUpModal and ClientModal
 const FollowUpModal = dynamic(() => import('@/components/notifications/FollowUpModal').then(mod => ({ default: mod.FollowUpModal })), { ssr: false })
+const ClientModal = dynamic(() => import('@/components/clients/ClientModal').then(mod => ({ default: mod.ClientModal })), { ssr: false })
 
 export default function NotificationsDemoPage() {
   const router = useRouter()
   const { notifications, getCounts, addNotification, removeNotification, markAllAsRead } = useNotifications()
+  const { clients, getClientById, updateClient } = useAppStore()
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
   const [showStatsModal, setShowStatsModal] = useState<'URGENT' | 'FOLLOW-UPS' | 'ALL' | null>(null)
+  const [selectedClientForView, setSelectedClientForView] = useState<string | null>(null)
   const [followUpModal, setFollowUpModal] = useState<{
     isOpen: boolean
     client?: any
@@ -45,94 +49,113 @@ export default function NotificationsDemoPage() {
 
   // Add demo notifications on mount for testing
   useEffect(() => {
-    // Only add demo notifications if there are no notifications
-    if (notifications.length === 0) {
-      // URGENT notification example
-      addNotification({
-        category: 'URGENT',
-        title: 'Critical: Platinum Client Waiting 120+ Days',
-        message: 'Sarah Chen has been waiting 127 days for Rolex Daytona. Immediate follow-up required.',
-        clientName: 'Sarah Chen',
-        clientId: 'client-1',
-        watchBrand: 'Rolex',
-        watchModel: 'Daytona',
-        daysWaiting: 127,
-        actions: [
-          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0123' },
-          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0123' },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-1' },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
+    // Only add demo notifications if there are no notifications and we have clients
+    if (notifications.length === 0 && clients.length > 0) {
+      // Get real clients for demo notifications
+      const richardBlackstone = clients.find(c => c.id === 'client_richard_blackstone')
+      const jenniferChen = clients.find(c => c.id === 'client_jennifer_chen')
+      const davidMartinez = clients.find(c => c.id === 'client_david_martinez')
+      const robertChen = clients.find(c => c.id === 'client_robert_chen')
+      const sarahThompson = clients.find(c => c.id === 'client_sarah_thompson')
 
-      // URGENT notification example
-      addNotification({
-        category: 'URGENT',
-        title: 'High-Value Client: Strong Buying Intent',
-        message: 'Michael Rodriguez ($85K lifetime spend) is interested in Patek Philippe Nautilus. Recent purchase indicates immediate opportunity.',
-        clientName: 'Michael Rodriguez',
-        clientId: 'client-2',
-        watchBrand: 'Patek Philippe',
-        watchModel: 'Nautilus',
-        daysWaiting: 45,
-        actions: [
-          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0124' },
-          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0124' },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-2' },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
+      // URGENT notification - Richard Blackstone (Tier 1, Platinum)
+      if (richardBlackstone) {
+        addNotification({
+          category: 'URGENT',
+          title: 'Critical: Platinum Client Waiting 120+ Days',
+          message: `${richardBlackstone.name} has been waiting 127 days for Rolex Daytona. Immediate follow-up required.`,
+          clientName: richardBlackstone.name,
+          clientId: richardBlackstone.id,
+          watchBrand: 'Rolex',
+          watchModel: 'Daytona',
+          daysWaiting: 127,
+          actions: [
+            { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: richardBlackstone.phone, tier: richardBlackstone.clientTier },
+            { type: 'CALL', label: 'Call', phoneNumber: richardBlackstone.phone },
+            { type: 'VIEW_CLIENT', label: 'View Client', clientId: richardBlackstone.id },
+            { type: 'DISMISS', label: 'Dismiss' }
+          ]
+        })
+      }
 
-      // FOLLOW-UPS notification example
-      addNotification({
-        category: 'FOLLOW-UPS',
-        title: '90-Day Check-in: David Martinez',
-        message: 'Relationship maintenance touchpoint due. Last contact was 92 days ago. Client has $45K lifetime spend.',
-        clientName: 'David Martinez',
-        clientId: 'client-3',
-        daysWaiting: 92,
-        actions: [
-          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0125' },
-          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0125' },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-3' },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
+      // URGENT notification - Jennifer Chen (Tier 2, Gold)
+      if (jenniferChen) {
+        addNotification({
+          category: 'URGENT',
+          title: 'High-Value Client: Strong Buying Intent',
+          message: `${jenniferChen.name} ($${(jenniferChen.lifetimeSpend / 1000).toFixed(0)}K lifetime spend) is interested in Patek Philippe Nautilus. Recent purchase indicates immediate opportunity.`,
+          clientName: jenniferChen.name,
+          clientId: jenniferChen.id,
+          watchBrand: 'Patek Philippe',
+          watchModel: 'Nautilus',
+          daysWaiting: 45,
+          actions: [
+            { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: jenniferChen.phone, tier: jenniferChen.clientTier },
+            { type: 'CALL', label: 'Call', phoneNumber: jenniferChen.phone },
+            { type: 'VIEW_CLIENT', label: 'View Client', clientId: jenniferChen.id },
+            { type: 'DISMISS', label: 'Dismiss' }
+          ]
+        })
+      }
 
-      addNotification({
-        category: 'FOLLOW-UPS',
-        title: 'Scheduled Callback: Lisa Wang',
-        message: 'Appointment reminder for 2:30 PM today. Interested in Cartier Santos.',
-        clientName: 'Lisa Wang',
-        clientId: 'client-4',
-        watchBrand: 'Cartier',
-        watchModel: 'Santos',
-        actions: [
-          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0126' },
-          { type: 'SCHEDULE', label: 'Reschedule' },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-4' },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
+      // FOLLOW-UPS notification - David Martinez
+      if (davidMartinez) {
+        addNotification({
+          category: 'FOLLOW-UPS',
+          title: `90-Day Check-in: ${davidMartinez.name}`,
+          message: `Relationship maintenance touchpoint due. Last contact was 92 days ago. Client has $${(davidMartinez.lifetimeSpend / 1000).toFixed(1)}K lifetime spend.`,
+          clientName: davidMartinez.name,
+          clientId: davidMartinez.id,
+          daysWaiting: 92,
+          actions: [
+            { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: davidMartinez.phone, tier: davidMartinez.clientTier },
+            { type: 'CALL', label: 'Call', phoneNumber: davidMartinez.phone },
+            { type: 'VIEW_CLIENT', label: 'View Client', clientId: davidMartinez.id },
+            { type: 'DISMISS', label: 'Dismiss' }
+          ]
+        })
+      }
 
-      addNotification({
-        category: 'FOLLOW-UPS',
-        title: 'Client Interest: Audemars Piguet Royal Oak',
-        message: 'James Chen (Bronze tier) expressed interest 15 days ago. Follow up to gauge continued interest.',
-        clientName: 'James Chen',
-        clientId: 'client-5',
-        watchBrand: 'Audemars Piguet',
-        watchModel: 'Royal Oak',
-        daysWaiting: 15,
-        actions: [
-          { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: '+1-555-0127' },
-          { type: 'CALL', label: 'Call', phoneNumber: '+1-555-0127' },
-          { type: 'VIEW_CLIENT', label: 'View Client', clientId: 'client-5' },
-          { type: 'DISMISS', label: 'Dismiss' }
-        ]
-      })
+      // FOLLOW-UPS notification - Robert Chen
+      if (robertChen) {
+        addNotification({
+          category: 'FOLLOW-UPS',
+          title: `Scheduled Callback: ${robertChen.name}`,
+          message: 'Appointment reminder for 2:30 PM today. Interested in Rolex Datejust.',
+          clientName: robertChen.name,
+          clientId: robertChen.id,
+          watchBrand: 'Rolex',
+          watchModel: 'Datejust',
+          actions: [
+            { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: robertChen.phone, tier: robertChen.clientTier },
+            { type: 'SCHEDULE', label: 'Reschedule' },
+            { type: 'VIEW_CLIENT', label: 'View Client', clientId: robertChen.id },
+            { type: 'DISMISS', label: 'Dismiss' }
+          ]
+        })
+      }
+
+      // FOLLOW-UPS notification - Sarah Thompson
+      if (sarahThompson) {
+        addNotification({
+          category: 'FOLLOW-UPS',
+          title: `Client Interest: ${sarahThompson.name}`,
+          message: `${sarahThompson.vipTier} tier client expressed interest in Cartier Tank 15 days ago. Follow up to gauge continued interest.`,
+          clientName: sarahThompson.name,
+          clientId: sarahThompson.id,
+          watchBrand: 'Cartier',
+          watchModel: 'Tank',
+          daysWaiting: 15,
+          actions: [
+            { type: 'TEXT_CLIENT', label: 'Text Now', isPrimary: true, phoneNumber: sarahThompson.phone, tier: sarahThompson.clientTier },
+            { type: 'CALL', label: 'Call', phoneNumber: sarahThompson.phone },
+            { type: 'VIEW_CLIENT', label: 'View Client', clientId: sarahThompson.id },
+            { type: 'DISMISS', label: 'Dismiss' }
+          ]
+        })
+      }
     }
-  }, []) // Only run once on mount
+  }, [clients]) // Re-run when clients are loaded
 
   const categoryIcons = {
     URGENT: Flame,
@@ -158,17 +181,38 @@ export default function NotificationsDemoPage() {
     }
   }
 
+  // Helper function to generate SMS templates based on client tier
+  const getTierSMSTemplate = (clientName: string, tier: number, watchBrand?: string, watchModel?: string) => {
+    const watch = watchBrand && watchModel ? `${watchBrand} ${watchModel}` : 'your watch of interest'
+
+    if (tier === 1 || tier === 2) {
+      // High-value clients get VIP treatment
+      return `Hi ${clientName}, I wanted to personally reach out regarding the ${watch}. As one of our most valued clients, I'd love to discuss this opportunity with you. When would be a good time for a quick call? - Lincoln Dorf CRM`
+    } else if (tier === 3) {
+      // Established collectors
+      return `Hi ${clientName}, I have an update on the ${watch} you're interested in. Would you have time for a quick chat today? - Lincoln Dorf CRM`
+    } else {
+      // Entry-level clients
+      return `Hi ${clientName}, following up on the ${watch}. Let me know if you'd like to discuss further. - Lincoln Dorf CRM`
+    }
+  }
+
   const handleFollowUpAction = (action: string, details: any) => {
     console.log('Follow-up action:', action, details)
     // In production, this would integrate with your SMS service, calendar API, etc.
     switch (action) {
       case 'call':
-        // Open dialer or log call intent
-        alert(`Calling ${details.phone}...`)
+        // Open dialer
+        if (details.phone) {
+          window.location.href = `tel:${details.phone}`
+        }
         break
       case 'sms':
         // Send SMS via service
-        alert(`SMS sent to ${details.phone}: "${details.message}"`)
+        if (details.phone && details.message) {
+          const smsUrl = `sms:${details.phone}${navigator.userAgent.match(/iPhone|iPad|iPod/i) ? '&' : '?'}body=${encodeURIComponent(details.message)}`
+          window.location.href = smsUrl
+        }
         break
       case 'schedule':
         // Create calendar event
@@ -200,7 +244,7 @@ export default function NotificationsDemoPage() {
   return (
     <LenkersdorferSidebar>
       <div className="flex h-screen flex-col overflow-hidden bg-background">
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-8 overflow-y-auto space-y-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 pb-8 overflow-y-auto space-y-6" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background md:static flex items-center space-x-4 pt-6">
           <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-3 rounded-full">
@@ -272,9 +316,9 @@ export default function NotificationsDemoPage() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 w-full max-w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
           {/* Notification List */}
-          <div className="lg:col-span-2 min-w-0">
+          <div className="lg:col-span-2 w-full">
             <Card className="hover:shadow-lg transition-all duration-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -320,8 +364,8 @@ export default function NotificationsDemoPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-semibold">{notification.title}</h3>
-                              <Badge className={cn("text-xs", categoryColors.bg, categoryColors.text, categoryColors.border)}>
-                                {notification.category === 'FOLLOW-UPS' ? 'Follow-up' : notification.category}
+                              <Badge className={cn("text-xs whitespace-nowrap", categoryColors.bg, categoryColors.text, categoryColors.border)}>
+                                {notification.category === 'FOLLOW-UPS' ? 'Follow-Up' : notification.category}
                               </Badge>
                             </div>
                             <p className="text-muted-foreground text-sm mb-2">{notification.message}</p>
@@ -341,14 +385,29 @@ export default function NotificationsDemoPage() {
                                     size="sm"
                                     variant={action.isPrimary ? "default" : "outline"}
                                     onClick={() => {
+                                      triggerHapticFeedback()
                                       if (action.type === 'SCHEDULE') {
                                         openFollowUpModal(notification)
+                                      } else if (action.type === 'TEXT_CLIENT') {
+                                        if (action.phoneNumber) {
+                                          const tier = action.tier || 3
+                                          const smsMessage = getTierSMSTemplate(
+                                            notification.clientName,
+                                            tier,
+                                            notification.watchBrand,
+                                            notification.watchModel
+                                          )
+                                          const smsUrl = `sms:${action.phoneNumber}${navigator.userAgent.match(/iPhone|iPad|iPod/i) ? '&' : '?'}body=${encodeURIComponent(smsMessage)}`
+                                          window.location.href = smsUrl
+                                        }
                                       } else if (action.type === 'CALL') {
-                                        alert(`Calling ${action.phoneNumber || notification.clientName}...`)
+                                        if (action.phoneNumber) {
+                                          window.location.href = `tel:${action.phoneNumber}`
+                                        }
                                       } else if (action.type === 'DISMISS') {
                                         removeNotification(notification.id)
                                       } else if (action.type === 'VIEW_CLIENT') {
-                                        router.push(`/clients/${action.clientId || notification.clientId}`)
+                                        setSelectedClientForView(action.clientId || notification.clientId)
                                       }
                                     }}
                                     className="text-xs"
@@ -387,7 +446,7 @@ export default function NotificationsDemoPage() {
           </div>
 
           {/* Demo Controls - Disabled (notifications now come from messages only) */}
-          <div className="space-y-6">
+          <div className="space-y-6 w-full">
             {/* <Card className="hover:shadow-lg transition-all duration-200">
               <CardHeader>
                 <CardTitle className="text-lg">Add Demo Notifications</CardTitle>
@@ -507,8 +566,8 @@ export default function NotificationsDemoPage() {
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-semibold text-foreground">{notification.title}</h3>
-                              <Badge className={cn("text-xs", categoryColors.bg, categoryColors.text, categoryColors.border)}>
-                                {notification.category === 'FOLLOW-UPS' ? 'Follow-up' : notification.category}
+                              <Badge className={cn("text-xs whitespace-nowrap", categoryColors.bg, categoryColors.text, categoryColors.border)}>
+                                {notification.category === 'FOLLOW-UPS' ? 'Follow-Up' : notification.category}
                               </Badge>
                             </div>
                             <p className="text-foreground/70 text-sm mb-2">{notification.message}</p>
@@ -528,16 +587,31 @@ export default function NotificationsDemoPage() {
                                     size="sm"
                                     variant={action.isPrimary ? "default" : "outline"}
                                     onClick={() => {
+                                      triggerHapticFeedback()
                                       if (action.type === 'SCHEDULE') {
                                         setShowStatsModal(null)
                                         openFollowUpModal(notification)
+                                      } else if (action.type === 'TEXT_CLIENT') {
+                                        if (action.phoneNumber) {
+                                          const tier = action.tier || 3
+                                          const smsMessage = getTierSMSTemplate(
+                                            notification.clientName,
+                                            tier,
+                                            notification.watchBrand,
+                                            notification.watchModel
+                                          )
+                                          const smsUrl = `sms:${action.phoneNumber}${navigator.userAgent.match(/iPhone|iPad|iPod/i) ? '&' : '?'}body=${encodeURIComponent(smsMessage)}`
+                                          window.location.href = smsUrl
+                                        }
                                       } else if (action.type === 'CALL') {
-                                        alert(`Calling ${action.phoneNumber || notification.clientName}...`)
+                                        if (action.phoneNumber) {
+                                          window.location.href = `tel:${action.phoneNumber}`
+                                        }
                                       } else if (action.type === 'DISMISS') {
                                         removeNotification(notification.id)
                                       } else if (action.type === 'VIEW_CLIENT') {
                                         setShowStatsModal(null)
-                                        router.push(`/clients/${action.clientId || notification.clientId}`)
+                                        setSelectedClientForView(action.clientId || notification.clientId)
                                       }
                                     }}
                                     className="text-xs"
@@ -568,6 +642,21 @@ export default function NotificationsDemoPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Client Modal */}
+        {selectedClientForView && (
+          <ClientModal
+            selectedClient={getClientById(selectedClientForView) || null}
+            onClose={() => setSelectedClientForView(null)}
+            onSave={async (clientData) => {
+              if (selectedClientForView) {
+                await updateClient(selectedClientForView, clientData)
+              }
+              setSelectedClientForView(null)
+            }}
+            readonly={true}
+          />
+        )}
         </main>
       </div>
     </LenkersdorferSidebar>

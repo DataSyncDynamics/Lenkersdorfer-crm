@@ -40,6 +40,13 @@ interface ImportResponse {
     clientsCreated: number
     duplicatesRemoved: number
   }
+  database?: {
+    clientsCreated: number
+    purchasesCreated: number
+    errors: string[]
+  }
+  warning?: string
+  databaseError?: string
   error?: string
   details?: string
 }
@@ -90,13 +97,37 @@ export default function ImportPage() {
 
       if (result.success) {
         setUploadResult(result)
-        // Update store with imported clients
+
+        // Update store with imported clients for immediate UI update
         if (result.clients && result.clients.length > 0) {
           replaceAllClients(result.clients)
 
-          // Show success toast
+          // Show success message with database info
           setTimeout(() => {
-            alert(`✅ Successfully imported ${result.clients.length} clients!\n\n💰 Total Revenue: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.totalRevenue)}\n👥 Average Spend: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.averageSpend)}\n\nData has been saved and will persist across page refreshes.`)
+            const dbInfo = result.database
+            let message = `✅ Successfully imported and saved to database!\n\n`
+
+            if (dbInfo) {
+              message += `📊 Database Results:\n`
+              message += `• ${dbInfo.clientsCreated} new clients created\n`
+              message += `• ${dbInfo.purchasesCreated} purchases recorded\n`
+              if (dbInfo.errors && dbInfo.errors.length > 0) {
+                message += `• ${dbInfo.errors.length} errors (check console)\n`
+              }
+            }
+
+            message += `\n💰 Total Revenue: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.totalRevenue)}\n`
+            message += `👥 Average Spend: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.averageSpend)}\n`
+            message += `\n✨ Data persisted to Supabase - safe to refresh!`
+
+            alert(message)
+          }, 500)
+        }
+
+        // Show warning if database save failed but parsing succeeded
+        if (result.warning) {
+          setTimeout(() => {
+            alert(`⚠️ Warning: ${result.warning}\n\nData was parsed successfully but NOT saved to database.\nIt will disappear on refresh.\n\nError: ${result.databaseError}`)
           }, 500)
         }
       } else {

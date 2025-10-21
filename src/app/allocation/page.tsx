@@ -429,7 +429,7 @@ function AllocationContent() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 w-full max-w-full mx-auto px-4 lg:px-8 pb-20 md:pb-8 overflow-y-auto">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 pb-20 md:pb-8 overflow-y-auto">
           {/* Perfect Match Allocation Status Guide */}
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 mb-6">
             <CardHeader className="pb-3">

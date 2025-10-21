@@ -73,6 +73,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
   const [selectedWatchId, setSelectedWatchId] = useState('')
   const [wishlistNotes, setWishlistNotes] = useState('')
 
+  // Purchase state
+  const [purchaseData, setPurchaseData] = useState({
+    brand: '',
+    model: '',
+    price: '',
+    serialNumber: '',
+    date: new Date().toISOString().split('T')[0]
+  })
+
   // Edit mode state - always start in read-only mode
   const [isEditing, setIsEditing] = useState(false)
 
@@ -123,9 +132,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     })
   }
 
-  // Get client's current wishlist
-  const clientWishlist = selectedClient ? getWaitlistForClient(selectedClient.id) : []
-
   // Add watch to wishlist
   const handleAddToWishlist = () => {
     if (!selectedClient || !selectedWatchId) return
@@ -138,6 +144,57 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
   // Remove watch from wishlist
   const handleRemoveFromWishlist = (entryId: string) => {
     removeFromWaitlist(entryId)
+  }
+
+  // Add purchase
+  const handleAddPurchase = async () => {
+    if (!selectedClient || !purchaseData.brand || !purchaseData.model || !purchaseData.price) {
+      alert('Please fill in all required fields (Brand, Model, Price)')
+      return
+    }
+
+    try {
+      const price = parseFloat(purchaseData.price)
+      if (isNaN(price) || price <= 0) {
+        alert('Please enter a valid price')
+        return
+      }
+
+      const response = await fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selectedClient.id,
+          brand: purchaseData.brand,
+          model: purchaseData.model,
+          price,
+          serial_number: purchaseData.serialNumber || `SN${Date.now()}`,
+          purchase_date: purchaseData.date,
+          commission_rate: 15,
+          commission_amount: price * 0.15
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add purchase')
+      }
+
+      // Reset form
+      setPurchaseData({
+        brand: '',
+        model: '',
+        price: '',
+        serialNumber: '',
+        date: new Date().toISOString().split('T')[0]
+      })
+
+      // Refresh the page to show the new purchase
+      alert('Purchase added successfully!')
+      window.location.reload()
+    } catch (error) {
+      console.error('Error adding purchase:', error)
+      alert('Failed to add purchase. Please try again.')
+    }
   }
 
   // Get tier match status for display
@@ -155,15 +212,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     }
   }
 
-  if (!selectedClient) return null
-
-  // Get notifications for this client
-  const clientNotifications = notifications.filter(n =>
-    n.clientId === selectedClient.id || n.clientName === selectedClient.name
-  )
-
   const handleContactClient = () => {
-    if (selectedClient.phone) {
+    if (selectedClient?.phone) {
       window.location.href = `sms:${selectedClient.phone}`
     }
   }
@@ -174,15 +224,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     return <Users className="h-4 w-4" />
   }
 
+  // Get client's current wishlist and notifications BEFORE early return
+  const clientWishlist = selectedClient ? getWaitlistForClient(selectedClient.id) : []
+  const clientNotifications = selectedClient ? notifications.filter(n =>
+    n.clientId === selectedClient.id || n.clientName === selectedClient.name
+  ) : []
+
+  if (!selectedClient) return null
+
   return (
     <Dialog open={!!selectedClient} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] md:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-3">
-          <div className="flex items-center justify-between gap-4 pr-8">
+          <div className="flex items-center justify-between gap-4 pr-14">
             <DialogTitle className="text-2xl">{formatClientName(selectedClient.name)}</DialogTitle>
             <Badge
-              className={cn("text-sm font-medium flex-shrink-0", getTierColorClasses(selectedClient.clientTier))}
-              style={selectedClient.clientTier === 3 ? { backgroundColor: 'rgb(2, 44, 34)', color: 'rgb(110, 231, 183)', borderColor: 'rgb(4, 120, 87)' } : undefined}
+              className={cn("text-sm font-medium flex-shrink-0 border", getTierColorClasses(selectedClient.clientTier))}
             >
               {getTierIcon(selectedClient.clientTier)}
               <span className="ml-1.5">Tier {selectedClient.clientTier}</span>
@@ -499,13 +556,76 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
           </div>
 
           {/* Purchase History */}
-          {selectedClient.purchases && selectedClient.purchases.length > 0 && (
-            <div className="space-y-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-5 rounded-lg border border-emerald-300 dark:border-emerald-800 shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-1 bg-emerald-500 rounded-full"></div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Purchase History</h3>
+          <div className="space-y-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-5 rounded-lg border border-emerald-300 dark:border-emerald-800 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-emerald-500 rounded-full"></div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Purchase History</h3>
+              {selectedClient.purchases && selectedClient.purchases.length > 0 && (
                 <Badge className="ml-auto bg-emerald-600 text-white">{selectedClient.purchases.length}</Badge>
+              )}
+            </div>
+
+            {/* Add Purchase - Only show in edit mode */}
+            {isEditing && (
+              <div className="bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded-lg p-4">
+                <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Add New Purchase</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <Select value={purchaseData.brand} onValueChange={(value) => setPurchaseData({...purchaseData, brand: value})}>
+                    <SelectTrigger className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600">
+                      <SelectValue placeholder="Select brand *" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LUXURY_WATCH_BRANDS.map((brand) => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Model *"
+                    value={purchaseData.model}
+                    onChange={(e) => setPurchaseData({...purchaseData, model: e.target.value})}
+                    className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Price *"
+                    value={purchaseData.price}
+                    onChange={(e) => setPurchaseData({...purchaseData, price: e.target.value})}
+                    className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+                  />
+                  <Input
+                    placeholder="Serial Number (optional)"
+                    value={purchaseData.serialNumber}
+                    onChange={(e) => setPurchaseData({...purchaseData, serialNumber: e.target.value})}
+                    className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+                  />
+                  <div className="col-span-2">
+                    <Input
+                      type="date"
+                      value={purchaseData.date}
+                      onChange={(e) => setPurchaseData({...purchaseData, date: e.target.value})}
+                      className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Button
+                      onClick={handleAddPurchase}
+                      disabled={!purchaseData.brand || !purchaseData.model || !purchaseData.price}
+                      size="sm"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Purchase
+                    </Button>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* Existing Purchases */}
+            {selectedClient.purchases && selectedClient.purchases.length > 0 && (
               <div className="space-y-3">
                 {selectedClient.purchases.map((purchase, index) => {
                   const purchaseDate = new Date(purchase.date)
@@ -556,8 +676,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                   )
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <DialogFooter>

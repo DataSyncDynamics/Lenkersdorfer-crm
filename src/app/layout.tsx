@@ -32,6 +32,33 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const storageKey = 'ui-theme';
+                  const theme = localStorage.getItem(storageKey) || 'dark';
+                  const root = document.documentElement;
+
+                  root.classList.remove('light', 'dark');
+
+                  if (theme === 'system') {
+                    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    root.classList.add(systemTheme);
+                  } else {
+                    root.classList.add(theme);
+                  }
+                } catch (e) {
+                  // Default to dark if there's any error
+                  document.documentElement.classList.add('dark');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <ErrorBoundary>
           <ThemeProvider

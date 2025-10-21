@@ -59,7 +59,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
 
     const mockConversations: Conversation[] = []
 
-    // Create conversations for top clients from different tiers
+    // Create 1-2 example conversations only
     const sortedClients = [...clients]
       .sort((a, b) => {
         if (a.clientTier !== b.clientTier) {
@@ -67,20 +67,20 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         }
         return b.lifetimeSpend - a.lifetimeSpend
       })
-      .slice(0, 8) // Limit to 8 conversations for demo
+      .slice(0, 2) // Only 2 example conversations
 
     sortedClients.forEach((client, index) => {
       const messages: Message[] = []
       const baseTime = new Date()
       baseTime.setHours(baseTime.getHours() - (index * 2))
 
-      // Create realistic message threads based on client tier
-      if (client.clientTier <= 2) {
-        // VIP client - ongoing watch search conversation
+      // Create example message thread
+      if (index === 0) {
+        // First example - VIP client conversation
         messages.push({
           id: `msg-${client.id}-1`,
           clientId: client.id,
-          content: `Hi ${client.name}, I found a beautiful Rolex Submariner that might interest you. It's a 2024 model in excellent condition. Would you like to see photos?`,
+          content: `Hi ${client.name}, I found a beautiful Rolex Submariner that might interest you. Would you like to see photos?`,
           timestamp: new Date(baseTime.getTime() - 24 * 60 * 60 * 1000),
           isFromClient: false,
           status: 'read'
@@ -94,49 +94,19 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
           isFromClient: true,
           status: 'read'
         })
-
-        messages.push({
-          id: `msg-${client.id}-3`,
-          clientId: client.id,
-          content: `It's priced at $12,800. Given your history with us, I can offer it at $12,200. I'll send photos now.`,
-          timestamp: new Date(baseTime.getTime() - 2 * 60 * 60 * 1000),
-          isFromClient: false,
-          status: 'delivered'
-        })
-      } else if (client.clientTier === 3) {
-        // Mid-tier client - follow-up conversation
-        messages.push({
-          id: `msg-${client.id}-1`,
-          clientId: client.id,
-          content: `Hi ${client.name}, checking in on your Omega Speedmaster search. Any updates on your timeline?`,
-          timestamp: new Date(baseTime.getTime() - 3 * 24 * 60 * 60 * 1000),
-          isFromClient: false,
-          status: 'read'
-        })
-
-        messages.push({
-          id: `msg-${client.id}-2`,
-          clientId: client.id,
-          content: "Still looking! My budget is around $4,000. Let me know if anything comes up.",
-          timestamp: new Date(baseTime.getTime() - 2 * 24 * 60 * 60 * 1000),
-          isFromClient: true,
-          status: 'read'
-        })
       } else {
-        // Standard client - initial contact
+        // Second example - simple follow-up
         messages.push({
           id: `msg-${client.id}-1`,
           clientId: client.id,
-          content: `Hi ${client.name}, thanks for your interest in luxury timepieces. What type of watch are you looking for?`,
-          timestamp: new Date(baseTime.getTime() - 5 * 24 * 60 * 60 * 1000),
+          content: `Hi ${client.name}, checking in on your watch search. Let me know if I can help!`,
+          timestamp: new Date(baseTime.getTime() - 3 * 24 * 60 * 60 * 1000),
           isFromClient: false,
           status: 'read'
         })
       }
 
       const lastMessage = messages[messages.length - 1]
-      // Start with all messages read (unreadCount = 0)
-      // In a real app, this would come from the backend
       const unreadCount = 0
 
       mockConversations.push({

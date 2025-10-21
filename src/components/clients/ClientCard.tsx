@@ -10,7 +10,8 @@ import {
   Calendar,
   AlertTriangle,
   Flame,
-  CheckCircle
+  CheckCircle,
+  Clock
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +33,29 @@ const getTierIcon = (tier: number) => {
   return <Users className="h-3 w-3" />
 }
 
+const getTimeAgo = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Never contacted'
+
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+
+  if (diffDays === 0) {
+    if (diffHours === 0) {
+      if (diffMinutes === 0) return 'Just now'
+      return `${diffMinutes}m ago`
+    }
+    return `${diffHours}h ago`
+  }
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  return `${Math.floor(diffDays / 30)}mo ago`
+}
+
 const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => {
   const { notifications } = useNotifications()
 
@@ -50,7 +74,7 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
 
   return (
     <div
-      className="cursor-pointer transition-transform hover:scale-105 active:scale-95"
+      className="cursor-pointer transition-transform md:hover:scale-105 active:scale-95"
       onClick={onClick}
     >
       <Card className={cn(
@@ -78,8 +102,7 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
         <CardHeader className="pb-3 pt-4 relative">
           {/* Tier Badge - Positioned in top-right corner */}
           <Badge
-            className={cn("absolute top-4 right-4 text-xs font-medium whitespace-nowrap", getTierColorClasses(client.clientTier))}
-            style={client.clientTier === 3 ? { backgroundColor: 'rgb(2, 44, 34)', color: 'rgb(110, 231, 183)', borderColor: 'rgb(4, 120, 87)' } : undefined}
+            className={cn("absolute top-4 right-4 text-xs font-medium whitespace-nowrap border", getTierColorClasses(client.clientTier))}
           >
             {getTierIcon(client.clientTier)}
             <span className="ml-1">Tier {client.clientTier}</span>
@@ -135,6 +158,15 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
               <div className="flex flex-col">
                 <span>Last purchase:</span>
                 <span>{client.lastPurchase ? new Date(client.lastPurchase).toLocaleDateString() : 'No purchases yet'}</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex flex-col">
+                <span>Last contacted:</span>
+                <span className={client.lastContactDate ? 'text-green-600 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}>
+                  {getTimeAgo(client.lastContactDate)}
+                </span>
               </div>
             </div>
           </div>
@@ -193,7 +225,8 @@ export const ClientCard = React.memo(ClientCardComponent, (prevProps, nextProps)
     prevProps.client.lifetimeSpend === nextProps.client.lifetimeSpend &&
     prevProps.client.email === nextProps.client.email &&
     prevProps.client.phone === nextProps.client.phone &&
-    prevProps.client.lastPurchase === nextProps.client.lastPurchase
+    prevProps.client.lastPurchase === nextProps.client.lastPurchase &&
+    prevProps.client.lastContactDate === nextProps.client.lastContactDate
   )
 })
 

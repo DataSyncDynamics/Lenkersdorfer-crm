@@ -40,6 +40,7 @@ export class NotificationService {
 
   /**
    * Generate all urgent notifications based on current CRM data
+   * Note: Custom reminders are now loaded separately via getDueReminders()
    */
   generateNotifications(): UrgentNotification[] {
     const notifications: UrgentNotification[] = []
@@ -61,6 +62,9 @@ export class NotificationService {
 
     // 6. Scheduled Callbacks (MEDIUM)
     notifications.push(...this.generateCallbackNotifications())
+
+    // NOTE: Custom reminders from database are loaded via /api/reminders?filter=due
+    // and converted to notifications in the notification panel component
 
     // Sort by urgency and creation time
     return notifications.sort((a, b) => {
