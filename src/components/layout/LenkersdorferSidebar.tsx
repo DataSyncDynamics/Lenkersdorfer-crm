@@ -13,7 +13,12 @@ import { getNavigationLinkClasses } from "@/lib/ui-utils";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function LenkersdorferSidebar({ children }: { children: React.ReactNode }) {
+interface LenkersdorferSidebarProps {
+  children: React.ReactNode
+  onNotificationsClick?: () => void
+}
+
+export function LenkersdorferSidebar({ children, onNotificationsClick }: LenkersdorferSidebarProps) {
   const pathname = usePathname();
   const { getCounts } = useNotifications();
   const { getTotalUnreadCount } = useMessaging();
@@ -87,6 +92,7 @@ export function LenkersdorferSidebar({ children }: { children: React.ReactNode }
       <BottomNavigation
         messageCount={messagingUnreadCount || 0}
         alertCount={counts.total || 0}
+        onNotificationsClick={onNotificationsClick}
       />
     </div>
   );

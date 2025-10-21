@@ -25,11 +25,13 @@ interface NavItem {
 interface BottomNavigationProps {
   messageCount?: number
   alertCount?: number
+  onNotificationsClick?: () => void
 }
 
 export function BottomNavigation({
   messageCount = 0,
-  alertCount = 0
+  alertCount = 0,
+  onNotificationsClick
 }: BottomNavigationProps) {
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(true)
@@ -121,13 +123,24 @@ export function BottomNavigation({
           const Icon = item.icon
           // Only show badge if count is a number greater than 0
           const showBadge = typeof item.badge === 'number' && item.badge > 0
+          const isNotifications = item.label === 'Notifications'
+
+          const handleClick = (e: React.MouseEvent) => {
+            if (isNotifications && onNotificationsClick) {
+              e.preventDefault()
+              onNotificationsClick()
+              triggerHapticFeedback('light')
+            } else {
+              handleNavClick()
+            }
+          }
 
           return (
             <Link
               key={item.href}
               href={item.href}
               prefetch={true}
-              onClick={handleNavClick}
+              onClick={handleClick}
               className={cn(
                 "relative flex flex-col items-center justify-center w-full h-full transition-all duration-200",
                 "hover:bg-neutral-800/50 rounded-lg",
