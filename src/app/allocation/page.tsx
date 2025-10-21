@@ -433,15 +433,7 @@ function AllocationContent() {
           {/* Perfect Match Allocation Status Guide */}
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800 mb-6">
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <CardTitle className="text-lg text-blue-900 dark:text-blue-100">Allocation Status Guide</CardTitle>
-                <InfoTooltip
-                  title="Smart Allocation System"
-                  description="Our intelligent allocation system automatically matches available watches with ideal clients based on their tier, purchase history, and price point. Green indicates perfect matches (immediate allocation), Yellow shows upgrade opportunities (requires follow-up), and Red signals mismatches (watch too expensive for client tier)."
-                  variant="default"
-                />
-              </div>
+              <CardTitle className="text-lg text-blue-900 dark:text-blue-100">Allocation Status Guide</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

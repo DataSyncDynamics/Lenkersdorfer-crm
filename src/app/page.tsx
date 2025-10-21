@@ -17,10 +17,6 @@ const ClientModal = dynamic(() => import('@/components/clients/ClientModal').the
   loading: () => null
 })
 
-const NotificationPanel = dynamic(() => import('@/components/notifications/NotificationPanel').then(mod => ({ default: mod.NotificationPanel })), {
-  ssr: false,
-  loading: () => null
-})
 import {
   DollarSign,
   Users,
@@ -220,7 +216,6 @@ export default function AnalyticsDashboard() {
   const [showAllocationPanel, setShowAllocationPanel] = useState(false)
   const [selectedWatchForAllocation, setSelectedWatchForAllocation] = useState<string>('')
   const [selectedClientForView, setSelectedClientForView] = useState<string | null>(null)
-  const [showNotificationPanel, setShowNotificationPanel] = useState(false)
 
   // ⚠️ CRITICAL: Calculate analytics data BEFORE early return - useMemo is a HOOK
   const analytics = useMemo(() => {
@@ -499,24 +494,25 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Notification Bell - Visible on all devices */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex-shrink-0"
-            onClick={() => setShowNotificationPanel(true)}
-            title={`${counts.total} notifications`}
-          >
-            <Bell className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-            {counts.total > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
-              >
-                {counts.total > 9 ? '9+' : counts.total}
-              </motion.span>
-            )}
-          </Button>
+          <Link href="/notifications">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex-shrink-0"
+              title={`${counts.total} notifications`}
+            >
+              <Bell className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+              {counts.total > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+                >
+                  {counts.total > 9 ? '9+' : counts.total}
+                </motion.span>
+              )}
+            </Button>
+          </Link>
         </div>
 
         {/* Main Content */}
@@ -659,11 +655,6 @@ export default function AnalyticsDashboard() {
           />
         )}
 
-        {/* Notification Panel */}
-        <NotificationPanel
-          isOpen={showNotificationPanel}
-          onClose={() => setShowNotificationPanel(false)}
-        />
       </div>
     </LenkersdorferSidebar>
   )

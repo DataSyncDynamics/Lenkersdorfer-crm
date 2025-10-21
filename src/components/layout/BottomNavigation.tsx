@@ -61,13 +61,8 @@ export function BottomNavigation({
     {
       href: '/notifications',
       icon: Bell,
-      label: 'Alerts',
+      label: 'Notifications',
       badge: alertCount,
-    },
-    {
-      href: '/waitlist',
-      icon: Watch,
-      label: 'Waitlist',
     },
   ]
 

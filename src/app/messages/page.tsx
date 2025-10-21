@@ -209,7 +209,7 @@ export default function MessagesPage() {
                                 )}
                                 variant="outline"
                               >
-                                T{client.clientTier}
+                                Tier {client.clientTier}
                               </Badge>
                               {conversation.unreadCount > 0 && (
                                 <Badge className="bg-blue-500 text-white text-xs h-5 w-5 flex items-center justify-center rounded-full p-0 flex-shrink-0">
@@ -481,7 +481,7 @@ export default function MessagesPage() {
                       <Avatar className="h-10 w-10 flex-shrink-0">
                         <AvatarFallback className={cn(
                           "text-sm font-semibold",
-                          getVipTierColor(client.vipTier)
+                          getVipTierColor(client.clientTier.toString())
                         )}>
                           {client.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
@@ -489,12 +489,20 @@ export default function MessagesPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold truncate">{client.name}</span>
-                          {client.vipTier && (
-                            <Badge variant="outline" className="text-xs flex-shrink-0">
-                              T{client.vipTier}
-                            </Badge>
-                          )}
-                          {client.vipTier === 1 && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs flex-shrink-0",
+                              client.clientTier === 1 && "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700",
+                              client.clientTier === 2 && "bg-gold-100 text-gold-800 border-gold-300 dark:bg-gold-900/30 dark:text-gold-400 dark:border-gold-700",
+                              client.clientTier === 3 && "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700",
+                              client.clientTier === 4 && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700",
+                              client.clientTier === 5 && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                            )}
+                          >
+                            Tier {client.clientTier}
+                          </Badge>
+                          {client.clientTier <= 2 && (
                             <Crown className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                           )}
                         </div>
