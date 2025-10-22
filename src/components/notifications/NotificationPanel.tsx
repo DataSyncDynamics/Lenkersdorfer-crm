@@ -36,6 +36,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const { getClientById, setSelectedClient } = useAppStore()
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
   const [showInfoTooltip, setShowInfoTooltip] = useState(false)
+  const [dueReminders, setDueReminders] = useState<any[]>([])
   const [followUpModal, setFollowUpModal] = useState<{
     isOpen: boolean
     client?: any
@@ -44,14 +45,61 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
   const counts = getCounts()
 
+  // Load due reminders when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadReminders = async () => {
+        try {
+          const response = await fetch('/api/reminders?filter=due')
+          const data = await response.json()
+          setDueReminders(data)
+        } catch (error) {
+          console.error('Error loading reminders:', error)
+        }
+      }
+      loadReminders()
+    }
+  }, [isOpen])
+
   const categoryIcons = {
     URGENT: Flame,
-    'FOLLOW-UPS': Clock
+    'FOLLOW-UPS': Clock,
+    'REMINDERS': Bell
   }
 
+  // Combine notifications and reminders
+  const combinedItems = [
+    ...notifications,
+    ...dueReminders.map(reminder => ({
+      id: `reminder-${reminder.id}`,
+      category: 'REMINDERS',
+      title: `${reminder.reminder_type === 'follow-up' ? 'Follow-Up' : reminder.reminder_type === 'call-back' ? 'Call Back' : reminder.reminder_type === 'meeting' ? 'Meeting' : 'Reminder'} Due`,
+      message: reminder.notes || 'Scheduled reminder',
+      clientId: reminder.client_id,
+      clientName: null, // Will be populated below
+      actions: [
+        { type: 'VIEW_CLIENT', label: 'View Client', clientId: reminder.client_id },
+        { type: 'COMPLETE_REMINDER', label: 'Mark Complete', reminderId: reminder.id }
+      ],
+      reminderDate: reminder.reminder_date,
+      reminderType: reminder.reminder_type,
+      isReminder: true
+    }))
+  ]
+
+  // Add client names to reminders
+  combinedItems.forEach(item => {
+    if (item.isReminder && item.clientId) {
+      const client = getClientById(item.clientId)
+      if (client) {
+        item.clientName = client.name
+      }
+    }
+  })
+
   const filteredNotifications = selectedCategory === 'ALL'
-    ? notifications
-    : notifications.filter(n => n.category === selectedCategory)
+    ? combinedItems
+    : combinedItems.filter(n => n.category === selectedCategory)
 
   const handleFollowUpAction = (action: string, details: any) => {
     console.log('Follow-up action:', action, details)
@@ -83,7 +131,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     })
   }
 
-  const handleActionClick = (action: any, notification: any) => {
+  const handleActionClick = async (action: any, notification: any) => {
     triggerHapticFeedback('light')
 
     switch (action.type) {
@@ -105,8 +153,25 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           const client = getClientById(action.clientId)
           if (client) {
             setSelectedClient(client)
-            router.push('/clients')
+            router.push(`/clients/${action.clientId}`)
             onClose()
+          }
+        }
+        break
+      case 'COMPLETE_REMINDER':
+        if (action.reminderId) {
+          try {
+            const response = await fetch(`/api/reminders/${action.reminderId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ is_completed: true })
+            })
+            if (response.ok) {
+              // Remove from local state
+              setDueReminders(prev => prev.filter(r => r.id !== action.reminderId))
+            }
+          } catch (error) {
+            console.error('Error completing reminder:', error)
           }
         }
         break
@@ -122,6 +187,8 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         return { bg: 'bg-red-100 dark:bg-red-950', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800' }
       case 'FOLLOW-UPS':
         return { bg: 'bg-amber-100 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' }
+      case 'REMINDERS':
+        return { bg: 'bg-blue-100 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800' }
       default:
         return { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-200 dark:border-gray-700' }
     }
@@ -261,6 +328,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                     <SelectItem value="ALL">All Categories</SelectItem>
                     <SelectItem value="URGENT">Urgent</SelectItem>
                     <SelectItem value="FOLLOW-UPS">Follow-ups</SelectItem>
+                    <SelectItem value="REMINDERS">Reminders</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

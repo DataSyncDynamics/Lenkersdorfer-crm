@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { ClientUpdateSchema } from '@/lib/validation/schemas'
+import { z } from 'zod'
 
 // GET /api/clients/[id] - Get single client
 export async function GET(
@@ -18,7 +20,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('clients')
-      .select('*')
+      .select('id, name, email, phone, vip_tier, lifetime_spend, last_purchase_date, last_contact_date, preferred_brands, notes, created_at, assigned_to')
       .eq('id', id)
       .single()
 
@@ -49,14 +51,35 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get and validate request body
     const body = await request.json()
 
-    // If lifetime_spend changed, recalculate VIP tier
-    let updateData: any = { ...body }
+    // CRITICAL: Validate with strict schema (rejects unknown fields)
+    const validated = ClientUpdateSchema.parse(body)
+
+    // Prepare update data - ONLY whitelisted fields
+    const updateData: any = {}
+
+    if (validated.name !== undefined) updateData.name = validated.name
+    if (validated.email !== undefined) updateData.email = validated.email
+    if (validated.phone !== undefined) updateData.phone = validated.phone
+    if (validated.notes !== undefined) updateData.notes = validated.notes
+    if (validated.preferred_brands !== undefined) updateData.preferred_brands = validated.preferred_brands
+    if (validated.last_contact_date !== undefined) updateData.last_contact_date = validated.last_contact_date
+
+    // If lifetime_spend is updated, recalculate tier
     if (body.lifetime_spend !== undefined) {
-      const { data: tierData } = await supabase.rpc('calculate_vip_tier', { spend: body.lifetime_spend })
+      const spendValidation = z.number().min(0).max(100000000).parse(body.lifetime_spend)
+      updateData.lifetime_spend = spendValidation
+
+      const { data: tierData } = await supabase.rpc('calculate_vip_tier', {
+        spend: spendValidation
+      })
       updateData.vip_tier = tierData || 'Bronze'
     }
+
+    // NEVER allow updating: id, created_at, assigned_to
+    // These are protected by the schema and not included
 
     const { data, error } = await supabase
       .from('clients')
@@ -66,12 +89,20 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Error updating client:', error)
+      console.error('Database error:', error)
       return NextResponse.json({ error: 'Failed to update client' }, { status: 500 })
     }
 
     return NextResponse.json(data)
+
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: error.errors
+      }, { status: 400 })
+    }
+
     console.error('Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

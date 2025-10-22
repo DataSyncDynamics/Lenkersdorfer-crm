@@ -12,10 +12,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { XCircle, Bell, Calendar, Clock, MessageSquare, Phone, Users } from 'lucide-react'
-import type { ReminderType } from '@/lib/db/reminders'
+import { XCircle, Clock, Calendar, MessageSquare, Phone, Mail, Users, Video } from 'lucide-react'
 
-interface SetReminderModalProps {
+interface LogContactModalProps {
   isOpen: boolean
   onClose: () => void
   clientId: string
@@ -23,52 +22,60 @@ interface SetReminderModalProps {
   onSuccess?: () => void
 }
 
-const REMINDER_TYPES: { value: ReminderType; label: string; icon: any; description: string }[] = [
+type ContactType = 'call' | 'text' | 'email' | 'in-person' | 'meeting'
+
+const CONTACT_TYPES: { value: ContactType; label: string; icon: any; description: string }[] = [
   {
-    value: 'follow-up',
-    label: 'Follow-Up',
-    icon: Users,
-    description: 'General client check-in'
+    value: 'call',
+    label: 'Phone Call',
+    icon: Phone,
+    description: 'Spoke on the phone'
   },
   {
-    value: 'call-back',
-    label: 'Call Back',
-    icon: Phone,
-    description: 'Return client call'
+    value: 'text',
+    label: 'Text Message',
+    icon: MessageSquare,
+    description: 'SMS conversation'
+  },
+  {
+    value: 'email',
+    label: 'Email',
+    icon: Mail,
+    description: 'Email exchange'
+  },
+  {
+    value: 'in-person',
+    label: 'In-Person',
+    icon: Users,
+    description: 'Met face-to-face'
   },
   {
     value: 'meeting',
     label: 'Meeting',
-    icon: Calendar,
-    description: 'Scheduled appointment'
-  },
-  {
-    value: 'custom',
-    label: 'Custom',
-    icon: MessageSquare,
-    description: 'Other reminder'
+    icon: Video,
+    description: 'Scheduled meeting'
   }
 ]
 
 const QUICK_DATES = [
-  { label: 'Tomorrow', days: 1 },
-  { label: 'In 3 days', days: 3 },
-  { label: 'Next week', days: 7 },
-  { label: 'In 2 weeks', days: 14 },
-  { label: 'In 1 month', days: 30 }
+  { label: 'Today', days: 0 },
+  { label: 'Yesterday', days: -1 },
+  { label: '2 days ago', days: -2 },
+  { label: '3 days ago', days: -3 },
+  { label: 'Last week', days: -7 }
 ]
 
-export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSuccess }: SetReminderModalProps) {
+export function LogContactModal({ isOpen, onClose, clientId, clientName, onSuccess }: LogContactModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<{
-    reminderType: ReminderType
-    reminderDate: string
-    reminderTime: string
+    contactType: ContactType
+    contactDate: string
+    contactTime: string
     notes: string
   }>({
-    reminderType: 'follow-up',
-    reminderDate: '',
-    reminderTime: '09:00',
+    contactType: 'call',
+    contactDate: new Date().toISOString().split('T')[0], // Default to today
+    contactTime: new Date().toTimeString().split(' ')[0].substring(0, 5), // Current time HH:MM
     notes: ''
   })
 
@@ -77,7 +84,7 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
     date.setDate(date.getDate() + days)
     setFormData(prev => ({
       ...prev,
-      reminderDate: date.toISOString().split('T')[0]
+      contactDate: date.toISOString().split('T')[0]
     }))
   }
 
@@ -87,21 +94,19 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
 
     try {
       // Combine date and time
-      const reminderDateTime = `${formData.reminderDate}T${formData.reminderTime}:00.000Z`
+      const contactDateTime = `${formData.contactDate}T${formData.contactTime}:00.000Z`
 
-      const response = await fetch('/api/reminders', {
-        method: 'POST',
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: clientId,
-          reminder_date: reminderDateTime,
-          reminder_type: formData.reminderType,
-          notes: formData.notes || null
+          last_contact_date: contactDateTime,
+          // Optionally store contact type and notes in a separate table in future
         })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create reminder')
+        throw new Error('Failed to log contact')
       }
 
       // Success!
@@ -110,14 +115,14 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
 
       // Reset form
       setFormData({
-        reminderType: 'follow-up',
-        reminderDate: '',
-        reminderTime: '09:00',
+        contactType: 'call',
+        contactDate: new Date().toISOString().split('T')[0],
+        contactTime: new Date().toTimeString().split(' ')[0].substring(0, 5),
         notes: ''
       })
     } catch (error) {
-      console.error('Error creating reminder:', error)
-      alert('Failed to set reminder. Please try again.')
+      console.error('Error logging contact:', error)
+      alert('Failed to log contact. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -128,20 +133,20 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
       <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-blue-500" />
-            Set Reminder
+            <Clock className="h-5 w-5 text-green-500" />
+            Log Contact
           </DialogTitle>
           <DialogDescription>
-            Create a reminder for <span className="font-semibold text-foreground">{clientName}</span>
+            Record a past contact with <span className="font-semibold text-foreground">{clientName}</span>
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4" onClick={(e) => e.stopPropagation()}>
-          {/* Reminder Type */}
+          {/* Contact Type */}
           <div className="space-y-2">
-            <Label>Reminder Type *</Label>
+            <Label>Contact Type *</Label>
             <div className="grid grid-cols-2 gap-2">
-              {REMINDER_TYPES.map((type) => {
+              {CONTACT_TYPES.map((type) => {
                 const Icon = type.icon
                 return (
                   <button
@@ -149,19 +154,19 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setFormData(prev => ({ ...prev, reminderType: type.value }))
+                      setFormData(prev => ({ ...prev, contactType: type.value }))
                     }}
                     className={`p-3 rounded-lg border text-left transition-all ${
-                      formData.reminderType === type.value
-                        ? 'bg-blue-500/20 border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'bg-card border-border hover:bg-accent hover:border-blue-400 text-foreground'
+                      formData.contactType === type.value
+                        ? 'bg-green-500/20 border-green-500 text-green-600 dark:text-green-400'
+                        : 'bg-card border-border hover:bg-accent hover:border-green-400 text-foreground'
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <Icon className={`h-4 w-4 ${formData.reminderType === type.value ? '' : 'text-foreground'}`} />
+                      <Icon className={`h-4 w-4 ${formData.contactType === type.value ? '' : 'text-foreground'}`} />
                       <span className="font-medium text-sm">{type.label}</span>
                     </div>
-                    <p className={`text-xs ${formData.reminderType === type.value ? 'text-blue-500/70 dark:text-blue-400/70' : 'text-muted-foreground'}`}>{type.description}</p>
+                    <p className={`text-xs ${formData.contactType === type.value ? 'text-green-500/70 dark:text-green-400/70' : 'text-muted-foreground'}`}>{type.description}</p>
                   </button>
                 )
               })}
@@ -180,7 +185,7 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
                     e.stopPropagation()
                     handleQuickDate(quick.days)
                   }}
-                  className="px-3 py-1.5 text-xs font-medium rounded-full border border-border bg-card hover:bg-accent hover:border-blue-400 text-foreground transition-all"
+                  className="px-3 py-1.5 text-xs font-medium rounded-full border border-border bg-card hover:bg-accent hover:border-green-400 text-foreground transition-all"
                 >
                   {quick.label}
                 </button>
@@ -192,19 +197,19 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
           <div className="space-y-2">
             <Label htmlFor="date" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Reminder Date *
+              Contact Date *
             </Label>
             <Input
               id="date"
               type="date"
-              value={formData.reminderDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, reminderDate: e.target.value }))}
+              value={formData.contactDate}
+              onChange={(e) => setFormData(prev => ({ ...prev, contactDate: e.target.value }))}
               onClick={(e) => e.stopPropagation()}
               onFocus={(e) => {
                 e.stopPropagation()
                 e.currentTarget.showPicker?.()
               }}
-              min={new Date().toISOString().split('T')[0]}
+              max={new Date().toISOString().split('T')[0]} // Can't log future contacts
               className="cursor-pointer"
               style={{ textAlign: 'center', paddingLeft: '0', paddingRight: '0' }}
               required
@@ -215,13 +220,13 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
           <div className="space-y-2">
             <Label htmlFor="time" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Reminder Time
+              Contact Time
             </Label>
             <Input
               id="time"
               type="time"
-              value={formData.reminderTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, reminderTime: e.target.value }))}
+              value={formData.contactTime}
+              onChange={(e) => setFormData(prev => ({ ...prev, contactTime: e.target.value }))}
               onClick={(e) => e.stopPropagation()}
               onFocus={(e) => {
                 e.stopPropagation()
@@ -244,18 +249,18 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               onClick={(e) => e.stopPropagation()}
-              placeholder="What do you want to discuss or follow up on?"
+              placeholder="What did you discuss? Any follow-up needed?"
               rows={3}
               className="resize-none"
             />
           </div>
 
           {/* Preview */}
-          {formData.reminderDate && (
-            <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Reminder will trigger on:</p>
+          {formData.contactDate && (
+            <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Contact logged on:</p>
               <p className="text-sm font-semibold text-foreground">
-                {new Date(`${formData.reminderDate}T${formData.reminderTime}`).toLocaleString('en-US', {
+                {new Date(`${formData.contactDate}T${formData.contactTime}`).toLocaleString('en-US', {
                   weekday: 'long',
                   month: 'long',
                   day: 'numeric',
@@ -281,10 +286,10 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-              disabled={isSubmitting || !formData.reminderDate}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              disabled={isSubmitting || !formData.contactDate}
             >
-              {isSubmitting ? 'Setting...' : 'Set Reminder'}
+              {isSubmitting ? 'Logging...' : 'Log Contact'}
             </Button>
           </div>
         </form>

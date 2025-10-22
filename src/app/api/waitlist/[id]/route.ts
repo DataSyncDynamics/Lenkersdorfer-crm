@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { WaitlistUpdateSchema } from '@/lib/validation/schemas'
+import { z } from 'zod'
 
 // GET /api/waitlist/[id] - Get single waitlist entry
 export async function GET(
@@ -54,9 +56,12 @@ export async function PUT(
 
     const body = await request.json()
 
+    // Validate with strict schema (rejects unknown fields)
+    const validated = WaitlistUpdateSchema.parse(body)
+
     const { data, error } = await supabase
       .from('waitlist')
-      .update(body)
+      .update(validated)
       .eq('id', id)
       .select(`
         *,
@@ -65,12 +70,20 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Error updating waitlist entry:', error)
+      console.error('Database error:', error)
       return NextResponse.json({ error: 'Failed to update waitlist entry' }, { status: 500 })
     }
 
     return NextResponse.json(data)
+
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: error.errors
+      }, { status: 400 })
+    }
+
     console.error('Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

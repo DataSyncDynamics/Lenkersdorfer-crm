@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import type { Client } from '@/types'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { BusinessConfig } from '@/config/business'
 
 /**
  * POST /api/clients/batch-import
@@ -8,6 +10,27 @@ import type { Client } from '@/types'
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const authSupabase = await createServerSupabaseClient()
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized - Authentication required' }, { status: 401 })
+    }
+
+    // Role-based access control - only managers and admins can import
+    const { data: profile } = await authSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || !['manager', 'admin'].includes(profile.role)) {
+      return NextResponse.json({
+        error: 'Forbidden - Manager or Admin role required for batch import'
+      }, { status: 403 })
+    }
+
     const { clients }: { clients: Client[] } = await request.json()
 
     if (!clients || !Array.isArray(clients) || clients.length === 0) {
@@ -89,8 +112,8 @@ export async function POST(request: NextRequest) {
             model: purchase.watchModel,
             price: purchase.price,
             purchase_date: purchase.date,
-            commission_rate: 15, // Default commission rate
-            commission_amount: purchase.price * 0.15
+            commission_rate: BusinessConfig.getDefaultCommissionRate(),
+            commission_amount: purchase.price * (BusinessConfig.getDefaultCommissionRate() / 100)
           }))
 
           // Check for existing purchases to avoid duplicates (by brand, model, price, date)

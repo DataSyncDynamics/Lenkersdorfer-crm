@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Plus, Watch, Edit, Eye, AlertTriangle, Flame, Clock, Phone, MessageSquare } from 'lucide-react'
+import { X, Plus, Watch, Edit, Eye, AlertTriangle, Flame, Clock, Phone, MessageSquare, Calendar } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -66,7 +66,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     email: '',
     phone: '',
     notes: '',
-    preferredBrands: [] as string[]
+    preferredBrands: [] as string[],
+    lastContactDate: '',
+    lastContactTime: ''
   })
 
   // Wishlist state
@@ -93,27 +95,68 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
+      // Parse lastContactDate if it exists
+      const lastContact = selectedClient.lastContactDate ? new Date(selectedClient.lastContactDate) : null
+      const lastContactDate = lastContact ? lastContact.toISOString().split('T')[0] : ''
+      const lastContactTime = lastContact ? lastContact.toTimeString().split(' ')[0].substring(0, 5) : '09:00'
+
       setFormData({
         firstName,
         lastName,
         email: selectedClient.email,
         phone: selectedClient.phone,
         notes: selectedClient.notes || '',
-        preferredBrands: selectedClient.preferredBrands
+        preferredBrands: selectedClient.preferredBrands,
+        lastContactDate,
+        lastContactTime
       })
     }
   }, [selectedClient])
 
-  const handleSaveClient = () => {
+  const handleSaveClient = async () => {
+    if (!selectedClient) return
+
     // Combine first and last name into full name for saving
     const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim()
-    const clientData = {
-      ...formData,
-      name: fullName
+
+    // Combine date and time for lastContactDate if both are provided
+    let lastContactDateTime = null
+    if (formData.lastContactDate && formData.lastContactTime) {
+      lastContactDateTime = `${formData.lastContactDate}T${formData.lastContactTime}:00.000Z`
     }
-    delete clientData.firstName
-    delete clientData.lastName
-    onSave(clientData)
+
+    // Update via API
+    try {
+      const response = await fetch(`/api/clients/${selectedClient.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: fullName,
+          email: formData.email,
+          phone: formData.phone,
+          notes: formData.notes,
+          last_contact_date: lastContactDateTime
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update client')
+      }
+
+      // Also call the original onSave callback for backwards compatibility
+      const clientData = {
+        ...formData,
+        name: fullName
+      }
+      delete clientData.firstName
+      delete clientData.lastName
+      delete clientData.lastContactDate
+      delete clientData.lastContactTime
+      onSave(clientData)
+    } catch (error) {
+      console.error('Error updating client:', error)
+      alert('Failed to update client. Please try again.')
+    }
   }
 
   const handleAddBrand = (brand: string) => {
@@ -420,51 +463,66 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
             </div>
           </div>
 
-          {/* Preferred Brands */}
-          <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-5 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Preferred Brands</h3>
-            <div className="flex flex-wrap gap-2">
-              {formData.preferredBrands.map((brand) => (
-                <Badge
-                  key={brand}
-                  variant="secondary"
-                  className={`${isEditing ? "cursor-pointer" : ""} bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium`}
-                >
-                  {brand}
-                  {isEditing && (
-                    <X
-                      className="ml-1 h-3 w-3 hover:text-red-600 dark:hover:text-red-400"
-                      onClick={() => handleRemoveBrand(brand)}
-                    />
-                  )}
-                </Badge>
-              ))}
-            </div>
-            {isEditing && (
-              <div className="flex gap-2">
-                <Select
-                  value=""
-                  onValueChange={(value) => {
-                    if (value) {
-                      handleAddBrand(value)
+          {/* Last Contact Date & Time */}
+          <div className="space-y-4 bg-amber-50 dark:bg-amber-950/30 p-5 rounded-lg border border-amber-200 dark:border-amber-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Last Contact</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lastContactDate" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Last Contact Date
+                </Label>
+                <Input
+                  id="lastContactDate"
+                  type="date"
+                  value={formData.lastContactDate}
+                  onChange={(e) => setFormData({ ...formData, lastContactDate: e.target.value })}
+                  readOnly={!isEditing}
+                  max={new Date().toISOString().split('T')[0]}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : "cursor-pointer bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"}
+                  style={isEditing ? { textAlign: 'center', paddingLeft: '0', paddingRight: '0' } : {}}
+                  onClick={(e) => {
+                    if (isEditing) {
+                      e.stopPropagation()
+                      e.currentTarget.showPicker?.()
                     }
                   }}
-                >
-                  <SelectTrigger className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600">
-                    <SelectValue placeholder="Select a brand to add..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LUXURY_WATCH_BRANDS
-                      .filter(brand => !formData.preferredBrands.includes(brand))
-                      .map((brand) => (
-                        <SelectItem key={brand} value={brand}>
-                          {brand}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                  onFocus={(e) => {
+                    if (isEditing) {
+                      e.stopPropagation()
+                      e.currentTarget.showPicker?.()
+                    }
+                  }}
+                />
               </div>
-            )}
+              <div className="space-y-2">
+                <Label htmlFor="lastContactTime" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Last Contact Time
+                </Label>
+                <Input
+                  id="lastContactTime"
+                  type="time"
+                  value={formData.lastContactTime}
+                  onChange={(e) => setFormData({ ...formData, lastContactTime: e.target.value })}
+                  readOnly={!isEditing}
+                  className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : "cursor-pointer bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"}
+                  style={isEditing ? { textAlign: 'center', paddingLeft: '0', paddingRight: '0' } : {}}
+                  onClick={(e) => {
+                    if (isEditing) {
+                      e.stopPropagation()
+                      e.currentTarget.showPicker?.()
+                    }
+                  }}
+                  onFocus={(e) => {
+                    if (isEditing) {
+                      e.stopPropagation()
+                      e.currentTarget.showPicker?.()
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Wishlist Management */}
@@ -675,6 +733,53 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                     </div>
                   )
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Preferred Brands */}
+          <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-5 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Preferred Brands</h3>
+            <div className="flex flex-wrap gap-2">
+              {formData.preferredBrands.map((brand) => (
+                <Badge
+                  key={brand}
+                  variant="secondary"
+                  className={`${isEditing ? "cursor-pointer" : ""} bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors font-medium`}
+                >
+                  {brand}
+                  {isEditing && (
+                    <X
+                      className="ml-1 h-3 w-3 hover:text-red-600 dark:hover:text-red-400"
+                      onClick={() => handleRemoveBrand(brand)}
+                    />
+                  )}
+                </Badge>
+              ))}
+            </div>
+            {isEditing && (
+              <div className="flex gap-2">
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (value) {
+                      handleAddBrand(value)
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600">
+                    <SelectValue placeholder="Select a brand to add..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LUXURY_WATCH_BRANDS
+                      .filter(brand => !formData.preferredBrands.includes(brand))
+                      .map((brand) => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

@@ -88,6 +88,7 @@ export const mockClients: Client[] = [
     clientTier: 1, // Ultra-High Net Worth - $487K lifetime, $97.5K avg orders
     spendPercentile: 98,
     lastPurchase: '2024-08-15',
+    lastContactDate: '2024-08-15',
     preferredBrands: ['PATEK PHILIPPE', 'ROLEX', 'AUDEMARS PIGUET'],
     notes: 'Ultra-high net worth collector. Qualified for any Tier 1 allocation including Platinum Daytona.',
     joinDate: '2022-01-05',
@@ -145,6 +146,7 @@ export const mockClients: Client[] = [
     clientTier: 2, // High Net Worth - $142K lifetime, $35.5K avg orders
     spendPercentile: 92,
     lastPurchase: '2024-07-22',
+    lastContactDate: '2024-07-22',
     preferredBrands: ['ROLEX', 'CARTIER'],
     notes: 'High net worth professional. Qualified for steel Daytona and GMT allocations.',
     joinDate: '2022-08-15',
@@ -193,6 +195,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Entry Level - $11K lifetime, $5.5K avg orders
     spendPercentile: 95,
     lastPurchase: '2024-03-15',
+    lastContactDate: '2024-03-15',
     preferredBrands: ['ROLEX', 'OMEGA'],
     notes: 'Entry level luxury client. Building relationship with mid-range purchases.',
     joinDate: '2023-01-15',
@@ -225,6 +228,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 - Entry Level ($10.5K lifetime, $5.25K avg)
     spendPercentile: 92,
     lastPurchase: '2024-02-28',
+    lastContactDate: '2024-02-28',
     preferredBrands: ['CARTIER', 'OMEGA'],
     notes: 'Entry level luxury client building watch collection. Focus on $5K-8K range.',
     joinDate: '2023-03-10',
@@ -257,6 +261,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 - Entry Level ($11K lifetime, $5.5K avg)
     spendPercentile: 94,
     lastPurchase: '2024-04-10',
+    lastContactDate: '2024-04-10',
     preferredBrands: ['ROLEX', 'PATEK PHILIPPE'],
     notes: 'Entry level collector with appreciation for movements. Build with $8K-12K pieces first.',
     joinDate: '2022-12-05',
@@ -289,6 +294,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 - Entry Level ($11K lifetime, $5.5K avg)
     spendPercentile: 93,
     lastPurchase: '2024-01-25',
+    lastContactDate: '2024-01-25',
     preferredBrands: ['OMEGA', 'BREITLING'],
     notes: 'Entry level precision enthusiast. Focus on quality $8K-12K pieces.',
     joinDate: '2023-02-18',
@@ -321,6 +327,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 - Entry Level ($11K lifetime, $5.5K avg)
     spendPercentile: 88,
     lastPurchase: '2024-05-08',
+    lastContactDate: '2024-05-08',
     preferredBrands: ['ROLEX', 'TAG HEUER'],
     notes: 'Entry level sports enthusiast. Build with Tudor Black Bay range first.',
     joinDate: '2023-04-22',
@@ -353,6 +360,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 - Entry Level ($10.7K lifetime, $5.3K avg)
     spendPercentile: 85,
     lastPurchase: '2024-03-22',
+    lastContactDate: '2024-03-22',
     preferredBrands: ['OMEGA', 'IWC'],
     notes: 'Entry level professional building investment portfolio. $8K-12K sweet spot.',
     joinDate: '2023-01-08',
@@ -385,6 +393,7 @@ export const mockClients: Client[] = [
     clientTier: 3, // Tier 3 based on spend
     spendPercentile: 75,
     lastPurchase: '2024-06-14',
+    lastContactDate: '2024-06-14',
     preferredBrands: ['ROLEX', 'ZENITH'],
     notes: 'Collector focusing on vintage and modern classics. Excellent payment history.',
     joinDate: '2022-11-20',
@@ -417,6 +426,7 @@ export const mockClients: Client[] = [
     clientTier: 4, // Tier 4 based on spend
     spendPercentile: 65,
     lastPurchase: '2024-07-18',
+    lastContactDate: '2024-07-18',
     preferredBrands: ['TUDOR', 'SEIKO'],
     notes: 'Entry-level collector building watch knowledge. Good growth potential.',
     joinDate: '2024-02-14',
@@ -449,6 +459,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 based on lower spend
     spendPercentile: 45,
     lastPurchase: '2024-08-30',
+    lastContactDate: '2024-08-30',
     preferredBrands: ['CARTIER', 'CHANEL'],
     notes: 'Fashion industry professional with preference for elegant luxury pieces.',
     joinDate: '2023-06-12',
@@ -481,6 +492,7 @@ export const mockClients: Client[] = [
     clientTier: 5, // Tier 5 based on lower spend
     spendPercentile: 35,
     lastPurchase: '2024-06-20',
+    lastContactDate: '2024-06-20',
     preferredBrands: ['TUDOR', 'OMEGA'],
     notes: 'First-time luxury buyer from Lenkersdorfer. Tech entrepreneur with growing interest.',
     joinDate: '2024-01-10',

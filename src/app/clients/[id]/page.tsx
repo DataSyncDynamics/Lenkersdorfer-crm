@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAppStore, formatCurrency } from '@/lib/store'
+import { analyzePurchasePattern } from '@/lib/purchase-patterns'
 import MobileNavigation from '@/components/layout/MobileNavigation'
 import { AddToWaitlistModal } from '@/components/clients/AddToWaitlistModal'
 import { SetReminderModal } from '@/components/reminders/SetReminderModal'
+import { LogContactModal } from '@/components/clients/LogContactModal'
+import { EditClientModal } from '@/components/clients/EditClientModal'
 import {
   ArrowLeftIcon,
   PhoneIcon,
@@ -20,6 +23,9 @@ import {
   PencilIcon,
   ChatBubbleLeftIcon,
   PlusIcon,
+  BellIcon,
+  UserGroupIcon,
+  FireIcon as Flame
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 
@@ -33,9 +39,12 @@ export default function ClientDetailPage() {
   const [showPurchaseForm, setShowPurchaseForm] = useState(false)
   const [showWaitlistModal, setShowWaitlistModal] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
+  const [showLogContactModal, setShowLogContactModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [lastContactDate, setLastContactDate] = useState<string | null>(null)
   const [isMarkingContacted, setIsMarkingContacted] = useState(false)
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false)
+  const [activeReminders, setActiveReminders] = useState<any[]>([])
   const [purchaseFormData, setPurchaseFormData] = useState({
     brand: '',
     model: '',
@@ -79,6 +88,23 @@ export default function ClientDetailPage() {
       }
     }
     loadLastContact()
+  }, [clientId, client])
+
+  // Load active reminders for this client
+  useEffect(() => {
+    if (!client) return
+    const loadReminders = async () => {
+      try {
+        const response = await fetch('/api/reminders?filter=active')
+        const data = await response.json()
+        // Filter reminders for this specific client
+        const clientReminders = data.filter((r: any) => r.client_id === clientId)
+        setActiveReminders(clientReminders)
+      } catch (error) {
+        console.error('Error loading reminders:', error)
+      }
+    }
+    loadReminders()
   }, [clientId, client])
 
   if (!client) {
@@ -126,8 +152,47 @@ export default function ClientDetailPage() {
     }
   }
 
+  const getReminderIcon = (type: string) => {
+    switch (type) {
+      case 'follow-up': return UserGroupIcon
+      case 'call-back': return PhoneIcon
+      case 'meeting': return CalendarIcon
+      default: return BellIcon
+    }
+  }
+
+  const getReminderLabel = (type: string) => {
+    switch (type) {
+      case 'follow-up': return 'Follow-Up'
+      case 'call-back': return 'Call Back'
+      case 'meeting': return 'Meeting'
+      default: return 'Reminder'
+    }
+  }
+
+  const formatReminderDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = date.getTime() - now.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+    if (diffDays < 0) return 'Overdue'
+    if (diffDays === 0) {
+      if (diffHours === 0) return 'Now'
+      return `In ${diffHours}h`
+    }
+    if (diffDays === 1) return 'Tomorrow'
+    if (diffDays < 7) return `In ${diffDays}d`
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   const stars = getVipStars(client.vipTier)
   const clientTierInfo = getClientTierInfo(client.clientTier)
+  const purchasePattern = analyzePurchasePattern(client)
+
+  // Extract watch preferences from purchase history
+  const purchasedBrands = [...new Set(client.purchases.map(p => p.brand))]
 
   // Mark as contacted
   const handleMarkAsContacted = async () => {
@@ -195,6 +260,15 @@ export default function ClientDetailPage() {
         throw new Error('Failed to create purchase')
       }
 
+      // Also update last contact date to purchase date (purchase = contact)
+      await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          last_contact_date: `${purchaseFormData.purchaseDate}T${new Date().toTimeString().split(' ')[0]}`
+        })
+      })
+
       // Success! Refresh to show new purchase
       window.location.reload()
     } catch (error) {
@@ -221,21 +295,60 @@ export default function ClientDetailPage() {
     window.location.reload()
   }
 
+  const handleReminderSuccess = async () => {
+    // Reload reminders without full page refresh
+    try {
+      const response = await fetch('/api/reminders?filter=active')
+      const data = await response.json()
+      const clientReminders = data.filter((r: any) => r.client_id === clientId)
+      setActiveReminders(clientReminders)
+    } catch (error) {
+      console.error('Error reloading reminders:', error)
+    }
+  }
+
+  const handleLogContactSuccess = async () => {
+    // Reload last contact date without full page refresh
+    try {
+      const response = await fetch(`/api/clients/${clientId}`)
+      const data = await response.json()
+      if (data.last_contact_date) {
+        setLastContactDate(data.last_contact_date)
+      }
+    } catch (error) {
+      console.error('Error reloading last contact date:', error)
+    }
+  }
+
+  const handleEditSuccess = () => {
+    // Refresh page to show updated client info
+    window.location.reload()
+  }
+
   return (
     <div className="min-h-screen bg-black safe-area-pt">
       {/* Header */}
       <div className="bg-black border-b border-gray-800 sticky top-0 z-40">
         <div className="max-w-mobile mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <button
+                onClick={() => router.back()}
+                className="touch-target text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeftIcon className="h-6 w-6" />
+              </button>
+              <h1 className="text-xl font-bold text-white truncate">
+                {client.name}
+              </h1>
+            </div>
             <button
-              onClick={() => router.back()}
-              className="touch-target text-gray-400 hover:text-white transition-colors"
+              onClick={() => setShowEditModal(true)}
+              className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 text-sm"
             >
-              <ArrowLeftIcon className="h-6 w-6" />
+              <PencilIcon className="h-4 w-4" />
+              <span>Edit</span>
             </button>
-            <h1 className="text-xl font-bold text-white truncate">
-              {client.name}
-            </h1>
           </div>
         </div>
       </div>
@@ -327,21 +440,28 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Additional Actions */}
-          <div className="grid grid-cols-2 gap-2 mt-3">
+          <div className="grid grid-cols-3 gap-2 mt-3">
             <button
               onClick={handleMarkAsContacted}
               disabled={isMarkingContacted}
-              className="luxury-button-secondary flex items-center justify-center text-xs"
+              className="luxury-button-secondary flex items-center justify-center text-xs bg-green-900/20 border-green-500/30 text-green-400 hover:bg-green-900/30"
             >
               <CheckCircleIcon className="h-3 w-3 mr-1" />
-              {isMarkingContacted ? 'Updating...' : 'Contacted'}
+              {isMarkingContacted ? 'Updating...' : 'Now'}
+            </button>
+            <button
+              onClick={() => setShowLogContactModal(true)}
+              className="luxury-button-secondary flex items-center justify-center text-xs"
+            >
+              <ClockIcon className="h-3 w-3 mr-1" />
+              Log
             </button>
             <button
               onClick={() => setShowReminderModal(true)}
               className="luxury-button-secondary flex items-center justify-center text-xs bg-blue-900/20 border-blue-500/30 text-blue-400 hover:bg-blue-900/30"
             >
               <CalendarIcon className="h-3 w-3 mr-1" />
-              Reminder
+              Remind
             </button>
           </div>
         </div>
@@ -367,6 +487,155 @@ export default function ClientDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Buying Intelligence */}
+        {purchasePattern.buyingTemperature !== 'UNKNOWN' && (
+          <div className="luxury-card p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Flame className="h-5 w-5 mr-2 text-orange-400" />
+              Buying Intelligence
+            </h3>
+
+            <div className="space-y-4">
+              {/* Temperature Gauge */}
+              <div className={`p-4 rounded-lg border-2 ${
+                purchasePattern.buyingTemperature === 'HOT'
+                  ? 'bg-red-900/20 border-red-500/30'
+                  : purchasePattern.buyingTemperature === 'WARM'
+                  ? 'bg-orange-900/20 border-orange-500/30'
+                  : purchasePattern.buyingTemperature === 'COOLING'
+                  ? 'bg-blue-900/20 border-blue-500/30'
+                  : 'bg-gray-900/20 border-gray-500/30'
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{purchasePattern.temperatureEmoji}</span>
+                    <div>
+                      <div className={`text-lg font-bold ${
+                        purchasePattern.buyingTemperature === 'HOT'
+                          ? 'text-red-400'
+                          : purchasePattern.buyingTemperature === 'WARM'
+                          ? 'text-orange-400'
+                          : purchasePattern.buyingTemperature === 'COOLING'
+                          ? 'text-blue-400'
+                          : 'text-gray-400'
+                      }`}>
+                        {purchasePattern.buyingTemperature}
+                      </div>
+                      <div className="text-xs text-gray-500">Buying Temperature</div>
+                    </div>
+                  </div>
+                  {purchasePattern.lastPurchaseDaysAgo !== null && (
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-white">
+                        {purchasePattern.lastPurchaseDaysAgo}
+                      </div>
+                      <div className="text-xs text-gray-500">days ago</div>
+                    </div>
+                  )}
+                </div>
+
+                {purchasePattern.averageDaysBetweenPurchases && (
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <span className="text-sm text-gray-300">Purchase Frequency</span>
+                    <span className="text-sm font-medium text-white">
+                      Every ~{purchasePattern.averageDaysBetweenPurchases} days
+                    </span>
+                  </div>
+                )}
+
+                {purchasePattern.nextExpectedPurchase && (
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mt-2">
+                    <span className="text-sm text-gray-300">Next Expected</span>
+                    <span className={`text-sm font-medium ${
+                      purchasePattern.isOverdue ? 'text-red-400' : 'text-green-400'
+                    }`}>
+                      {purchasePattern.nextExpectedPurchase.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                      {purchasePattern.isOverdue && ' (Overdue)'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Watch Preferences from Purchase History */}
+              {purchasedBrands.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-white mb-2">Purchased Brands</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {purchasedBrands.map((brand) => (
+                      <span
+                        key={brand}
+                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gold-900/20 text-gold-300 border border-gold-700"
+                      >
+                        ✓ {brand}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Active Reminders */}
+        {activeReminders.length > 0 && (
+          <div className="luxury-card p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <BellIcon className="h-5 w-5 mr-2 text-blue-400" />
+              Active Reminders ({activeReminders.length})
+            </h3>
+
+            <div className="space-y-3">
+              {activeReminders.map((reminder) => {
+                const ReminderIcon = getReminderIcon(reminder.reminder_type)
+                const isOverdue = new Date(reminder.reminder_date) < new Date()
+
+                return (
+                  <div key={reminder.id} className={`p-4 rounded-lg border ${
+                    isOverdue
+                      ? 'bg-red-900/20 border-red-500/30'
+                      : 'bg-blue-900/20 border-blue-500/30'
+                  }`}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <ReminderIcon className={`h-5 w-5 ${isOverdue ? 'text-red-400' : 'text-blue-400'}`} />
+                        <span className={`font-medium ${isOverdue ? 'text-red-400' : 'text-blue-400'}`}>
+                          {getReminderLabel(reminder.reminder_type)}
+                        </span>
+                      </div>
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        isOverdue
+                          ? 'bg-red-900/40 text-red-300'
+                          : 'bg-blue-900/40 text-blue-300'
+                      }`}>
+                        {formatReminderDate(reminder.reminder_date)}
+                      </span>
+                    </div>
+
+                    {reminder.notes && (
+                      <div className="text-sm text-gray-300 mt-2 pl-7">
+                        {reminder.notes}
+                      </div>
+                    )}
+
+                    <div className="text-xs text-gray-500 mt-2 pl-7">
+                      {new Date(reminder.reminder_date).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* GREEN BOX Status */}
         {clientPerfectMatches.length > 0 && (
@@ -439,23 +708,6 @@ export default function ClientDetailPage() {
                 })}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Preferred Brands */}
-        <div className="luxury-card p-6 mb-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Preferred Brands</h3>
-
-          <div className="flex flex-wrap gap-2">
-            {client.preferredBrands.map((brand) => (
-              <span
-                key={brand}
-                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-800 text-gray-300 border border-gray-700"
-              >
-                <TagIcon className="h-3 w-3 mr-1.5" />
-                {brand}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -647,6 +899,23 @@ export default function ClientDetailPage() {
           )}
         </div>
 
+        {/* Preferred Brands */}
+        <div className="luxury-card p-6 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Preferred Brands</h3>
+
+          <div className="flex flex-wrap gap-2">
+            {client.preferredBrands.map((brand) => (
+              <span
+                key={brand}
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-800 text-gray-300 border border-gray-700"
+              >
+                <TagIcon className="h-3 w-3 mr-1.5" />
+                {brand}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Current Waitlist */}
         {waitlistEntries.length > 0 && (
           <div className="luxury-card p-6 mb-6">
@@ -737,7 +1006,22 @@ export default function ClientDetailPage() {
         onClose={() => setShowReminderModal(false)}
         clientId={clientId}
         clientName={client.name}
-        onSuccess={() => console.log('Reminder set successfully')}
+        onSuccess={handleReminderSuccess}
+      />
+
+      <LogContactModal
+        isOpen={showLogContactModal}
+        onClose={() => setShowLogContactModal(false)}
+        clientId={clientId}
+        clientName={client.name}
+        onSuccess={handleLogContactSuccess}
+      />
+
+      <EditClientModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        client={client}
+        onSuccess={handleEditSuccess}
       />
 
       {/* Mobile Navigation */}

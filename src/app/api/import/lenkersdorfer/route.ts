@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client, Purchase, ClientTier } from '@/types'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { rateLimit, addRateLimitHeaders, RateLimits } from '@/lib/rate-limit'
+import { createErrorResponse } from '@/lib/error-handler'
+import { BusinessConfig } from '@/config/business'
 
 // CSV data interface based on Lenkersdorfer sales format
 interface SalesRecord {
@@ -261,6 +264,41 @@ function generatePhone(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // STRICT rate limiting for expensive import operations
+    const rateLimitResult = await rateLimit(request, RateLimits.IMPORT.limit, {
+      interval: RateLimits.IMPORT.interval,
+      uniqueTokenPerInterval: 100
+    })
+
+    if (!rateLimitResult.success) {
+      const response = NextResponse.json(
+        { error: 'Import rate limit exceeded. You can import up to 5 times per hour.' },
+        { status: 429 }
+      )
+      return addRateLimitHeaders(response, rateLimitResult)
+    }
+
+    // Authentication check
+    const authSupabase = await createServerSupabaseClient()
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized - Authentication required' }, { status: 401 })
+    }
+
+    // Role-based access control - only managers and admins can import
+    const { data: profile } = await authSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || !['manager', 'admin'].includes(profile.role)) {
+      return NextResponse.json({
+        error: 'Forbidden - Manager or Admin role required for data import'
+      }, { status: 403 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('csvFile') as File
 
@@ -477,8 +515,8 @@ export async function POST(request: NextRequest) {
               model: purchase.watchModel,
               price: purchase.price,
               purchase_date: purchase.date,
-              commission_rate: 15,
-              commission_amount: purchase.price * 0.15
+              commission_rate: BusinessConfig.getDefaultCommissionRate(),
+              commission_amount: purchase.price * (BusinessConfig.getDefaultCommissionRate() / 100)
             }))
 
             // Check for existing purchases to avoid duplicates
@@ -518,7 +556,7 @@ export async function POST(request: NextRequest) {
 
       console.log('Successfully saved to database:', importResults)
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         message: `Successfully processed ${salesRecords.length} sales records and saved ${importResults.clientsCreated} clients to database`,
         clients,
@@ -530,33 +568,20 @@ export async function POST(request: NextRequest) {
         },
         database: importResults
       })
+      return addRateLimitHeaders(response, rateLimitResult)
     } catch (dbError) {
-      console.error('Error saving to database:', dbError)
-      // Return the parsed data anyway, but indicate database save failed
-      return NextResponse.json({
-        success: true, // Parsing succeeded
-        warning: 'Data parsed successfully but failed to save to database',
-        message: `Processed ${salesRecords.length} sales records into ${clients.length} clients (not persisted)`,
-        clients,
-        stats,
-        processing: {
-          recordsProcessed: salesRecords.length,
-          clientsCreated: clients.length,
-          duplicatesRemoved: salesRecords.length - lifetimeSpends.length
-        },
-        databaseError: dbError instanceof Error ? dbError.message : 'Unknown database error'
+      return createErrorResponse(dbError, {
+        endpoint: '/api/import/lenkersdorfer',
+        userId: user.id,
+        code: 'IMPORT_DATABASE_FAILED'
       })
     }
 
   } catch (error) {
-    console.error('CSV import error:', error)
-    return NextResponse.json(
-      {
-        error: 'Failed to process CSV file',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
+    return createErrorResponse(error, {
+      endpoint: '/api/import/lenkersdorfer',
+      code: 'IMPORT_FAILED'
+    })
   }
 }
 

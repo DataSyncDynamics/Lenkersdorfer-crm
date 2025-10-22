@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { WatchCreateSchema, SearchQuerySchema, sanitizeSearchInput } from '@/lib/validation/schemas'
+import { z } from 'zod'
+import { rateLimit, addRateLimitHeaders, RateLimits } from '@/lib/rate-limit'
+import { createErrorResponse } from '@/lib/error-handler'
 
 // GET /api/watches - List all watches/inventory
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, RateLimits.READ.limit, {
+      interval: RateLimits.READ.interval,
+      uniqueTokenPerInterval: 500
+    })
+
+    if (!rateLimitResult.success) {
+      const response = NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      )
+      return addRateLimitHeaders(response, rateLimitResult)
+    }
+
     const supabase = await createServerSupabaseClient()
 
     // Check auth
@@ -13,50 +31,77 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams
+    const rawPage = parseInt(searchParams.get('page') || '1')
+    const rawLimit = parseInt(searchParams.get('limit') || '50')
     const available = searchParams.get('available')
-    const brand = searchParams.get('brand')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = (page - 1) * limit
+    const rawBrand = searchParams.get('brand') || ''
+
+    // Validate pagination
+    const validated = SearchQuerySchema.parse({
+      page: rawPage,
+      limit: rawLimit,
+    })
 
     let query = supabase
       .from('inventory')
-      .select('*', { count: 'exact' })
+      .select('id, brand, model, collection, reference_number, price, retail_price, year, condition, is_available, watch_tier, description, specifications, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
 
-    // Apply filters
+    // Apply filters with sanitization
     if (available !== null) {
       query = query.eq('is_available', available === 'true')
     }
-    if (brand) {
-      query = query.ilike('brand', `%${brand}%`)
+    if (rawBrand) {
+      const sanitizedBrand = sanitizeSearchInput(rawBrand)
+      query = query.ilike('brand', `%${sanitizedBrand}%`)
     }
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1)
+    // Safe pagination
+    const offset = (validated.page - 1) * validated.limit
+    query = query.range(offset, offset + validated.limit - 1)
 
     const { data, error, count } = await query
 
     if (error) {
-      console.error('Error fetching watches:', error)
-      return NextResponse.json({ error: 'Failed to fetch watches' }, { status: 500 })
+      return createErrorResponse(error, {
+        endpoint: '/api/watches',
+        userId: user.id,
+        code: 'WATCH_FETCH_FAILED'
+      })
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       watches: data,
       total: count,
-      page,
-      limit,
+      page: validated.page,
+      limit: validated.limit,
     })
+    return addRateLimitHeaders(response, rateLimitResult)
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createErrorResponse(error, {
+      endpoint: '/api/watches',
+      code: 'WATCH_SEARCH_ERROR'
+    })
   }
 }
 
 // POST /api/watches - Create new watch
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting for write operations
+    const rateLimitResult = await rateLimit(request, RateLimits.WRITE.limit, {
+      interval: RateLimits.WRITE.interval,
+      uniqueTokenPerInterval: 500
+    })
+
+    if (!rateLimitResult.success) {
+      const response = NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      )
+      return addRateLimitHeaders(response, rateLimitResult)
+    }
+
     const supabase = await createServerSupabaseClient()
 
     // Check auth
@@ -67,31 +112,43 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Validate input with Zod
+    const validated = WatchCreateSchema.parse(body)
+
     const { data, error } = await supabase
       .from('inventory')
       .insert([{
-        brand: body.brand,
-        model: body.model,
-        category: body.category,
-        price: body.price,
-        retail_price: body.retail_price,
-        reference_number: body.reference_number,
-        description: body.description,
-        image_url: body.image_url,
-        is_available: body.is_available ?? true,
-        availability_date: body.availability_date,
+        brand: validated.brand,
+        model: validated.model,
+        collection: validated.collection,
+        price: validated.price,
+        retail_price: validated.retail_price,
+        reference_number: validated.reference_number,
+        description: validated.description,
+        year: validated.year,
+        condition: validated.condition,
+        is_available: validated.is_available,
+        watch_tier: validated.watch_tier,
+        specifications: validated.specifications,
       }])
       .select()
       .single()
 
     if (error) {
-      console.error('Error creating watch:', error)
-      return NextResponse.json({ error: 'Failed to create watch' }, { status: 500 })
+      return createErrorResponse(error, {
+        endpoint: '/api/watches',
+        userId: user.id,
+        code: 'WATCH_CREATE_FAILED'
+      })
     }
 
-    return NextResponse.json(data, { status: 201 })
+    const response = NextResponse.json(data, { status: 201 })
+    return addRateLimitHeaders(response, rateLimitResult)
+
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createErrorResponse(error, {
+      endpoint: '/api/watches',
+      code: 'WATCH_CREATE_ERROR'
+    })
   }
 }

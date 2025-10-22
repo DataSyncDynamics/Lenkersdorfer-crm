@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { MessagingProvider } from '@/contexts/MessagingContext'
@@ -33,31 +34,30 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  const storageKey = 'ui-theme';
-                  const theme = localStorage.getItem(storageKey) || 'dark';
-                  const root = document.documentElement;
+        <Script id="theme-loader" strategy="beforeInteractive">
+          {`
+            (function() {
+              try {
+                const storageKey = 'ui-theme';
+                const theme = localStorage.getItem(storageKey);
+                const root = document.documentElement;
 
-                  root.classList.remove('light', 'dark');
+                root.classList.remove('light', 'dark');
 
-                  if (theme === 'system') {
-                    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                    root.classList.add(systemTheme);
-                  } else {
-                    root.classList.add(theme);
-                  }
-                } catch (e) {
-                  // Default to dark if there's any error
-                  document.documentElement.classList.add('dark');
+                if (!theme || theme === 'system') {
+                  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  root.classList.add(systemTheme);
+                } else if (theme === 'light' || theme === 'dark') {
+                  root.classList.add(theme);
+                } else {
+                  root.classList.add('dark');
                 }
-              })();
-            `,
-          }}
-        />
+              } catch (e) {
+                document.documentElement.classList.add('dark');
+              }
+            })();
+          `}
+        </Script>
       </head>
       <body className={inter.className}>
         <ErrorBoundary>

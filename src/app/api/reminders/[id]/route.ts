@@ -5,6 +5,8 @@ import {
   deleteReminder,
   snoozeReminder
 } from '@/lib/db/reminders'
+import { ReminderUpdateSchema } from '@/lib/validation/schemas'
+import { z } from 'zod'
 
 // PATCH /api/reminders/[id] - Update or complete a reminder
 export async function PATCH(
@@ -15,27 +17,33 @@ export async function PATCH(
     const body = await request.json()
     const reminderId = params.id
 
-    // Handle complete action
+    // Handle complete action (special case, bypass validation)
     if (body.action === 'complete') {
       await completeReminder(reminderId)
       return NextResponse.json({ message: 'Reminder completed' }, { status: 200 })
     }
 
-    // Handle snooze action
+    // Handle snooze action (validate new_date)
     if (body.action === 'snooze' && body.new_date) {
-      const updatedReminder = await snoozeReminder(reminderId, body.new_date)
+      const validatedDate = z.string().datetime().parse(body.new_date)
+      const updatedReminder = await snoozeReminder(reminderId, validatedDate)
       return NextResponse.json(updatedReminder, { status: 200 })
     }
 
-    // Handle general update
-    const updates: any = {}
-    if (body.reminder_date) updates.reminder_date = body.reminder_date
-    if (body.reminder_type) updates.reminder_type = body.reminder_type
-    if (body.notes !== undefined) updates.notes = body.notes
+    // Handle general update - validate with strict schema
+    const validated = ReminderUpdateSchema.parse(body)
 
-    const updatedReminder = await updateReminder(reminderId, updates)
+    const updatedReminder = await updateReminder(reminderId, validated)
     return NextResponse.json(updatedReminder, { status: 200 })
+
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: error.errors
+      }, { status: 400 })
+    }
+
     console.error('Error updating reminder:', error)
     return NextResponse.json(
       { error: 'Failed to update reminder' },

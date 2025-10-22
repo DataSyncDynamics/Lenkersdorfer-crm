@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { WatchUpdateSchema } from '@/lib/validation/schemas'
+import { z } from 'zod'
 
 // GET /api/watches/[id] - Get single watch
 export async function GET(
@@ -51,20 +53,31 @@ export async function PUT(
 
     const body = await request.json()
 
+    // Validate with strict schema (rejects unknown fields)
+    const validated = WatchUpdateSchema.parse(body)
+
     const { data, error } = await supabase
       .from('inventory')
-      .update(body)
+      .update(validated)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('Error updating watch:', error)
+      console.error('Database error:', error)
       return NextResponse.json({ error: 'Failed to update watch' }, { status: 500 })
     }
 
     return NextResponse.json(data)
+
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: error.errors
+      }, { status: 400 })
+    }
+
     console.error('Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

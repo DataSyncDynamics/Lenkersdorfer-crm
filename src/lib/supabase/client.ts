@@ -10,7 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Running in demo mode without auth
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
   db: {
     schema: 'public',

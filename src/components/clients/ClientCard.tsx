@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Crown,
   Star,
@@ -11,16 +11,30 @@ import {
   AlertTriangle,
   Flame,
   CheckCircle,
-  Clock
+  Clock,
+  Bell,
+  TrendingUp,
+  Activity,
+  TrendingDown,
+  Minus
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/store'
 import { getTierColorClasses, getAvatarInitials, formatClientName } from '@/lib/ui-utils'
 import { cn } from '@/lib/utils'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
+import { analyzePurchasePattern } from '@/lib/purchase-patterns'
 import { Client } from '@/types'
 import { useNotifications } from '@/contexts/NotificationContext'
+import dynamic from 'next/dynamic'
+
+const SetReminderModal = dynamic(() => import('@/components/reminders/SetReminderModal').then(mod => ({ default: mod.SetReminderModal })), {
+  ssr: false,
+  loading: () => null
+})
 
 interface ClientCardProps {
   client: Client
@@ -56,8 +70,19 @@ const getTimeAgo = (dateString: string | null | undefined): string => {
   return `${Math.floor(diffDays / 30)}mo ago`
 }
 
+const getTemperatureIcon = (temperature: string) => {
+  switch (temperature) {
+    case 'HOT': return TrendingUp
+    case 'WARM': return Activity
+    case 'COOLING': return TrendingDown
+    case 'COLD': return Minus
+    default: return Activity
+  }
+}
+
 const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => {
   const { notifications } = useNotifications()
+  const [showReminderModal, setShowReminderModal] = useState(false)
 
   // Find notifications for this specific client
   const clientNotifications = notifications.filter(n =>
@@ -71,6 +96,15 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
   const hasOpportunityNotifications = clientNotifications.some(n =>
     n.category === 'NEW_OPPORTUNITIES' && !n.isRead
   )
+
+  // Analyze purchase pattern
+  const purchasePattern = analyzePurchasePattern(client)
+
+  const handleReminderClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+    triggerHapticFeedback('light')
+    setShowReminderModal(true)
+  }
 
   return (
     <div
@@ -100,13 +134,24 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
         )}
 
         <CardHeader className="pb-3 pt-4 relative">
-          {/* Tier Badge - Positioned in top-right corner */}
-          <Badge
-            className={cn("absolute top-4 right-4 text-xs font-medium whitespace-nowrap border", getTierColorClasses(client.clientTier))}
-          >
-            {getTierIcon(client.clientTier)}
-            <span className="ml-1">Tier {client.clientTier}</span>
-          </Badge>
+          {/* Top-right controls: Reminder bell and Tier Badge */}
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleReminderClick}
+              className="h-8 w-8 hover:bg-gold-100 dark:hover:bg-gold-900/20 transition-colors"
+              title="Set reminder"
+            >
+              <Bell className="h-4 w-4 text-gold-600 dark:text-gold-400" />
+            </Button>
+            <Badge
+              className={cn("text-xs font-medium whitespace-nowrap border", getTierColorClasses(client.clientTier))}
+            >
+              {getTierIcon(client.clientTier)}
+              <span className="ml-1">Tier {client.clientTier}</span>
+            </Badge>
+          </div>
 
           {/* Client Info - Below tier badge with full name visible */}
           {(() => {
@@ -141,6 +186,50 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
               {formatCurrency(client.lifetimeSpend)}
             </div>
             <div className="text-sm text-muted-foreground">Lifetime Spend</div>
+
+            {/* Compact Buying Temperature Badge */}
+            {purchasePattern.buyingTemperature !== 'UNKNOWN' && (
+              <div className="flex items-center gap-1.5 mt-2">
+                {(() => {
+                  const TemperatureIcon = getTemperatureIcon(purchasePattern.buyingTemperature)
+                  return (
+                    <>
+                      <TemperatureIcon className={cn(
+                        "h-3.5 w-3.5",
+                        purchasePattern.buyingTemperature === 'HOT' && "text-red-500 dark:text-red-400",
+                        purchasePattern.buyingTemperature === 'WARM' && "text-orange-500 dark:text-orange-400",
+                        purchasePattern.buyingTemperature === 'COOLING' && "text-blue-500 dark:text-blue-400",
+                        purchasePattern.buyingTemperature === 'COLD' && "text-gray-500 dark:text-gray-400"
+                      )} />
+                      <div className={cn(
+                        "h-2 w-2 rounded-full",
+                        purchasePattern.buyingTemperature === 'HOT' && "bg-red-500",
+                        purchasePattern.buyingTemperature === 'WARM' && "bg-orange-500",
+                        purchasePattern.buyingTemperature === 'COOLING' && "bg-blue-500",
+                        purchasePattern.buyingTemperature === 'COLD' && "bg-gray-500"
+                      )} />
+                      <span className={cn(
+                        "text-xs font-semibold",
+                        purchasePattern.buyingTemperature === 'HOT' && "text-red-600 dark:text-red-400",
+                        purchasePattern.buyingTemperature === 'WARM' && "text-orange-600 dark:text-orange-400",
+                        purchasePattern.buyingTemperature === 'COOLING' && "text-blue-600 dark:text-blue-400",
+                        purchasePattern.buyingTemperature === 'COLD' && "text-gray-600 dark:text-gray-400"
+                      )}>
+                        {purchasePattern.buyingTemperature}
+                      </span>
+                      {purchasePattern.lastPurchaseDaysAgo !== null && (
+                        <>
+                          <span className="text-xs text-muted-foreground">•</span>
+                          <span className="text-xs text-muted-foreground">
+                            {purchasePattern.lastPurchaseDaysAgo}d ago
+                          </span>
+                        </>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Contact Info */}
@@ -213,6 +302,14 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
           )}
         </CardContent>
       </Card>
+
+      {/* Reminder Modal */}
+      <SetReminderModal
+        isOpen={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        clientId={client.id}
+        clientName={client.name}
+      />
     </div>
   )
 }
