@@ -65,7 +65,7 @@ export async function middleware(req: NextRequest) {
   )
 
   // Refresh session if expired - this updates the cookie
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session }, error } = await supabase.auth.getSession()
 
   // Define public endpoints that don't require authentication
   const publicEndpoints = [
@@ -83,7 +83,12 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(path)
   )
 
+  // If accessing a public endpoint, allow through
   if (isPublicEndpoint) {
+    // If user has session and is accessing login page, redirect to dashboard
+    if (session && req.nextUrl.pathname === '/login') {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
     return res
   }
 
@@ -123,11 +128,18 @@ export async function middleware(req: NextRequest) {
     return req.nextUrl.pathname.startsWith(route)
   })
 
+  // If this is a protected route and user is not authenticated, redirect to login
   if (isProtectedRoute && !session) {
-    // Redirect to login page
+    console.log('[Middleware] Redirecting unauthenticated user to /login from:', req.nextUrl.pathname)
     const loginUrl = new URL('/login', req.url)
     loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
+  }
+
+  // If we've made it here and there's no session, something is wrong - deny access
+  if (!session) {
+    console.log('[Middleware] Denying access to:', req.nextUrl.pathname, '- No session')
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return res

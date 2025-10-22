@@ -216,7 +216,7 @@ function LoginForm() {
           transition={{ delay: 0.5 }}
           className="text-center text-xs text-slate-600 mt-6"
         >
-          Powered by Lenkersdorfer CRM • Luxury Watch Management System
+          Powered by Data Sync Dynamics
         </motion.p>
       </motion.div>
     </div>

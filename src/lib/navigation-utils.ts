@@ -123,7 +123,7 @@ export function createBottomNavigationItems(pathname: string, counts: any) {
   return [
     {
       label: "Jason Jolly",
-      href: "#",
+      href: "#sign-out",
       icon: React.createElement(
         'div',
         { className: 'h-5 w-5 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0' },
