@@ -98,17 +98,36 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  // Protect dashboard and client pages
-  if (req.nextUrl.pathname.startsWith('/dashboard') ||
-      req.nextUrl.pathname.startsWith('/clients') ||
-      req.nextUrl.pathname.startsWith('/inventory') ||
-      req.nextUrl.pathname.startsWith('/waitlist')) {
-    if (!session) {
-      // Redirect to login page
-      const loginUrl = new URL('/login', req.url)
-      loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
-      return NextResponse.redirect(loginUrl)
+  // Protect all application routes (including home page)
+  const protectedRoutes = [
+    '/',
+    '/dashboard',
+    '/clients',
+    '/inventory',
+    '/waitlist',
+    '/allocation',
+    '/messages',
+    '/analytics',
+    '/reminders',
+    '/notifications',
+    '/import'
+  ]
+
+  // Check if current path is a protected route
+  const isProtectedRoute = protectedRoutes.some(route => {
+    if (route === '/') {
+      // Exact match for home page
+      return req.nextUrl.pathname === '/'
     }
+    // Starts with for other routes (includes subroutes like /clients/123)
+    return req.nextUrl.pathname.startsWith(route)
+  })
+
+  if (isProtectedRoute && !session) {
+    // Redirect to login page
+    const loginUrl = new URL('/login', req.url)
+    loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   return res

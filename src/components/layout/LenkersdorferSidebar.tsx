@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { useTheme } from "@/components/ui/theme-provider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { LenkersdorferLogo } from "@/components/ui/lenkersdorfer-logo";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { createMainNavigationLinks, createBottomNavigationItems } from "@/lib/navigation-utils";
@@ -20,15 +21,24 @@ interface LenkersdorferSidebarProps {
 
 export function LenkersdorferSidebar({ children, onNotificationsClick }: LenkersdorferSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { getCounts } = useNotifications();
   const { getTotalUnreadCount } = useMessaging();
   const { theme, setTheme } = useTheme();
+  const { signOut } = useAuth();
   const counts = getCounts();
   const messagingUnreadCount = getTotalUnreadCount();
   const [open, setOpen] = useState(false);
 
   const mainLinks = createMainNavigationLinks(pathname, counts, messagingUnreadCount);
   const bottomItems = createBottomNavigationItems(pathname, counts);
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    if (confirm('Are you sure you want to sign out?')) {
+      await signOut();
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background w-full">
@@ -72,13 +82,37 @@ export function LenkersdorferSidebar({ children, onNotificationsClick }: Lenkers
               </span>
             </button>
 
-            {bottomItems.map((item, idx) => (
-              <SidebarLink
-                key={idx}
-                link={item}
-                className={getNavigationLinkClasses(pathname === item.href)}
-              />
-            ))}
+            {bottomItems.map((item, idx) => {
+              // Handle sign out link specially
+              if (item.href === '#sign-out') {
+                return (
+                  <button
+                    key={idx}
+                    onClick={handleSignOut}
+                    className={cn(
+                      "flex items-center justify-start gap-2 py-1.5 rounded-lg text-foreground hover:text-red-500 transition-all duration-200 group relative",
+                      getNavigationLinkClasses(false)
+                    )}
+                    style={{ overflow: 'visible' }}
+                  >
+                    <div className="relative overflow-visible flex-shrink-0 flex items-center justify-center w-5 h-5">
+                      {item.icon}
+                    </div>
+                    <span className="text-sm font-medium whitespace-pre">
+                      {item.label}
+                    </span>
+                  </button>
+                )
+              }
+
+              return (
+                <SidebarLink
+                  key={idx}
+                  link={item}
+                  className={getNavigationLinkClasses(pathname === item.href)}
+                />
+              )
+            })}
           </div>
         </SidebarBody>
       </Sidebar>

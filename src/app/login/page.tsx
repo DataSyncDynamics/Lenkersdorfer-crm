@@ -1,85 +1,236 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LenkersdorferLogo } from '@/components/ui/lenkersdorfer-logo'
+import { Watch, Lock, Mail, Loader2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, user } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      const redirect = searchParams.get('redirect') || '/'
+      router.push(redirect)
+    }
+  }, [user, router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    const { error } = await signIn(email, password)
+    try {
+      const { error } = await signIn(email, password)
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message || 'Invalid email or password')
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-4">
-          <div className="flex justify-center">
-            <LenkersdorferLogo className="h-12 w-auto" />
-          </div>
-          <div className="text-center">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to access your luxury watch CRM
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                {error}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"
+          animate={{
+            scale: [1.2, 1, 1.2],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+        />
+      </div>
+
+      {/* Login Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md relative z-10"
+      >
+        <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-2xl">
+          <CardHeader className="space-y-6 pb-6">
+            {/* Logo with floating animation */}
+            <motion.div
+              className="flex justify-center"
+              animate={{
+                y: [0, -5, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <div className="relative">
+                <LenkersdorferLogo className="h-14 w-auto" />
+                <motion.div
+                  className="absolute -inset-4 bg-gradient-to-r from-yellow-500/20 to-blue-500/20 rounded-full blur-xl"
+                  animate={{
+                    opacity: [0.5, 0.8, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
               </div>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </motion.div>
+
+            {/* Welcome text */}
+            <div className="text-center space-y-2">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                Welcome Back
+              </CardTitle>
+              <CardDescription className="text-slate-400 text-base">
+                Sign in to access your luxury watch CRM
+              </CardDescription>
+              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
+                <Watch className="h-3 w-3" />
+                <span>Professional Sales Dashboard</span>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-slate-300 font-medium">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="demo@lenkersdorfer.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="pl-10 bg-slate-800/50 border-slate-700 focus:border-yellow-500 focus:ring-yellow-500/20 text-slate-200 placeholder:text-slate-500 h-11"
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-300 font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="pl-10 bg-slate-800/50 border-slate-700 focus:border-yellow-500 focus:ring-yellow-500/20 text-slate-200 placeholder:text-slate-500 h-11"
+                  />
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 text-sm text-red-400 bg-red-950/50 border border-red-900/50 rounded-lg flex items-start gap-2"
+                >
+                  <span className="text-red-400 mt-0.5">⚠</span>
+                  <span>{error}</span>
+                </motion.div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full h-11 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </form>
+
+            {/* Demo credentials hint */}
+            <div className="text-center pt-4 border-t border-slate-800">
+              <p className="text-xs text-slate-500">
+                Demo Access: Contact your administrator for credentials
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer text */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center text-xs text-slate-600 mt-6"
+        >
+          Powered by Lenkersdorfer CRM • Luxury Watch Management System
+        </motion.p>
+      </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
