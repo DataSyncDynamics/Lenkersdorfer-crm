@@ -17,20 +17,26 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const { signIn, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
-    if (user) {
+    if (user && !isRedirecting) {
       const redirect = searchParams.get('redirect') || '/'
       console.log('[Login] User authenticated, redirecting to:', redirect)
 
-      // Use window.location for hard navigation to ensure middleware runs with fresh cookies
-      window.location.href = redirect
+      // Set flag to prevent multiple redirect attempts
+      setIsRedirecting(true)
+
+      // Use router.push instead of window.location to avoid hard reload
+      // This allows Next.js to handle the navigation properly
+      router.push(redirect)
+      router.refresh() // Refresh to ensure middleware runs with updated cookies
     }
-  }, [user, searchParams])
+  }, [user, searchParams, router, isRedirecting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,16 +61,18 @@ function LoginForm() {
         })
         setError(error.message || 'Invalid email or password')
         setLoading(false)
+        setIsRedirecting(false) // Reset redirect flag on error
       } else {
-        console.log('[Login] Sign in successful, redirecting...')
+        console.log('[Login] Sign in successful, waiting for state update...')
         // Don't set loading to false - let the redirect happen
-        // The user will be navigated away from this page
+        // The useEffect will trigger and handle the redirect
       }
     } catch (err) {
       console.error('[Login] Unexpected error:', err)
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       setError(errorMessage)
       setLoading(false)
+      setIsRedirecting(false) // Reset redirect flag on error
     }
   }
 
@@ -217,12 +225,12 @@ function LoginForm() {
               <Button
                 type="submit"
                 className="w-full h-11 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
+                disabled={loading || isRedirecting}
               >
-                {loading ? (
+                {loading || isRedirecting ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in...
+                    {isRedirecting ? 'Redirecting...' : 'Signing in...'}
                   </span>
                 ) : (
                   'Sign In'
