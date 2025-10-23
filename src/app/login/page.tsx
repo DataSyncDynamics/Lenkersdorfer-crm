@@ -25,53 +25,12 @@ function LoginForm() {
 
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
-    // CRITICAL FIX: Only run redirect logic if user is authenticated
-    // This prevents the effect from running on initial page load when user is null
-    if (!user) {
-      console.log('[Login] No user session, staying on login page')
-      return
+    if (user) {
+      const redirect = searchParams.get('redirect') || '/'
+      console.log('[Login] User detected, redirecting to:', redirect)
+      router.replace(redirect)
     }
-
-    // If already redirecting, don't start another redirect
-    if (isRedirecting) {
-      console.log('[Login] Redirect already in progress, skipping...')
-      return
-    }
-
-    const redirect = searchParams.get('redirect') || '/'
-    console.log('[Login] User authenticated, initiating redirect to:', redirect)
-
-    // Set flag to prevent multiple redirect attempts
-    setIsRedirecting(true)
-
-    // Perform redirect with session verification
-    const performRedirect = async () => {
-      try {
-        // Verify session exists in cookies before redirecting
-        const { data: { session } } = await supabase.auth.getSession()
-
-        if (session) {
-          console.log('[Login] Session confirmed, performing redirect...')
-
-          // Small delay to ensure cookies are fully written (100ms)
-          await new Promise(resolve => setTimeout(resolve, 100))
-
-          // Use hard redirect to force middleware re-execution with fresh cookies
-          console.log('[Login] Executing window.location.href =', redirect)
-          window.location.href = redirect
-        } else {
-          console.error('[Login] Session not found, cannot redirect')
-          setIsRedirecting(false)
-        }
-      } catch (err) {
-        console.error('[Login] Error during redirect:', err)
-        setIsRedirecting(false)
-      }
-    }
-
-    performRedirect()
-  }, [user, searchParams, isRedirecting])
-  // Note: isRedirecting is intentionally included to ensure we respect the flag
+  }, [user, router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
