@@ -50,18 +50,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('[AuthProvider] Attempting signInWithPassword...')
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (!error) {
-        router.push('/')
-        router.refresh()
+      if (error) {
+        console.error('[AuthProvider] Sign in failed:', error.message)
+        return { error }
       }
 
-      return { error }
+      console.log('[AuthProvider] Sign in successful:', data.user?.email)
+      console.log('[AuthProvider] Session created:', !!data.session)
+
+      // Small delay to ensure session is set before navigation
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      console.log('[AuthProvider] Navigating to dashboard...')
+      router.push('/')
+      router.refresh()
+
+      return { error: null }
     } catch (error) {
+      console.error('[AuthProvider] Unexpected error during sign in:', error)
       return { error: error as Error }
     }
   }

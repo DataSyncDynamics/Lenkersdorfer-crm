@@ -35,14 +35,21 @@ function LoginForm() {
     setLoading(true)
 
     try {
+      console.log('[Login] Attempting sign in with:', email)
       const { error } = await signIn(email, password)
 
       if (error) {
+        console.error('[Login] Sign in error:', error)
         setError(error.message || 'Invalid email or password')
+        setLoading(false)
+      } else {
+        console.log('[Login] Sign in successful, redirecting...')
+        // Don't set loading to false - let the redirect happen
+        // The user will be navigated away from this page
       }
     } catch (err) {
+      console.error('[Login] Unexpected error:', err)
       setError('An unexpected error occurred. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -123,10 +130,6 @@ function LoginForm() {
               <CardDescription className="text-slate-400 text-base">
                 Sign in to access your luxury watch CRM
               </CardDescription>
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
-                <Watch className="h-3 w-3" />
-                <span>Professional Sales Dashboard</span>
-              </div>
             </div>
           </CardHeader>
 
@@ -212,13 +215,6 @@ function LoginForm() {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials hint */}
-            <div className="text-center pt-4 border-t border-slate-800">
-              <p className="text-xs text-slate-500">
-                Demo Access: Contact your administrator for credentials
-              </p>
-            </div>
           </CardContent>
         </Card>
 
@@ -229,7 +225,21 @@ function LoginForm() {
           transition={{ delay: 0.5 }}
           className="text-center text-xs text-slate-600 mt-6"
         >
-          Powered by Data Sync Dynamics
+          Powered by{' '}
+          <motion.span
+            className="text-blue-500 font-medium"
+            animate={{
+              opacity: [0.7, 1, 0.7],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            DataSync
+          </motion.span>{' '}
+          Dynamics
         </motion.p>
       </motion.div>
     </div>
