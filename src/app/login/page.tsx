@@ -66,7 +66,8 @@ function LoginForm() {
 
       performRedirect()
     }
-  }, [user, searchParams, isRedirecting])
+  }, [user, searchParams])
+  // CRITICAL: isRedirecting removed from dependencies to prevent circular re-execution
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
