@@ -25,49 +25,53 @@ function LoginForm() {
 
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
-    if (user && !isRedirecting) {
-      const redirect = searchParams.get('redirect') || '/'
-      console.log('[Login] User authenticated, redirecting to:', redirect)
+    // CRITICAL FIX: Only run redirect logic if user is authenticated
+    // This prevents the effect from running on initial page load when user is null
+    if (!user) {
+      console.log('[Login] No user session, staying on login page')
+      return
+    }
 
-      // Set flag to prevent multiple redirect attempts
-      setIsRedirecting(true)
+    // If already redirecting, don't start another redirect
+    if (isRedirecting) {
+      console.log('[Login] Redirect already in progress, skipping...')
+      return
+    }
 
-      // CRITICAL FIX: Give cookies time to propagate, then force hard redirect
-      // This ensures middleware sees the session on the next page load
-      const performRedirect = async () => {
-        try {
-          // Verify session exists in cookies before redirecting
-          const { data: { session } } = await supabase.auth.getSession()
+    const redirect = searchParams.get('redirect') || '/'
+    console.log('[Login] User authenticated, initiating redirect to:', redirect)
 
-          if (session) {
-            console.log('[Login] Session confirmed, performing redirect...')
+    // Set flag to prevent multiple redirect attempts
+    setIsRedirecting(true)
 
-            // Small delay to ensure cookies are fully written (100ms)
-            await new Promise(resolve => setTimeout(resolve, 100))
+    // Perform redirect with session verification
+    const performRedirect = async () => {
+      try {
+        // Verify session exists in cookies before redirecting
+        const { data: { session } } = await supabase.auth.getSession()
 
-            // Use hard redirect to force middleware re-execution with fresh cookies
-            console.log('[Login] Executing window.location.href =', redirect)
-            window.location.href = redirect
+        if (session) {
+          console.log('[Login] Session confirmed, performing redirect...')
 
-            // Safety timeout: If redirect hasn't happened in 3 seconds, force it again
-            setTimeout(() => {
-              console.warn('[Login] Redirect timeout - forcing refresh')
-              window.location.href = redirect
-            }, 3000)
-          } else {
-            console.error('[Login] Session not found after sign in, retrying...')
-            setIsRedirecting(false)
-          }
-        } catch (err) {
-          console.error('[Login] Error during redirect:', err)
+          // Small delay to ensure cookies are fully written (100ms)
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+          // Use hard redirect to force middleware re-execution with fresh cookies
+          console.log('[Login] Executing window.location.href =', redirect)
+          window.location.href = redirect
+        } else {
+          console.error('[Login] Session not found, cannot redirect')
           setIsRedirecting(false)
         }
+      } catch (err) {
+        console.error('[Login] Error during redirect:', err)
+        setIsRedirecting(false)
       }
-
-      performRedirect()
     }
-  }, [user, searchParams])
-  // CRITICAL: isRedirecting removed from dependencies to prevent circular re-execution
+
+    performRedirect()
+  }, [user, searchParams, isRedirecting])
+  // Note: isRedirecting is intentionally included to ensure we respect the flag
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
