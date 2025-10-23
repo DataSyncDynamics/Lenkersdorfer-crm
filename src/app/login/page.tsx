@@ -1,38 +1,21 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useAuth } from '@/components/auth/AuthProvider'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LenkersdorferLogo } from '@/components/ui/lenkersdorfer-logo'
-import { Watch, Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-function LoginForm() {
+export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [isRedirecting, setIsRedirecting] = useState(false)
-  const { signIn, user } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  // If user is already logged in, redirect to dashboard
-  // NOTE: This useEffect is ONLY for when user navigates to /login while already authenticated
-  // It does NOT handle the redirect after clicking "Sign In" - that's handled in handleSubmit
-  useEffect(() => {
-    if (user && !loading) {
-      const redirect = searchParams.get('redirect') || '/'
-      console.log('[Login] User already authenticated on mount, redirecting to:', redirect)
-      window.location.href = redirect
-    }
-  }, [user, loading, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,30 +23,29 @@ function LoginForm() {
     setLoading(true)
 
     try {
-      console.log('[Login] ========== LOGIN ATTEMPT STARTED ==========')
-      console.log('[Login] Email:', email)
-      console.log('[Login] Calling signIn function...')
+      console.log('[Minimal Login] Attempting login...')
 
-      const result = await signIn(email, password)
-      console.log('[Login] signIn result:', result)
+      // Direct Supabase call - no AuthProvider, no contexts
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-      if (result.error) {
-        console.error('[Login] ❌ Sign in FAILED')
-        console.error('[Login] Error:', result.error.message)
-        console.error('[Login] Full error:', result.error)
-        setError(result.error.message || 'Invalid email or password')
+      if (error) {
+        console.error('[Minimal Login] Error:', error.message)
+        setError(error.message)
         setLoading(false)
-      } else {
-        console.log('[Login] ✅ Sign in SUCCESSFUL!')
-        console.log('[Login] User state will update and trigger useEffect redirect')
-        // Don't set loading to false - keep loading state while redirect happens
-        // The useEffect will handle the actual redirect when user state updates
+        return
       }
+
+      console.log('[Minimal Login] Success! User:', data.user?.email)
+      console.log('[Minimal Login] Redirecting to dashboard...')
+
+      // Hard redirect - bypass all React navigation
+      window.location.href = '/'
     } catch (err) {
-      console.error('[Login] ❌ UNEXPECTED ERROR CAUGHT')
-      console.error('[Login] Error:', err)
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      setError(errorMessage)
+      console.error('[Minimal Login] Unexpected error:', err)
+      setError('An unexpected error occurred')
       setLoading(false)
     }
   }
@@ -217,12 +199,12 @@ function LoginForm() {
               <Button
                 type="submit"
                 className="w-full h-11 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading || isRedirecting}
+                disabled={loading}
               >
-                {loading || isRedirecting ? (
+                {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {isRedirecting ? 'Redirecting...' : 'Signing in...'}
+                    Signing in...
                   </span>
                 ) : (
                   'Sign In'
@@ -256,17 +238,5 @@ function LoginForm() {
         </motion.p>
       </motion.div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
   )
 }
