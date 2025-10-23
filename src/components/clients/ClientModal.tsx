@@ -538,7 +538,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
           {/* Last Contact Date & Time */}
           <div className="space-y-4 bg-amber-50 dark:bg-amber-950/30 p-5 rounded-lg border border-amber-200 dark:border-amber-800">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Last Contact</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="lastContactDate" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
