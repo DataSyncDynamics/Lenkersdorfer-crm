@@ -39,6 +39,11 @@ export default function LoginPage() {
       }
 
       console.log('[Minimal Login] Success! User:', data.user?.email)
+      console.log('[Minimal Login] Waiting for cookies to sync...')
+
+      // Wait 500ms for cookies to propagate, then redirect
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       console.log('[Minimal Login] Redirecting to dashboard...')
 
       // Hard redirect - bypass all React navigation
