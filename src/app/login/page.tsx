@@ -24,13 +24,15 @@ function LoginForm() {
   const searchParams = useSearchParams()
 
   // If user is already logged in, redirect to dashboard
+  // NOTE: This useEffect is ONLY for when user navigates to /login while already authenticated
+  // It does NOT handle the redirect after clicking "Sign In" - that's handled in handleSubmit
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       const redirect = searchParams.get('redirect') || '/'
-      console.log('[Login] User detected, redirecting to:', redirect)
-      router.replace(redirect)
+      console.log('[Login] User already authenticated on mount, redirecting to:', redirect)
+      window.location.href = redirect
     }
-  }, [user, router, searchParams])
+  }, [user, loading, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,17 +55,9 @@ function LoginForm() {
         setLoading(false)
       } else {
         console.log('[Login] ✅ Sign in SUCCESSFUL!')
-        console.log('[Login] No error returned from signIn')
-
-        // Direct redirect - don't wait for state
-        const redirect = searchParams.get('redirect') || '/'
-        console.log('[Login] Redirect URL:', redirect)
-        console.log('[Login] Executing window.location.href =', redirect)
-
-        // Use window.location for guaranteed redirect
-        window.location.href = redirect
-
-        console.log('[Login] window.location.href executed (if you see this, redirect might have failed)')
+        console.log('[Login] User state will update and trigger useEffect redirect')
+        // Don't set loading to false - keep loading state while redirect happens
+        // The useEffect will handle the actual redirect when user state updates
       }
     } catch (err) {
       console.error('[Login] ❌ UNEXPECTED ERROR CAUGHT')
