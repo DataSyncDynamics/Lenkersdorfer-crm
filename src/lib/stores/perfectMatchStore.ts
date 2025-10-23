@@ -99,6 +99,14 @@ export const createPerfectMatchSlice: StateCreator<
     // CRITICAL: Re-calculate client tier based on actual spend (ignore mock data tiers)
     const realClientTier = calculateClientTier(clientLifetimeSpend)
 
+    // STRICT CHECK: New prospects ($0 spend) should only see entry-level watches
+    if (clientLifetimeSpend === 0) {
+      // New prospects with no purchase history
+      if (watchPrice > 10000) {
+        return 'RED' // Immediately disqualify expensive watches for brand new prospects
+      }
+    }
+
     // First check: Strict affordability - if not affordable, it's automatically RED
     if (!isWatchAffordable(clientLifetimeSpend, watchPrice)) {
       return 'RED'

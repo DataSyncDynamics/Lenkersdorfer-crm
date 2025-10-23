@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAppStore } from '@/lib/store'
+import { formatClientName } from '@/lib/ui-utils'
 
 interface AddWaitlistModalProps {
   open: boolean
@@ -19,6 +20,9 @@ export const AddWaitlistModal: React.FC<AddWaitlistModalProps> = ({ open, onClos
   const [clientId, setClientId] = useState('')
   const [watchId, setWatchId] = useState('')
   const [notes, setNotes] = useState('')
+
+  // Sort clients alphabetically by name
+  const sortedClients = [...clients].sort((a, b) => a.name.localeCompare(b.name))
 
   const handleAddToWaitlist = async () => {
     if (!clientId || !watchId) {
@@ -34,7 +38,7 @@ export const AddWaitlistModal: React.FC<AddWaitlistModalProps> = ({ open, onClos
       setNotes('')
       onClose()
     } catch (error) {
-      console.error('Failed to add to waitlist:', error)
+      // Silently handle error - user will see no feedback on success either
     }
   }
 
@@ -64,9 +68,9 @@ export const AddWaitlistModal: React.FC<AddWaitlistModalProps> = ({ open, onClos
                   <SelectValue placeholder="Select a client..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
+                  {sortedClients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
-                      {client.name}
+                      {formatClientName(client.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>

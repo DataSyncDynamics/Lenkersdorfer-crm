@@ -27,8 +27,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAppStore, formatCurrency } from '@/lib/store'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { cn } from '@/lib/utils'
-import { getTierColorClasses, calculateDaysBetween, getAvatarInitials } from '@/lib/ui-utils'
-import { AddWaitlistFAB } from '@/components/waitlist/AddWaitlistFAB'
+import { getTierColorClasses, calculateDaysBetween, getAvatarInitials, getMatchWarning } from '@/lib/ui-utils'
+import { AddWaitlistModal } from '@/components/waitlist/AddWaitlistModal'
+import { triggerHapticFeedback } from '@/lib/haptic-utils'
 
 export default function WaitlistPage() {
   const {
@@ -47,6 +48,7 @@ export default function WaitlistPage() {
   const [expandedWatchId, setExpandedWatchId] = useState<string | null>(null)
   const [expandedModalWatchId, setExpandedModalWatchId] = useState<string | null>(null)
   const [showModal, setShowModal] = useState<'total' | 'watches' | 'vip' | 'urgent' | null>(null)
+  const [showAddWaitlistModal, setShowAddWaitlistModal] = useState(false)
 
   // Calculate analytics with Urgent Follow-ups logic
   const analytics = useMemo(() => {
@@ -200,24 +202,31 @@ export default function WaitlistPage() {
     <LenkersdorferSidebar>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Waitlist Management</h1>
-            <p className="text-muted-foreground">Track client interest in luxury timepieces</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className={cn(
-                analytics.urgentFollowups > 0
-                  ? "bg-orange-600 hover:bg-orange-700 text-white"
-                  : "bg-gray-600 hover:bg-gray-700 text-white"
-              )}
-              onClick={() => setShowModal('urgent')}
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Urgent Follow-ups ({analytics.urgentFollowups})
+        <div className="sticky top-0 z-20 bg-background md:static flex flex-col gap-4 p-4 md:p-6 lg:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Waitlist Management</h1>
+            <Button size="default" onClick={() => {
+              triggerHapticFeedback()
+              setShowAddWaitlistModal(true)
+            }} className="h-10">
+              <Clock className="h-4 w-4 mr-2" />
+              Add to Waitlist
             </Button>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Track client interest in luxury timepieces</p>
+            {analytics.urgentFollowups > 0 && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={() => setShowModal('urgent')}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Urgent Follow-ups ({analytics.urgentFollowups})
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -353,11 +362,6 @@ export default function WaitlistPage() {
                         ? 'Try adjusting your search query or filters'
                         : 'Waitlist entries will appear here when clients request watches that are not currently available'}
                     </p>
-                    {!searchQuery && (
-                      <p className="text-sm text-foreground/50 mt-4">
-                        💡 Tip: Add clients to the waitlist from the Allocation page when watches are reserved or unavailable
-                      </p>
-                    )}
                   </div>
                 </Card>
               ) : (
@@ -633,6 +637,30 @@ export default function WaitlistPage() {
                                       <div className={cn("w-2 h-2 rounded-full", matchColor.replace('text-', 'bg-'))} />
                                       <span className={cn("text-xs font-medium", matchColor)}>{matchLabel}</span>
                                     </div>
+                                    {/* Warning Badge */}
+                                    {(() => {
+                                      const warning = getMatchWarning(
+                                        entry.client.lifetimeSpend,
+                                        entry.client.clientTier,
+                                        item.watch.price,
+                                        item.watch.watchTier
+                                      )
+                                      if (warning.type !== 'NONE') {
+                                        return (
+                                          <Badge
+                                            className={cn(
+                                              "text-xs mt-1",
+                                              warning.severity === 'critical' && "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-300",
+                                              warning.severity === 'warning' && "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border-orange-300",
+                                              warning.severity === 'info' && "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300"
+                                            )}
+                                          >
+                                            ⚠️ {warning.message}
+                                          </Badge>
+                                        )
+                                      }
+                                      return null
+                                    })()}
                                   </div>
                                 </div>
 
@@ -689,6 +717,17 @@ export default function WaitlistPage() {
                                       Allocate
                                     </Button>
                                   </Link>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      removeFromWaitlist(entry.id)
+                                    }}
+                                    className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 flex-shrink-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               </div>
                             )
@@ -726,11 +765,21 @@ export default function WaitlistPage() {
                       {formatCurrency(entry.client.lifetimeSpend)} lifetime • {entry.daysWaiting} days waiting
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
                     <div className="font-semibold text-xs md:text-base text-foreground">{formatCurrency(entry.watch.price)}</div>
-                    <Link href={`/allocation?watch=${entry.watch.id}`}>
-                      <Button size="sm" className="mt-1 text-xs md:text-sm">Allocate</Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/allocation?watch=${entry.watch.id}`}>
+                        <Button size="sm" className="text-xs md:text-sm">Allocate</Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFromWaitlist(entry.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -746,8 +795,11 @@ export default function WaitlistPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add to Waitlist FAB */}
-      <AddWaitlistFAB />
+      {/* Add to Waitlist Modal */}
+      <AddWaitlistModal
+        open={showAddWaitlistModal}
+        onClose={() => setShowAddWaitlistModal(false)}
+      />
     </LenkersdorferSidebar>
   )
 }

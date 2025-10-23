@@ -211,3 +211,72 @@ export function getNotificationBadgeClasses(variant?: 'green'): string {
   const baseClasses = "notification-badge"
   return variant === 'green' ? `${baseClasses} bg-green-500` : baseClasses
 }
+
+// Match status warnings for waitlist entries
+export type MatchWarningType = 'NEW_PROSPECT' | 'PRICE_MISMATCH' | 'TIER_GAP' | 'NONE'
+
+export interface MatchWarning {
+  type: MatchWarningType
+  message: string
+  severity: 'critical' | 'warning' | 'info'
+}
+
+/**
+ * Get warning message for waitlist entry based on client/watch mismatch
+ */
+export function getMatchWarning(
+  clientLifetimeSpend: number,
+  clientTier: number,
+  watchPrice: number,
+  watchTier: number
+): MatchWarning {
+  // NEW PROSPECT WARNING: $0 spend clients
+  if (clientLifetimeSpend === 0) {
+    if (watchPrice > 10000) {
+      return {
+        type: 'NEW_PROSPECT',
+        message: 'New prospect - Build relationship first',
+        severity: 'critical'
+      }
+    }
+    return {
+      type: 'NEW_PROSPECT',
+      message: 'New prospect - Entry level watch',
+      severity: 'info'
+    }
+  }
+
+  // PRICE MISMATCH: Watch exceeds client's tier max
+  const tierMaxPrices: Record<number, number> = {
+    1: 300000, // Tier 1: Ultra-High Net Worth
+    2: 100000, // Tier 2: High Net Worth
+    3: 45000,  // Tier 3: Established Collectors
+    4: 20000,  // Tier 4: Growing Enthusiasts
+    5: 12000   // Tier 5: Entry Level
+  }
+
+  const maxAffordable = tierMaxPrices[clientTier] || 12000
+  if (watchPrice > maxAffordable) {
+    return {
+      type: 'PRICE_MISMATCH',
+      message: `Price $${(watchPrice/1000).toFixed(0)}K exceeds Tier ${clientTier} max ($${(maxAffordable/1000).toFixed(0)}K)`,
+      severity: 'critical'
+    }
+  }
+
+  // TIER GAP: Client tier is significantly below watch tier
+  const tierGap = watchTier - clientTier
+  if (tierGap >= 2) {
+    return {
+      type: 'TIER_GAP',
+      message: `Watch tier ${watchTier} - client tier ${clientTier} gap`,
+      severity: 'warning'
+    }
+  }
+
+  return {
+    type: 'NONE',
+    message: '',
+    severity: 'info'
+  }
+}

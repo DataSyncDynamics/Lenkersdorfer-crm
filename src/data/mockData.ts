@@ -518,7 +518,7 @@ export const mockClients: Client[] = [
 ]
 
 export const mockWatchModels: WatchModel[] = [
-  // Tier 1: Nearly Impossible
+  // TIER 2: High-End ($25K-$75K) - Rare and Valuable
   {
     id: 'w1',
     brand: 'Rolex',
@@ -526,20 +526,9 @@ export const mockWatchModels: WatchModel[] = [
     collection: '126500LN Panda',
     price: 35000,
     availability: 'Waitlist',
-    watchTier: 1,
+    watchTier: 2, // CORRECTED: $35K = Tier 2 (High-End)
     rarityDescription: 'Nearly Impossible - Daytona Panda, ultimate grail piece',
     description: 'White dial Daytona with black bezel, the most coveted steel sports Rolex'
-  },
-  {
-    id: 'w2',
-    brand: 'Rolex',
-    model: 'GMT-Master II',
-    collection: '126720VTNR Sprite',
-    price: 21000,
-    availability: 'Waitlist',
-    watchTier: 1,
-    rarityDescription: 'Nearly Impossible - Left-handed GMT Sprite',
-    description: 'Left-handed GMT with green and black bezel, extremely rare'
   },
   {
     id: 'w3',
@@ -548,12 +537,34 @@ export const mockWatchModels: WatchModel[] = [
     collection: '116610LV Hulk',
     price: 28000,
     availability: 'Waitlist',
-    watchTier: 1,
+    watchTier: 2, // CORRECTED: $28K = Tier 2 (High-End)
     rarityDescription: 'Nearly Impossible - Discontinued Hulk, legendary status',
     description: 'Discontinued green Submariner, achieving legendary status'
   },
+  {
+    id: 'w14',
+    brand: 'Rolex',
+    model: 'Cellini',
+    collection: '50519 Moonphase',
+    price: 32500,
+    availability: 'Available',
+    watchTier: 2, // CORRECTED: $32.5K = Tier 2 (High-End)
+    rarityDescription: 'Available - Dress watch collection',
+    description: 'White gold Cellini with moonphase complication'
+  },
 
-  // Tier 2: Extremely Hard
+  // TIER 3: Premium ($12K-$25K) - Desirable Luxury
+  {
+    id: 'w2',
+    brand: 'Rolex',
+    model: 'GMT-Master II',
+    collection: '126720VTNR Sprite',
+    price: 21000,
+    availability: 'Waitlist',
+    watchTier: 3, // CORRECTED: $21K = Tier 3 (Premium)
+    rarityDescription: 'Nearly Impossible - Left-handed GMT Sprite',
+    description: 'Left-handed GMT with green and black bezel, extremely rare'
+  },
   {
     id: 'w4',
     brand: 'Rolex',
@@ -561,7 +572,7 @@ export const mockWatchModels: WatchModel[] = [
     collection: '126610LN',
     price: 18500,
     availability: 'Waitlist',
-    watchTier: 2,
+    watchTier: 3, // CORRECTED: $18.5K = Tier 3 (Premium)
     rarityDescription: 'Extremely Hard - Steel Submariner, high demand',
     description: 'Black dial steel Submariner, ceramic bezel'
   },
@@ -572,7 +583,7 @@ export const mockWatchModels: WatchModel[] = [
     collection: '326934 Steel',
     price: 22500,
     availability: 'Waitlist',
-    watchTier: 2,
+    watchTier: 3, // CORRECTED: $22.5K = Tier 3 (Premium)
     rarityDescription: 'Extremely Hard - Complicated steel sports watch',
     description: 'Steel Sky-Dweller with blue dial, annual calendar'
   },
@@ -583,12 +594,10 @@ export const mockWatchModels: WatchModel[] = [
     collection: '126710BLNR Batman',
     price: 19500,
     availability: 'Waitlist',
-    watchTier: 2,
+    watchTier: 3, // CORRECTED: $19.5K = Tier 3 (Premium)
     rarityDescription: 'Extremely Hard - Batman GMT with Jubilee bracelet',
     description: 'Black and blue bezel GMT on Jubilee bracelet'
   },
-
-  // Tier 3: Very Difficult
   {
     id: 'w7',
     brand: 'Rolex',
@@ -596,34 +605,10 @@ export const mockWatchModels: WatchModel[] = [
     collection: '126234 36mm',
     price: 12500,
     availability: 'Waitlist',
-    watchTier: 3,
+    watchTier: 3, // CORRECT: $12.5K = Tier 3 (Premium)
     rarityDescription: 'Very Difficult - Classic dress watch',
     description: 'Steel and white gold Datejust with blue dial'
   },
-  {
-    id: 'w8',
-    brand: 'Rolex',
-    model: 'Explorer',
-    collection: '124270',
-    price: 9500,
-    availability: 'Waitlist',
-    watchTier: 3,
-    rarityDescription: 'Very Difficult - Tool watch excellence',
-    description: '36mm Explorer, classic black dial tool watch'
-  },
-  {
-    id: 'w9',
-    brand: 'Rolex',
-    model: 'Oyster Perpetual',
-    collection: '124300 41mm',
-    price: 8500,
-    availability: 'Waitlist',
-    watchTier: 3,
-    rarityDescription: 'Very Difficult - Entry-level steel sports',
-    description: '41mm OP with bright blue dial'
-  },
-
-  // Tier 4: Moderate
   {
     id: 'w10',
     brand: 'Rolex',
@@ -631,7 +616,7 @@ export const mockWatchModels: WatchModel[] = [
     collection: '126622 40mm',
     price: 14500,
     availability: 'Available',
-    watchTier: 4,
+    watchTier: 3, // CORRECTED: $14.5K = Tier 3 (Premium)
     rarityDescription: 'Moderate - Luxury sports watch',
     description: 'Steel and platinum Yacht-Master with rhodium dial'
   },
@@ -642,9 +627,44 @@ export const mockWatchModels: WatchModel[] = [
     collection: '126600',
     price: 13500,
     availability: 'Available',
-    watchTier: 4,
+    watchTier: 3, // CORRECTED: $13.5K = Tier 3 (Premium)
     rarityDescription: 'Moderate - Professional diving watch',
     description: 'Sea-Dweller with red lettering, 1220m water resistance'
+  },
+  {
+    id: 'w13',
+    brand: 'Rolex',
+    model: 'Air-King',
+    collection: '126900',
+    price: 12000,
+    availability: 'Available',
+    watchTier: 3, // CORRECTED: $12K = Tier 3 (Premium, at lower bound)
+    rarityDescription: 'Available - Entry-level Rolex',
+    description: 'Air-King with black dial and colorful markers'
+  },
+
+  // TIER 4: Entry Premium ($8K-$12K) - Accessible Luxury
+  {
+    id: 'w8',
+    brand: 'Rolex',
+    model: 'Explorer',
+    collection: '124270',
+    price: 9500,
+    availability: 'Waitlist',
+    watchTier: 4, // CORRECTED: $9.5K = Tier 4 (Entry Premium)
+    rarityDescription: 'Very Difficult - Tool watch excellence',
+    description: '36mm Explorer, classic black dial tool watch'
+  },
+  {
+    id: 'w9',
+    brand: 'Rolex',
+    model: 'Oyster Perpetual',
+    collection: '124300 41mm',
+    price: 8500,
+    availability: 'Waitlist',
+    watchTier: 4, // CORRECTED: $8.5K = Tier 4 (Entry Premium)
+    rarityDescription: 'Very Difficult - Entry-level steel sports',
+    description: '41mm OP with bright blue dial'
   },
   {
     id: 'w12',
@@ -653,33 +673,9 @@ export const mockWatchModels: WatchModel[] = [
     collection: '116400GV',
     price: 10500,
     availability: 'Available',
-    watchTier: 4,
+    watchTier: 4, // CORRECTED: $10.5K = Tier 4 (Entry Premium)
     rarityDescription: 'Moderate - Anti-magnetic scientific watch',
     description: 'Green sapphire crystal Milgauss, orange lightning bolt'
-  },
-
-  // Tier 5: Available
-  {
-    id: 'w13',
-    brand: 'Rolex',
-    model: 'Air-King',
-    collection: '126900',
-    price: 12000,
-    availability: 'Available',
-    watchTier: 5,
-    rarityDescription: 'Available - Entry-level Rolex',
-    description: 'Air-King with black dial and colorful markers'
-  },
-  {
-    id: 'w14',
-    brand: 'Rolex',
-    model: 'Cellini',
-    collection: '50519 Moonphase',
-    price: 32500,
-    availability: 'Available',
-    watchTier: 5,
-    rarityDescription: 'Available - Dress watch collection',
-    description: 'White gold Cellini with moonphase complication'
   },
   {
     id: 'w15',
@@ -688,12 +684,12 @@ export const mockWatchModels: WatchModel[] = [
     collection: '279174 28mm',
     price: 8500,
     availability: 'Available',
-    watchTier: 5,
+    watchTier: 4, // CORRECTED: $8.5K = Tier 4 (Entry Premium)
     rarityDescription: 'Available - Ladies luxury watch',
     description: 'Steel and white gold Lady-Datejust with silver dial'
   },
 
-  // Non-Rolex prestigious pieces for comparison
+  // TIER 1: Ultra-Luxury ($75K+) - Investment Grade
   {
     id: 'w16',
     brand: 'Patek Philippe',
@@ -701,7 +697,7 @@ export const mockWatchModels: WatchModel[] = [
     collection: '5711/1A',
     price: 85000,
     availability: 'Waitlist',
-    watchTier: 1,
+    watchTier: 1, // CORRECT: $85K = Tier 1 (Ultra-Luxury)
     rarityDescription: 'Nearly Impossible - Holy grail steel sports watch',
     description: 'Discontinued steel Nautilus, ultimate luxury sports watch'
   },
@@ -712,7 +708,7 @@ export const mockWatchModels: WatchModel[] = [
     collection: '15500ST',
     price: 55000,
     availability: 'Waitlist',
-    watchTier: 2,
+    watchTier: 2, // CORRECTED: $55K = Tier 2 (High-End, not Ultra-Luxury)
     rarityDescription: 'Extremely Hard - Iconic octagonal sports watch',
     description: 'Steel Royal Oak with blue tapisserie dial'
   }
