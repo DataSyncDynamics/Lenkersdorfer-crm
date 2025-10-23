@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { supabaseBrowser } from '@/lib/supabase/browser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,33 +23,35 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      console.log('[Minimal Login] Attempting login...')
+      console.log('[Login] Attempting login with cookie-based client...')
 
-      // Direct Supabase call - no AuthProvider, no contexts
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Use cookie-based browser client (not localStorage)
+      const { data, error } = await supabaseBrowser.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
-        console.error('[Minimal Login] Error:', error.message)
+        console.error('[Login] Error:', error.message)
         setError(error.message)
         setLoading(false)
         return
       }
 
-      console.log('[Minimal Login] Success! User:', data.user?.email)
-      console.log('[Minimal Login] Waiting for cookies to sync...')
+      console.log('[Login] Success! User:', data.user?.email)
+      console.log('[Login] Session stored in cookies')
+      console.log('[Login] Access token:', data.session?.access_token?.substring(0, 20) + '...')
 
-      // Wait 500ms for cookies to propagate, then redirect
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait 1 second for cookies to be fully written and propagated
+      console.log('[Login] Waiting for cookies to propagate...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-      console.log('[Minimal Login] Redirecting to dashboard...')
+      console.log('[Login] Redirecting to dashboard...')
 
-      // Hard redirect - bypass all React navigation
+      // Hard redirect to force middleware to run
       window.location.href = '/'
     } catch (err) {
-      console.error('[Minimal Login] Unexpected error:', err)
+      console.error('[Login] Unexpected error:', err)
       setError('An unexpected error occurred')
       setLoading(false)
     }
