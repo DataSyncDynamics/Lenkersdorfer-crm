@@ -552,7 +552,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                   readOnly={!isEditing}
                   max={new Date().toISOString().split('T')[0]}
                   className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : "cursor-pointer bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"}
-                  style={isEditing ? { textAlign: 'center', paddingLeft: '0', paddingRight: '0' } : {}}
+                  style={isEditing ? { textAlign: 'center' } : {}}
                   onClick={(e) => {
                     if (isEditing) {
                       e.stopPropagation()
@@ -579,7 +579,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
                   onChange={(e) => setFormData({ ...formData, lastContactTime: e.target.value })}
                   readOnly={!isEditing}
                   className={!isEditing ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600" : "cursor-pointer bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600"}
-                  style={isEditing ? { textAlign: 'center', paddingLeft: '0', paddingRight: '0' } : {}}
+                  style={isEditing ? { textAlign: 'center' } : {}}
                   onClick={(e) => {
                     if (isEditing) {
                       e.stopPropagation()
