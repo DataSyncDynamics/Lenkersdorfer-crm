@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import type { UrgentNotification, NotificationCategory } from '@/components/notifications/UrgentNotificationDashboard'
 
 interface NotificationContextType {
@@ -116,7 +117,19 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   // Load reminders on mount and set up refresh interval
   useEffect(() => {
-    refreshReminders()
+    // Only load reminders if user is authenticated
+    const checkAuthAndLoad = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          refreshReminders()
+        }
+      } catch (error) {
+        console.error('[NotificationContext] Auth check failed:', error)
+      }
+    }
+
+    checkAuthAndLoad()
     const interval = setInterval(refreshReminders, 60000) // Refresh every minute
     return () => clearInterval(interval)
   }, [])
