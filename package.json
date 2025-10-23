@@ -5,10 +5,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/verify-env.js && next build",
+    "build:skip-check": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node scripts/seed-supabase.js"
+    "seed": "node scripts/seed-supabase.js",
+    "verify-env": "node scripts/verify-env.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

@@ -4,4 +4,6 @@ node_modules/
 .env.local
 .env*.local
 .env
+.env.production
 .vercel
+tsconfig.tsbuildinfo

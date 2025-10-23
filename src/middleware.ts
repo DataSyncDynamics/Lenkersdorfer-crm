@@ -18,13 +18,17 @@ export async function middleware(req: NextRequest) {
     },
   })
 
-  // Get environment variables with fallback
+  // Get environment variables - they MUST be accessed directly for Vercel edge runtime
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // If environment variables are missing, allow through (will be caught at runtime)
+  // If environment variables are missing in edge runtime, log and allow through
+  // The error will be caught and displayed at the component level
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[Middleware] Missing Supabase environment variables')
+    console.error('[Middleware] CRITICAL: Missing Supabase environment variables in edge runtime')
+    console.error('[Middleware] URL present:', !!supabaseUrl)
+    console.error('[Middleware] Key present:', !!supabaseAnonKey)
+    console.error('[Middleware] This indicates variables were not set at build time')
     return res
   }
 

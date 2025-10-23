@@ -1,12 +1,12 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/database'
+import { env } from '@/lib/env'
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+  const { url, anonKey: key } = env.supabase
 
   return createServerClient<Database>(
     url,
@@ -40,8 +40,14 @@ export async function createServerSupabaseClient() {
 }
 
 export async function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key'
+  const { url, serviceRoleKey: serviceKey } = env.supabase
+
+  if (!serviceKey) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is required for admin operations. ' +
+      'This key should only be used in server-side code and never exposed to the client.'
+    )
+  }
 
   return createServerClient<Database>(
     url,
