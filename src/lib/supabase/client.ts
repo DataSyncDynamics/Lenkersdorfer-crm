@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
+import { env } from '@/lib/env'
 
 // Lazy initialization to avoid build-time errors on Vercel
 let supabaseInstance: SupabaseClient<Database> | null = null
@@ -10,15 +11,15 @@ function getSupabaseClient(): SupabaseClient<Database> {
     return supabaseInstance
   }
 
-  // Get environment variables at runtime
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  // Use centralized environment configuration with validation
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = env.supabase
 
-  // Validate environment variables
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Missing Supabase environment variables. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.'
-    )
+  // Log successful initialization (browser only)
+  if (typeof window !== 'undefined' && env.app.isDevelopment) {
+    console.info('[Supabase Client] Initialized', {
+      url: `${supabaseUrl.substring(0, 30)}...`,
+      context: 'browser'
+    })
   }
 
   // Create and cache the client instance
