@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/components/auth/AuthProvider'
 import type { UrgentNotification, NotificationCategory } from '@/components/notifications/UrgentNotificationDashboard'
 
 interface NotificationContextType {
@@ -42,12 +42,25 @@ const initialNotifications: UrgentNotification[] = []
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<UrgentNotification[]>(initialNotifications)
+  const { session, loading } = useAuth()
 
   // Load due reminders from API and convert to notifications
   const refreshReminders = async () => {
+    // Double-check auth before making API call
+    if (!session) {
+      console.log('[NotificationContext] Skipping refresh - no session')
+      return
+    }
+
     try {
       const response = await fetch('/api/reminders?filter=due')
-      if (!response.ok) return
+      if (!response.ok) {
+        // Don't log 401s as errors - they're expected during auth transitions
+        if (response.status !== 401) {
+          console.error('[NotificationContext] Failed to fetch reminders:', response.status)
+        }
+        return
+      }
 
       const reminders = await response.json()
 
@@ -111,28 +124,41 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         return [...nonReminderNotifications, ...reminderNotifications]
       })
     } catch (error) {
-      console.error('Error loading reminders:', error)
+      console.error('[NotificationContext] Error loading reminders:', error)
     }
   }
 
-  // Load reminders on mount and set up refresh interval
+  // Load reminders only when authenticated
   useEffect(() => {
-    // Only load reminders if user is authenticated
-    const checkAuthAndLoad = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          refreshReminders()
-        }
-      } catch (error) {
-        console.error('[NotificationContext] Auth check failed:', error)
-      }
+    // Don't do anything while auth is loading
+    if (loading) {
+      console.log('[NotificationContext] Waiting for auth to load...')
+      return
     }
 
-    checkAuthAndLoad()
-    const interval = setInterval(refreshReminders, 60000) // Refresh every minute
-    return () => clearInterval(interval)
-  }, [])
+    // Clear notifications if user logged out
+    if (!session) {
+      console.log('[NotificationContext] No session - clearing notifications')
+      setNotifications([])
+      return
+    }
+
+    // User is authenticated - load reminders and set up interval
+    console.log('[NotificationContext] Session detected - loading reminders')
+    refreshReminders()
+
+    // Set up refresh interval (only runs while this effect is active)
+    const interval = setInterval(() => {
+      console.log('[NotificationContext] Interval tick - refreshing reminders')
+      refreshReminders()
+    }, 60000) // Refresh every minute
+
+    // Clean up interval when session changes or component unmounts
+    return () => {
+      console.log('[NotificationContext] Cleaning up interval')
+      clearInterval(interval)
+    }
+  }, [session, loading]) // Re-run when session or loading state changes
 
   const addNotification = (notification: Omit<UrgentNotification, 'id' | 'createdAt' | 'isRead'>) => {
     const newNotification: UrgentNotification = {
