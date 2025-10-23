@@ -39,34 +39,28 @@ function LoginForm() {
 
     try {
       console.log('[Login] Attempting sign in with:', email)
-      console.log('[Login] Environment check:', {
-        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-        hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      })
 
       const { error } = await signIn(email, password)
 
       if (error) {
-        console.error('[Login] Sign in error:', error)
-        console.error('[Login] Error details:', {
-          message: error.message,
-          status: (error as any).status,
-          name: error.name
-        })
+        console.error('[Login] Sign in error:', error.message)
         setError(error.message || 'Invalid email or password')
         setLoading(false)
-        setIsRedirecting(false) // Reset redirect flag on error
       } else {
-        console.log('[Login] Sign in successful, waiting for state update...')
-        // Don't set loading to false - let the redirect happen
-        // The useEffect will trigger and handle the redirect
+        console.log('[Login] Sign in successful!')
+
+        // Direct redirect - don't wait for state
+        const redirect = searchParams.get('redirect') || '/'
+        console.log('[Login] Redirecting to:', redirect)
+
+        // Use window.location for guaranteed redirect
+        window.location.href = redirect
       }
     } catch (err) {
       console.error('[Login] Unexpected error:', err)
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       setError(errorMessage)
       setLoading(false)
-      setIsRedirecting(false) // Reset redirect flag on error
     }
   }
 
