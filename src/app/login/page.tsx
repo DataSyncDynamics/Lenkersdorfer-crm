@@ -38,26 +38,36 @@ function LoginForm() {
     setLoading(true)
 
     try {
-      console.log('[Login] Attempting sign in with:', email)
+      console.log('[Login] ========== LOGIN ATTEMPT STARTED ==========')
+      console.log('[Login] Email:', email)
+      console.log('[Login] Calling signIn function...')
 
-      const { error } = await signIn(email, password)
+      const result = await signIn(email, password)
+      console.log('[Login] signIn result:', result)
 
-      if (error) {
-        console.error('[Login] Sign in error:', error.message)
-        setError(error.message || 'Invalid email or password')
+      if (result.error) {
+        console.error('[Login] ❌ Sign in FAILED')
+        console.error('[Login] Error:', result.error.message)
+        console.error('[Login] Full error:', result.error)
+        setError(result.error.message || 'Invalid email or password')
         setLoading(false)
       } else {
-        console.log('[Login] Sign in successful!')
+        console.log('[Login] ✅ Sign in SUCCESSFUL!')
+        console.log('[Login] No error returned from signIn')
 
         // Direct redirect - don't wait for state
         const redirect = searchParams.get('redirect') || '/'
-        console.log('[Login] Redirecting to:', redirect)
+        console.log('[Login] Redirect URL:', redirect)
+        console.log('[Login] Executing window.location.href =', redirect)
 
         // Use window.location for guaranteed redirect
         window.location.href = redirect
+
+        console.log('[Login] window.location.href executed (if you see this, redirect might have failed)')
       }
     } catch (err) {
-      console.error('[Login] Unexpected error:', err)
+      console.error('[Login] ❌ UNEXPECTED ERROR CAUGHT')
+      console.error('[Login] Error:', err)
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       setError(errorMessage)
       setLoading(false)
