@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,12 +32,41 @@ function LoginForm() {
       // Set flag to prevent multiple redirect attempts
       setIsRedirecting(true)
 
-      // Use router.push instead of window.location to avoid hard reload
-      // This allows Next.js to handle the navigation properly
-      router.push(redirect)
-      router.refresh() // Refresh to ensure middleware runs with updated cookies
+      // CRITICAL FIX: Give cookies time to propagate, then force hard redirect
+      // This ensures middleware sees the session on the next page load
+      const performRedirect = async () => {
+        try {
+          // Verify session exists in cookies before redirecting
+          const { data: { session } } = await supabase.auth.getSession()
+
+          if (session) {
+            console.log('[Login] Session confirmed, performing redirect...')
+
+            // Small delay to ensure cookies are fully written (100ms)
+            await new Promise(resolve => setTimeout(resolve, 100))
+
+            // Use hard redirect to force middleware re-execution with fresh cookies
+            console.log('[Login] Executing window.location.href =', redirect)
+            window.location.href = redirect
+
+            // Safety timeout: If redirect hasn't happened in 3 seconds, force it again
+            setTimeout(() => {
+              console.warn('[Login] Redirect timeout - forcing refresh')
+              window.location.href = redirect
+            }, 3000)
+          } else {
+            console.error('[Login] Session not found after sign in, retrying...')
+            setIsRedirecting(false)
+          }
+        } catch (err) {
+          console.error('[Login] Error during redirect:', err)
+          setIsRedirecting(false)
+        }
+      }
+
+      performRedirect()
     }
-  }, [user, searchParams, router, isRedirecting])
+  }, [user, searchParams, isRedirecting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

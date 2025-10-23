@@ -81,6 +81,19 @@ export async function middleware(req: NextRequest) {
   // Refresh session if expired - this updates the cookie
   const { data: { session }, error } = await supabase.auth.getSession()
 
+  if (error) {
+    console.error('[Middleware] Error getting session:', error.message)
+  }
+
+  // Log session status for debugging (only for non-static assets)
+  if (!req.nextUrl.pathname.startsWith('/_next')) {
+    console.log('[Middleware]', {
+      path: req.nextUrl.pathname,
+      hasSession: !!session,
+      userId: session?.user?.id?.substring(0, 8) || 'none'
+    })
+  }
+
   // Define public endpoints that don't require authentication
   const publicEndpoints = [
     '/api/health',
@@ -101,6 +114,7 @@ export async function middleware(req: NextRequest) {
   if (isPublicEndpoint) {
     // If user has session and is accessing login page, redirect to dashboard
     if (session && req.nextUrl.pathname === '/login') {
+      console.log('[Middleware] User has session on /login, redirecting to dashboard')
       return NextResponse.redirect(new URL('/', req.url))
     }
     return res
