@@ -120,14 +120,14 @@ export default function ImportPage() {
             message += `👥 Average Spend: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(result.stats.averageSpend)}\n`
             message += `\n✨ Data persisted to Supabase - safe to refresh!`
 
-            alert(message)
+            // TODO: Add toast notification
           }, 500)
         }
 
         // Show warning if database save failed but parsing succeeded
         if (result.warning) {
           setTimeout(() => {
-            alert(`⚠️ Warning: ${result.warning}\n\nData was parsed successfully but NOT saved to database.\nIt will disappear on refresh.\n\nError: ${result.databaseError}`)
+            // TODO: Add toast notification
           }, 500)
         }
       } else {

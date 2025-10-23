@@ -75,15 +75,15 @@ export default function NotificationFAB({ className = '' }: NotificationFABProps
     switch (action) {
       case 'call':
         // Open dialer or log call intent
-        alert(`Calling ${details.phone}...`)
+        // TODO: Add toast notification
         break
       case 'sms':
         // Send SMS via service
-        alert(`SMS sent to ${details.phone}: "${details.message}"`)
+        // TODO: Add toast notification
         break
       case 'schedule':
         // Create calendar event
-        alert(`Appointment scheduled for ${details.customDateTime}`)
+        // TODO: Add toast notification
         break
     }
     setFollowUpModal({ isOpen: false })

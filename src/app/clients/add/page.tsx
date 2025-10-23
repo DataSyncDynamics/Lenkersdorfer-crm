@@ -129,7 +129,7 @@ export default function AddClientPage() {
 
   const handleSubmit = async (action: 'save' | 'call' | 'schedule' | 'continue') => {
     if (!formData.name.trim() || !formData.phone.trim()) {
-      alert('Name and phone are required')
+      // TODO: Add toast notification
       return
     }
 

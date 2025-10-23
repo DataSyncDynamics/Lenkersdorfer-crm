@@ -105,13 +105,13 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     console.log('Follow-up action:', action, details)
     switch (action) {
       case 'call':
-        alert(`Calling ${details.phone}...`)
+        // TODO: Add toast notification
         break
       case 'sms':
-        alert(`SMS sent to ${details.phone}: "${details.message}"`)
+        // TODO: Add toast notification
         break
       case 'schedule':
-        alert(`Appointment scheduled for ${details.slot}`)
+        // TODO: Add toast notification
         break
     }
   }

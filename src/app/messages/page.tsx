@@ -121,7 +121,7 @@ export default function MessagesPage() {
     triggerHapticFeedback()
 
     // In a real implementation, this would send the message via SMS API
-    alert(`📱 Message would be sent to ${selectedClient.name}:\n\n"${messageInput}"\n\n✅ This is a demo - message not actually sent.`)
+    // TODO: Add toast notification
 
     // Clear the input
     setMessageInput('')

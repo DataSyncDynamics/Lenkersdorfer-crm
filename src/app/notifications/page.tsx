@@ -216,7 +216,7 @@ export default function NotificationsDemoPage() {
         break
       case 'schedule':
         // Create calendar event
-        alert(`Appointment scheduled for ${details.slot}`)
+        // TODO: Add toast notification
         break
     }
   }

@@ -155,8 +155,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
       delete clientData.lastContactTime
       onSave(clientData)
     } catch (error) {
-      console.error('Error updating client:', error)
-      alert('Failed to update client. Please try again.')
+      // TODO: Add toast notification for error feedback
     }
   }
 
@@ -193,14 +192,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
   // Add purchase
   const handleAddPurchase = async () => {
     if (!selectedClient || !purchaseData.brand || !purchaseData.model || !purchaseData.price) {
-      alert('Please fill in all required fields (Brand, Model, Price)')
+      // TODO: Add toast notification for validation error
       return
     }
 
     try {
       const price = parseFloat(purchaseData.price)
       if (isNaN(price) || price <= 0) {
-        alert('Please enter a valid price')
+        // TODO: Add toast notification for validation error
         return
       }
 
@@ -233,11 +232,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
       })
 
       // Refresh the page to show the new purchase
-      alert('Purchase added successfully!')
+      // TODO: Add toast notification for success
       window.location.reload()
     } catch (error) {
-      console.error('Error adding purchase:', error)
-      alert('Failed to add purchase. Please try again.')
+      // TODO: Add toast notification for error feedback
     }
   }
 

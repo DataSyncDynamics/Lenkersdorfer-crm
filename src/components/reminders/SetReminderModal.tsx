@@ -117,7 +117,7 @@ export function SetReminderModal({ isOpen, onClose, clientId, clientName, onSucc
       })
     } catch (error) {
       console.error('Error creating reminder:', error)
-      alert('Failed to set reminder. Please try again.')
+      // TODO: Add toast notification
     } finally {
       setIsSubmitting(false)
     }

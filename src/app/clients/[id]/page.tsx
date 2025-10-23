@@ -273,7 +273,7 @@ export default function ClientDetailPage() {
       window.location.reload()
     } catch (error) {
       console.error('Error creating purchase:', error)
-      alert('Failed to add purchase. Please try again.')
+      // TODO: Add toast notification
       setIsSubmittingPurchase(false)
     }
   }

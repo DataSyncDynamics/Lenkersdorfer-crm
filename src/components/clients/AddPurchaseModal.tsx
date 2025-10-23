@@ -77,7 +77,7 @@ export function AddPurchaseModal({ isOpen, onClose, clientId, clientName, onSucc
       })
     } catch (error) {
       console.error('Error creating purchase:', error)
-      alert('Failed to add purchase. Please try again.')
+      // TODO: Add toast notification
     } finally {
       setIsSubmitting(false)
     }

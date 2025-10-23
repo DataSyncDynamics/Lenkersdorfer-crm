@@ -388,7 +388,7 @@ export default function AnalyticsDashboard() {
 
           // Show confirmation with the message that was sent
           setTimeout(() => {
-            alert(`📱 SMS sent to ${notification.clientName}\n\nMessage: "${smsMessage}"\n\nTier ${tier} client follow-up completed.`)
+            // TODO: Add toast notification
           }, 500)
 
           markAsRead(notificationId)
@@ -402,7 +402,7 @@ export default function AnalyticsDashboard() {
               notification.watchBrand,
               notification.watchModel
             )
-            alert(`📱 Text ${notification.clientName} (Tier ${tier})\n\nPhone: ${action.phoneNumber || 'Not available'}\n\nSuggested message: ${smsMessage}`)
+            // TODO: Add toast notification\n\nPhone: ${action.phoneNumber || 'Not available'}\n\nSuggested message: ${smsMessage}`)
             markAsRead(notificationId)
           }
         }
@@ -442,7 +442,7 @@ export default function AnalyticsDashboard() {
       case 'ALLOCATE':
         // Handle allocation action
         if (notification) {
-          window.alert(`✅ Allocation started for ${notification.clientName}\n\nWatch: ${notification.watchBrand} ${notification.watchModel}`)
+          window.// TODO: Add toast notification
           markAsRead(notificationId)
         }
         break

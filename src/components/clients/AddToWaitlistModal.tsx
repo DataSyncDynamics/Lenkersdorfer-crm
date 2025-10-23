@@ -74,7 +74,7 @@ export function AddToWaitlistModal({ isOpen, onClose, clientId, clientName, onSu
       })
     } catch (error) {
       console.error('Error adding to waitlist:', error)
-      alert('Failed to add to waitlist. Please try again.')
+      // TODO: Add toast notification
     } finally {
       setIsSubmitting(false)
     }

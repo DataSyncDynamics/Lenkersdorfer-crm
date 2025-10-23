@@ -100,11 +100,11 @@ export default function RemindersPage() {
         throw new Error(result.error || 'Failed to generate follow-ups')
       }
 
-      alert(`Success! Created ${result.created} tier-based follow-up reminders`)
+      // TODO: Add toast notification
       loadReminders() // Reload to show new reminders
     } catch (error) {
       console.error('Error generating tier follow-ups:', error)
-      alert('Failed to generate tier-based follow-ups. Please try again.')
+      // TODO: Add toast notification
     } finally {
       setGeneratingFollowUps(false)
     }

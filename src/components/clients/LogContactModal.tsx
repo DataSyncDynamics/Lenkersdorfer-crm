@@ -122,7 +122,7 @@ export function LogContactModal({ isOpen, onClose, clientId, clientName, onSucce
       })
     } catch (error) {
       console.error('Error logging contact:', error)
-      alert('Failed to log contact. Please try again.')
+      // TODO: Add toast notification
     } finally {
       setIsSubmitting(false)
     }

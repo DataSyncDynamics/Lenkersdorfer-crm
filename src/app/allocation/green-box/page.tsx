@@ -56,7 +56,7 @@ export default function GreenBoxPage() {
     const client = getClientById(match.clientId)
     if (client) {
       // This would integrate with calendar system
-      alert(`📅 Meeting scheduled with ${client.name}`)
+      // TODO: Add toast notification
     }
   }
 
@@ -64,7 +64,7 @@ export default function GreenBoxPage() {
     const client = getClientById(match.clientId)
     const watch = getWatchModelById(match.watchModelId)
     if (client && watch) {
-      alert(`✅ ${watch.brand} ${watch.model} allocated to ${client.name}`)
+      // TODO: Add toast notification
     }
   }
 

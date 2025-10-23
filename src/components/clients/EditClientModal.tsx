@@ -80,7 +80,7 @@ export function EditClientModal({ isOpen, onClose, client, onSuccess }: EditClie
       onClose()
     } catch (error) {
       console.error('Error updating client:', error)
-      alert('Failed to update client. Please try again.')
+      // TODO: Add toast notification
     } finally {
       setIsSubmitting(false)
     }
