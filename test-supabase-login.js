@@ -12,8 +12,8 @@ const { createClient } = require('@supabase/supabase-js')
 const SUPABASE_URL = 'https://zqstpmfatjatnvodiaey.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc3RwbWZhdGphdG52b2RpYWV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzUyMTYsImV4cCI6MjA3NjMxMTIxNn0.zkYP2qBo-nqv0Mc_OaSBlHVpT4cqDLl10LUiK8AbztA'
 
-const EMAIL = 'demo@lenkersdorfer.com'
-const PASSWORD = 'LuxuryWatch2024!'
+const EMAIL = 'jason@lenkersdorfer.com'
+const PASSWORD = 'Complex123'
 
 async function testLogin() {
   console.log('🔍 Testing Supabase Login...\n')
