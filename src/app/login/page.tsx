@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LenkersdorferLogo } from '@/components/ui/lenkersdorfer-logo'
-import { Watch, Lock, Mail, Loader2 } from 'lucide-react'
+import { Watch, Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const { signIn, user } = useAuth()
@@ -160,14 +161,26 @@ function LoginForm() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={loading}
-                    className="pl-10 bg-slate-800/50 border-slate-700 focus:border-yellow-500 focus:ring-yellow-500/20 text-slate-200 placeholder:text-slate-500 h-11"
+                    className="pl-10 pr-10 bg-slate-800/50 border-slate-700 focus:border-yellow-500 focus:ring-yellow-500/20 text-slate-200 placeholder:text-slate-500 h-11"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
