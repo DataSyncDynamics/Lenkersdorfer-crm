@@ -36,10 +36,20 @@ function LoginForm() {
 
     try {
       console.log('[Login] Attempting sign in with:', email)
+      console.log('[Login] Environment check:', {
+        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      })
+
       const { error } = await signIn(email, password)
 
       if (error) {
         console.error('[Login] Sign in error:', error)
+        console.error('[Login] Error details:', {
+          message: error.message,
+          status: (error as any).status,
+          name: error.name
+        })
         setError(error.message || 'Invalid email or password')
         setLoading(false)
       } else {
@@ -49,7 +59,8 @@ function LoginForm() {
       }
     } catch (err) {
       console.error('[Login] Unexpected error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      setError(errorMessage)
       setLoading(false)
     }
   }
@@ -223,9 +234,9 @@ function LoginForm() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-center text-xs text-slate-600 mt-6"
+          className="text-center text-xs mt-6"
         >
-          Powered by{' '}
+          <span className="text-slate-600">Powered by </span>
           <motion.span
             className="text-blue-500 font-medium"
             animate={{
@@ -237,9 +248,8 @@ function LoginForm() {
               ease: "easeInOut"
             }}
           >
-            DataSync
-          </motion.span>{' '}
-          Dynamics
+            DataSync Dynamics
+          </motion.span>
         </motion.p>
       </motion.div>
     </div>
