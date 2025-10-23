@@ -1,9 +1,22 @@
 /**
- * Environment Variable Configuration
+ * Environment Variable Configuration (LEGACY - Use env-runtime.ts instead)
  *
- * This module provides type-safe access to environment variables
- * with runtime validation and detailed error reporting.
+ * IMPORTANT: This file is kept for backward compatibility.
+ * For new code, use /src/lib/env-runtime.ts which properly handles
+ * browser-side environment variable access in production.
+ *
+ * The Problem with This Approach:
+ * - Lazy initialization doesn't help with build-time variable inlining
+ * - Trying multiple sources (process.env, globalThis) adds complexity
+ * - Next.js requires DIRECT process.env.VAR_NAME access for proper inlining
+ *
+ * Migration Path:
+ * - Replace: import { env } from '@/lib/env'
+ * - With: import { runtimeEnv } from '@/lib/env-runtime'
+ * - Or use: import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/env-runtime'
  */
+
+import { runtimeEnv } from './env-runtime'
 
 interface EnvironmentConfig {
   supabase: {
@@ -19,60 +32,31 @@ interface EnvironmentConfig {
 }
 
 /**
- * Get environment variable with validation
- */
-function getEnvVar(name: string, required: boolean = true): string | undefined {
-  // Try multiple sources for environment variables
-  const value =
-    // 1. Try process.env (works in Node.js contexts)
-    process.env[name] ||
-    // 2. Try globalThis for browser contexts (Vercel inlines these)
-    (typeof globalThis !== 'undefined' && (globalThis as any)[name]) ||
-    undefined
-
-  if (required && !value) {
-    throw new Error(
-      `Missing required environment variable: ${name}\n` +
-      `Context: ${typeof window !== 'undefined' ? 'browser' : 'server'}\n` +
-      `Node ENV: ${process.env.NODE_ENV}\n` +
-      `\nPlease ensure this variable is set in:\n` +
-      `- .env.local (for local development)\n` +
-      `- Vercel project settings (for production)`
-    )
-  }
-
-  return value
-}
-
-/**
- * Validate and return environment configuration
+ * @deprecated Use runtimeEnv from env-runtime.ts instead
  */
 export function getEnvironmentConfig(): EnvironmentConfig {
-  const supabaseUrl = getEnvVar('NEXT_PUBLIC_SUPABASE_URL', true)!
-  const supabaseAnonKey = getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY', true)!
-  const supabaseServiceKey = getEnvVar('SUPABASE_SERVICE_ROLE_KEY', false)
-
-  const nodeEnv = process.env.NODE_ENV || 'development'
-
   return {
     supabase: {
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
-      serviceRoleKey: supabaseServiceKey,
+      url: runtimeEnv.supabase.url,
+      anonKey: runtimeEnv.supabase.anonKey,
+      serviceRoleKey: runtimeEnv.supabase.serviceRoleKey,
     },
     app: {
-      env: nodeEnv as 'development' | 'production' | 'test',
-      isDevelopment: nodeEnv === 'development',
-      isProduction: nodeEnv === 'production',
+      env: runtimeEnv.app.env,
+      isDevelopment: runtimeEnv.app.isDevelopment,
+      isProduction: runtimeEnv.app.isProduction,
     }
   }
 }
 
 /**
- * Export individual config values for convenience
+ * @deprecated Use runtimeEnv from env-runtime.ts instead
  */
 let _config: EnvironmentConfig | null = null
 
+/**
+ * @deprecated Use runtimeEnv from env-runtime.ts instead
+ */
 export function getConfig(): EnvironmentConfig {
   if (!_config) {
     _config = getEnvironmentConfig()
@@ -80,12 +64,8 @@ export function getConfig(): EnvironmentConfig {
   return _config
 }
 
-// Export for direct access (with lazy initialization)
-export const env = {
-  get supabase() {
-    return getConfig().supabase
-  },
-  get app() {
-    return getConfig().app
-  }
-}
+/**
+ * @deprecated Use runtimeEnv from env-runtime.ts instead
+ * Kept for backward compatibility - delegates to runtimeEnv
+ */
+export const env = runtimeEnv

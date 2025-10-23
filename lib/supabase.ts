@@ -1,10 +1,35 @@
+/**
+ * CANONICAL Supabase Client Configuration
+ *
+ * CRITICAL: This is the ONLY file that should create Supabase clients.
+ * All other files should import from here.
+ *
+ * Environment variables are inlined by Next.js at BUILD TIME for NEXT_PUBLIC_* vars.
+ * Vercel automatically inlines these during the build process.
+ */
+
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key';
+// CRITICAL: Direct access to process.env with proper validation
+// Next.js inlines NEXT_PUBLIC_* variables at build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Client-side Supabase client
+// Validate required environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  const missing = [];
+  if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (!supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+  throw new Error(
+    `CRITICAL: Missing required environment variables: ${missing.join(', ')}\n` +
+    `These must be set in Vercel project settings for production.\n` +
+    `For local development, ensure .env.local exists with these values.`
+  );
+}
+
+// Client-side Supabase client (safe for browser and server)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -17,13 +42,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Server-side Supabase client with service role key (for API routes)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+// Server-side Supabase client with service role key (for API routes only)
+export const supabaseAdmin = createClient(
+  supabaseUrl,
+  supabaseServiceKey || supabaseAnonKey, // Fallback to anon key if service key not set
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
 
 // Error handling utility
 export class SupabaseError extends Error {
@@ -69,3 +98,6 @@ export async function withPerformanceLogging<T>(
     throw error;
   }
 }
+
+// Export default for convenience
+export default supabase;

@@ -1,8 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+/**
+ * DEPRECATED: This file is a duplicate.
+ * All code should import from /lib/supabase.ts instead.
+ *
+ * This file exists only for backwards compatibility.
+ * DO NOT USE THIS FILE - Import from /lib/supabase.ts
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-export default supabase
+// Re-export from the canonical location
+export { supabase, supabaseAdmin, SupabaseError, handleSupabaseError, withPerformanceLogging } from '../../lib/supabase';
+export { default } from '../../lib/supabase';

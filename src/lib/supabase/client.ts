@@ -1,8 +1,16 @@
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { env } from '@/lib/env'
+import { getSupabaseUrl, getSupabaseAnonKey, isDevelopment } from '@/lib/env-runtime'
 
-// Lazy initialization to avoid build-time errors on Vercel
+/**
+ * Supabase Client - Browser-safe initialization
+ *
+ * CRITICAL CHANGE: Now uses direct process.env access via env-runtime.ts
+ * This ensures environment variables are properly inlined at BUILD TIME
+ * and accessible in BOTH browser AND server contexts in production.
+ */
+
+// Lazy initialization to avoid duplicate instances
 let supabaseInstance: SupabaseClient<Database> | null = null
 
 function getSupabaseClient(): SupabaseClient<Database> {
@@ -11,14 +19,16 @@ function getSupabaseClient(): SupabaseClient<Database> {
     return supabaseInstance
   }
 
-  // Use centralized environment configuration with validation
-  const { url: supabaseUrl, anonKey: supabaseAnonKey } = env.supabase
+  // CRITICAL: Direct function calls get inlined at build time
+  const supabaseUrl = getSupabaseUrl()
+  const supabaseAnonKey = getSupabaseAnonKey()
 
-  // Log successful initialization (browser only)
-  if (typeof window !== 'undefined' && env.app.isDevelopment) {
+  // Log successful initialization (browser only, dev mode)
+  if (typeof window !== 'undefined' && isDevelopment()) {
     console.info('[Supabase Client] Initialized', {
       url: `${supabaseUrl.substring(0, 30)}...`,
-      context: 'browser'
+      context: 'browser',
+      timestamp: new Date().toISOString()
     })
   }
 
