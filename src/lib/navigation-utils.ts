@@ -8,7 +8,8 @@ import {
   Zap,
   Crown,
   MessageSquare,
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react'
 import { getNavigationIconClasses, formatNotificationCount, getNotificationBadgeClasses } from './ui-utils'
 
@@ -116,11 +117,16 @@ export function createMainNavigationLinks(pathname: string, counts: any, messagi
 }
 
 /**
- * Creates bottom navigation items (sign out only)
+ * Creates bottom navigation items (user name and sign out)
  * Note: Notifications are now in the header, not sidebar
  */
 export function createBottomNavigationItems(pathname: string, counts: any) {
   return [
+    {
+      label: "Jason Jolly",
+      href: "#user",
+      icon: createNavigationIcon(User, false)
+    },
     {
       label: "Sign Out",
       href: "#sign-out",

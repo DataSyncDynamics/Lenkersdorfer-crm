@@ -14,7 +14,8 @@ import { useNotifications } from '@/contexts/NotificationContext'
 import { Client, ClientTier, WatchTier } from '@/types'
 import { formatClientName, getTierColorClasses } from '@/lib/ui-utils'
 import { cn } from '@/lib/utils'
-import { Crown, Star, Users } from 'lucide-react'
+import { Crown, Star, Users, TrendingUp, Activity, TrendingDown, Minus, Briefcase } from 'lucide-react'
+import { analyzePurchasePattern } from '@/lib/purchase-patterns'
 
 // Comprehensive luxury watch brands list
 const LUXURY_WATCH_BRANDS = [
@@ -267,11 +268,25 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
     return <Users className="h-4 w-4" />
   }
 
+  const getTemperatureIcon = (temperature: string) => {
+    switch (temperature) {
+      case 'HOT': return TrendingUp
+      case 'WARM': return Activity
+      case 'COOLING': return TrendingDown
+      case 'COLD': return Minus
+      case 'NEW': return Briefcase
+      default: return Activity
+    }
+  }
+
   // Get client's current wishlist and notifications BEFORE early return
   const clientWishlist = selectedClient ? getWaitlistForClient(selectedClient.id) : []
   const clientNotifications = selectedClient ? notifications.filter(n =>
     n.clientId === selectedClient.id || n.clientName === selectedClient.name
   ) : []
+
+  // Analyze purchase pattern for temperature
+  const purchasePattern = selectedClient ? analyzePurchasePattern(selectedClient) : null
 
   if (!selectedClient) return null
 
@@ -462,6 +477,65 @@ export const ClientModal: React.FC<ClientModalProps> = ({ selectedClient, onClos
               />
             </div>
           </div>
+
+          {/* Buying Temperature */}
+          {purchasePattern && purchasePattern.buyingTemperature !== 'UNKNOWN' && (
+            <div className={cn(
+              "space-y-4 p-5 rounded-lg border",
+              purchasePattern.buyingTemperature === 'HOT' && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
+              purchasePattern.buyingTemperature === 'WARM' && "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800",
+              purchasePattern.buyingTemperature === 'COOLING' && "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
+              purchasePattern.buyingTemperature === 'COLD' && "bg-gray-50 dark:bg-gray-950/30 border-gray-200 dark:border-gray-800",
+              purchasePattern.buyingTemperature === 'NEW' && "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800"
+            )}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Buying Temperature</h3>
+                {(() => {
+                  const TemperatureIcon = getTemperatureIcon(purchasePattern.buyingTemperature)
+                  return (
+                    <TemperatureIcon className={cn(
+                      "h-6 w-6",
+                      purchasePattern.buyingTemperature === 'HOT' && "text-red-600 dark:text-red-400",
+                      purchasePattern.buyingTemperature === 'WARM' && "text-orange-600 dark:text-orange-400",
+                      purchasePattern.buyingTemperature === 'COOLING' && "text-blue-600 dark:text-blue-400",
+                      purchasePattern.buyingTemperature === 'COLD' && "text-gray-600 dark:text-gray-400",
+                      purchasePattern.buyingTemperature === 'NEW' && "text-purple-600 dark:text-purple-400"
+                    )} />
+                  )
+                })()}
+              </div>
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "h-3 w-3 rounded-full",
+                  purchasePattern.buyingTemperature === 'HOT' && "bg-red-500",
+                  purchasePattern.buyingTemperature === 'WARM' && "bg-orange-500",
+                  purchasePattern.buyingTemperature === 'COOLING' && "bg-blue-500",
+                  purchasePattern.buyingTemperature === 'COLD' && "bg-gray-500",
+                  purchasePattern.buyingTemperature === 'NEW' && "bg-purple-500"
+                )} />
+                <span className={cn(
+                  "text-xl font-bold",
+                  purchasePattern.buyingTemperature === 'HOT' && "text-red-700 dark:text-red-300",
+                  purchasePattern.buyingTemperature === 'WARM' && "text-orange-700 dark:text-orange-300",
+                  purchasePattern.buyingTemperature === 'COOLING' && "text-blue-700 dark:text-blue-300",
+                  purchasePattern.buyingTemperature === 'COLD' && "text-gray-700 dark:text-gray-300",
+                  purchasePattern.buyingTemperature === 'NEW' && "text-purple-700 dark:text-purple-300"
+                )}>
+                  {purchasePattern.buyingTemperature === 'NEW' ? 'NEW PROSPECT' : purchasePattern.buyingTemperature}
+                </span>
+              </div>
+              {purchasePattern.lastPurchaseDaysAgo !== null && (
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Last purchase: {purchasePattern.lastPurchaseDaysAgo} days ago
+                </div>
+              )}
+              {purchasePattern.averageDaysBetweenPurchases !== null && (
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Average purchase cycle: {purchasePattern.averageDaysBetweenPurchases} days
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Last Contact Date & Time */}
           <div className="space-y-4 bg-amber-50 dark:bg-amber-950/30 p-5 rounded-lg border border-amber-200 dark:border-amber-800">

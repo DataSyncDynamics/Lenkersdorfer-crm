@@ -190,13 +190,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // TRANSACTION STEP 4: Update client lifetime spend (atomic operation)
+    // TRANSACTION STEP 4: Update client lifetime spend and last contact date (atomic operation)
     const newLifetimeSpend = client.lifetime_spend + validated.price
     const { error: clientUpdateError } = await supabase
       .from('clients')
       .update({
         lifetime_spend: newLifetimeSpend,
-        last_purchase_date: validated.purchase_date
+        last_purchase_date: validated.purchase_date,
+        last_contact_date: validated.purchase_date // Set last contact to purchase date
       })
       .eq('id', validated.client_id)
 

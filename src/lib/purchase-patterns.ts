@@ -9,7 +9,7 @@ export interface PurchasePattern {
   averageDaysBetweenPurchases: number | null
   lastPurchaseDaysAgo: number | null
   totalPurchases: number
-  buyingTemperature: 'HOT' | 'WARM' | 'COOLING' | 'COLD' | 'UNKNOWN'
+  buyingTemperature: 'HOT' | 'WARM' | 'COOLING' | 'COLD' | 'NEW' | 'UNKNOWN'
   temperatureEmoji: string
   nextExpectedPurchase: Date | null
   isOverdue: boolean
@@ -54,6 +54,7 @@ export function calculateDaysSinceLastPurchase(lastPurchaseDate: string | null):
 /**
  * Determine buying temperature based on purchase patterns
  *
+ * NEW: 💼 New prospect with no purchase history
  * HOT: 🔥🔥🔥 Recently purchased or expected to purchase soon (within next 30 days)
  * WARM: 🔥🔥 Approaching expected purchase window (30-60 days out)
  * COOLING: 🔥 Past expected purchase window (60-90 days overdue)
@@ -65,12 +66,12 @@ export function calculateBuyingTemperature(
   daysSinceLastPurchase: number | null,
   totalPurchases: number
 ): {
-  temperature: 'HOT' | 'WARM' | 'COOLING' | 'COLD' | 'UNKNOWN'
+  temperature: 'HOT' | 'WARM' | 'COOLING' | 'COLD' | 'NEW' | 'UNKNOWN'
   emoji: string
 } {
-  // No purchase history
+  // No purchase history - classify as NEW prospect
   if (totalPurchases === 0) {
-    return { temperature: 'UNKNOWN', emoji: '❓' }
+    return { temperature: 'NEW', emoji: '💼' }
   }
 
   // Only one purchase - classify based on recency

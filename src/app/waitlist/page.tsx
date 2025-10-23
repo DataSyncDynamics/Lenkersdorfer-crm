@@ -28,6 +28,7 @@ import { useAppStore, formatCurrency } from '@/lib/store'
 import { LenkersdorferSidebar } from '@/components/layout/LenkersdorferSidebar'
 import { cn } from '@/lib/utils'
 import { getTierColorClasses, calculateDaysBetween, getAvatarInitials } from '@/lib/ui-utils'
+import { AddWaitlistFAB } from '@/components/waitlist/AddWaitlistFAB'
 
 export default function WaitlistPage() {
   const {
@@ -744,6 +745,9 @@ export default function WaitlistPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add to Waitlist FAB */}
+      <AddWaitlistFAB />
     </LenkersdorferSidebar>
   )
 }

@@ -143,6 +143,17 @@ export async function POST(request: NextRequest) {
             } else {
               importResults.purchasesCreated += newPurchases.length
               console.log(`Created ${newPurchases.length} purchases for ${client.name}`)
+
+              // Set last_contact_date to the most recent purchase date
+              const mostRecentPurchaseDate = newPurchases.reduce((latest, purchase) => {
+                const purchaseDate = new Date(purchase.purchase_date)
+                return purchaseDate > new Date(latest) ? purchase.purchase_date : latest
+              }, newPurchases[0].purchase_date)
+
+              await supabase
+                .from('clients')
+                .update({ last_contact_date: mostRecentPurchaseDate })
+                .eq('id', clientId)
             }
           }
         }

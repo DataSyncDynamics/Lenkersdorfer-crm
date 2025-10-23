@@ -16,7 +16,8 @@ import {
   TrendingUp,
   Activity,
   TrendingDown,
-  Minus
+  Minus,
+  Briefcase
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +77,7 @@ const getTemperatureIcon = (temperature: string) => {
     case 'WARM': return Activity
     case 'COOLING': return TrendingDown
     case 'COLD': return Minus
+    case 'NEW': return Briefcase
     default: return Activity
   }
 }
@@ -112,7 +114,7 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
       onClick={onClick}
     >
       <Card className={cn(
-        "h-full hover:shadow-lg transition-all duration-200 relative",
+        "h-full flex flex-col hover:shadow-lg transition-all duration-200 relative",
         (hasUrgentNotifications || hasOpportunityNotifications) && "ring-2 ring-offset-2",
         hasUrgentNotifications && "ring-red-400",
         hasOpportunityNotifications && !hasUrgentNotifications && "ring-orange-400"
@@ -133,111 +135,103 @@ const ClientCardComponent: React.FC<ClientCardProps> = ({ client, onClick }) => 
           </div>
         )}
 
-        <CardHeader className="pb-3 pt-4 relative">
-          {/* Top-right controls: Reminder bell and Tier Badge */}
-          <div className="absolute top-4 right-4 flex items-center gap-2">
+        <CardHeader className="pb-3 pt-4">
+          {/* Client Info - Avatar and Full Name with Bell Icon */}
+          <div className="flex items-center gap-3 justify-between">
+            <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+              <Avatar className="h-12 w-12 flex-shrink-0">
+                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
+                  {getAvatarInitials(client.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg font-semibold leading-tight">
+                  {formatClientName(client.name)}
+                </CardTitle>
+              </div>
+            </div>
+
+            {/* Bell Icon - Top Right */}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleReminderClick}
-              className="h-8 w-8 hover:bg-gold-100 dark:hover:bg-gold-900/20 transition-colors"
+              className="h-8 w-8 hover:bg-gold-100 dark:hover:bg-gold-900/20 transition-colors flex-shrink-0"
               title="Set reminder"
             >
               <Bell className="h-4 w-4 text-gold-600 dark:text-gold-400" />
             </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 flex-1 flex flex-col">
+          {/* Lifetime Spend with Tier Badge */}
+          <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg relative">
+            {/* Tier Badge - Top Right Corner */}
             <Badge
-              className={cn("text-xs font-medium whitespace-nowrap border", getTierColorClasses(client.clientTier))}
+              className={cn("absolute top-2 right-2 text-[10px] font-medium whitespace-nowrap border", getTierColorClasses(client.clientTier))}
             >
               {getTierIcon(client.clientTier)}
-              <span className="ml-1">Tier {client.clientTier}</span>
+              <span className="ml-0.5">T{client.clientTier}</span>
             </Badge>
-          </div>
 
-          {/* Client Info - Below tier badge with full name visible */}
-          {(() => {
-            const formattedName = formatClientName(client.name);
-            const nameParts = formattedName.split(' ');
-            const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' ');
-
-            return (
-              <div className="flex items-center gap-3 mt-48">
-                <Avatar className="h-12 w-12 flex-shrink-0">
-                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
-                    {getAvatarInitials(client.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg font-semibold leading-tight">
-                    <div className="flex flex-col">
-                      <span>{firstName}</span>
-                      {lastName && <span>{lastName}</span>}
-                    </div>
-                  </CardTitle>
-                </div>
-              </div>
-            );
-          })()}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Lifetime Spend */}
-          <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               {formatCurrency(client.lifetimeSpend)}
             </div>
             <div className="text-sm text-muted-foreground">Lifetime Spend</div>
+          </div>
 
-            {/* Compact Buying Temperature Badge */}
+          {/* Contact Info */}
+          <div className="space-y-2">
+            {/* Buying Temperature - Always shown */}
             {purchasePattern.buyingTemperature !== 'UNKNOWN' && (
-              <div className="flex items-center gap-1.5 mt-2">
+              <div className="flex items-center gap-2 text-sm">
                 {(() => {
                   const TemperatureIcon = getTemperatureIcon(purchasePattern.buyingTemperature)
                   return (
                     <>
                       <TemperatureIcon className={cn(
-                        "h-3.5 w-3.5",
+                        "h-4 w-4 flex-shrink-0",
                         purchasePattern.buyingTemperature === 'HOT' && "text-red-500 dark:text-red-400",
                         purchasePattern.buyingTemperature === 'WARM' && "text-orange-500 dark:text-orange-400",
                         purchasePattern.buyingTemperature === 'COOLING' && "text-blue-500 dark:text-blue-400",
-                        purchasePattern.buyingTemperature === 'COLD' && "text-gray-500 dark:text-gray-400"
+                        purchasePattern.buyingTemperature === 'COLD' && "text-gray-500 dark:text-gray-400",
+                        purchasePattern.buyingTemperature === 'NEW' && "text-purple-500 dark:text-purple-400"
                       )} />
-                      <div className={cn(
-                        "h-2 w-2 rounded-full",
-                        purchasePattern.buyingTemperature === 'HOT' && "bg-red-500",
-                        purchasePattern.buyingTemperature === 'WARM' && "bg-orange-500",
-                        purchasePattern.buyingTemperature === 'COOLING' && "bg-blue-500",
-                        purchasePattern.buyingTemperature === 'COLD' && "bg-gray-500"
-                      )} />
-                      <span className={cn(
-                        "text-xs font-semibold",
-                        purchasePattern.buyingTemperature === 'HOT' && "text-red-600 dark:text-red-400",
-                        purchasePattern.buyingTemperature === 'WARM' && "text-orange-600 dark:text-orange-400",
-                        purchasePattern.buyingTemperature === 'COOLING' && "text-blue-600 dark:text-blue-400",
-                        purchasePattern.buyingTemperature === 'COLD' && "text-gray-600 dark:text-gray-400"
-                      )}>
-                        {purchasePattern.buyingTemperature}
-                      </span>
-                      {purchasePattern.lastPurchaseDaysAgo !== null && (
-                        <>
-                          <span className="text-xs text-muted-foreground">•</span>
-                          <span className="text-xs text-muted-foreground">
-                            {purchasePattern.lastPurchaseDaysAgo}d ago
-                          </span>
-                        </>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        <div className={cn(
+                          "h-2 w-2 rounded-full",
+                          purchasePattern.buyingTemperature === 'HOT' && "bg-red-500",
+                          purchasePattern.buyingTemperature === 'WARM' && "bg-orange-500",
+                          purchasePattern.buyingTemperature === 'COOLING' && "bg-blue-500",
+                          purchasePattern.buyingTemperature === 'COLD' && "bg-gray-500",
+                          purchasePattern.buyingTemperature === 'NEW' && "bg-purple-500"
+                        )} />
+                        <span className={cn(
+                          "font-semibold",
+                          purchasePattern.buyingTemperature === 'HOT' && "text-red-600 dark:text-red-400",
+                          purchasePattern.buyingTemperature === 'WARM' && "text-orange-600 dark:text-orange-400",
+                          purchasePattern.buyingTemperature === 'COOLING' && "text-blue-600 dark:text-blue-400",
+                          purchasePattern.buyingTemperature === 'COLD' && "text-gray-600 dark:text-gray-400",
+                          purchasePattern.buyingTemperature === 'NEW' && "text-purple-600 dark:text-purple-400"
+                        )}>
+                          {purchasePattern.buyingTemperature === 'NEW' ? 'NEW PROSPECT' : purchasePattern.buyingTemperature}
+                        </span>
+                        {purchasePattern.lastPurchaseDaysAgo !== null && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-muted-foreground">
+                              {purchasePattern.lastPurchaseDaysAgo}d ago
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </>
                   )
                 })()}
               </div>
             )}
-          </div>
 
-          {/* Contact Info */}
-          <div className="space-y-2">
-            <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
-              <Mail className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
-              <span className="break-all">{client.email}</span>
-            </div>
+            {/* Phone */}
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
               <Phone className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               <span>{client.phone}</span>
