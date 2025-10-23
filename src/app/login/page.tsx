@@ -25,9 +25,12 @@ function LoginForm() {
   useEffect(() => {
     if (user) {
       const redirect = searchParams.get('redirect') || '/'
-      router.push(redirect)
+      console.log('[Login] User authenticated, redirecting to:', redirect)
+
+      // Use window.location for hard navigation to ensure middleware runs with fresh cookies
+      window.location.href = redirect
     }
-  }, [user, router, searchParams])
+  }, [user, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

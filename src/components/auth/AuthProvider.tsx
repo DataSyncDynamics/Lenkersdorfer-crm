@@ -64,22 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AuthProvider] Sign in successful:', data.user?.email)
       console.log('[AuthProvider] Session created:', !!data.session)
 
-      // Update local state immediately
+      // Update local state - this will trigger the useEffect in login page
       setSession(data.session)
       setUser(data.user)
 
-      // Wait a bit longer to ensure state updates propagate
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      console.log('[AuthProvider] Navigating to dashboard...')
-
-      // Use window.location for more reliable redirect on production
-      if (typeof window !== 'undefined') {
-        window.location.href = '/'
-      } else {
-        router.push('/')
-        router.refresh()
-      }
+      // DO NOT REDIRECT HERE - let the useEffect in login/page.tsx handle it
+      // This allows proper state propagation before navigation
+      console.log('[AuthProvider] State updated, allowing React to handle redirect...')
 
       return { error: null }
     } catch (error) {
