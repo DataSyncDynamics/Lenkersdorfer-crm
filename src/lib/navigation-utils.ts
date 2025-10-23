@@ -116,20 +116,11 @@ export function createMainNavigationLinks(pathname: string, counts: any, messagi
 }
 
 /**
- * Creates bottom navigation items (user profile and sign out)
+ * Creates bottom navigation items (sign out only)
  * Note: Notifications are now in the header, not sidebar
  */
 export function createBottomNavigationItems(pathname: string, counts: any) {
   return [
-    {
-      label: "Jason Jolly",
-      href: "#sign-out",
-      icon: React.createElement(
-        'div',
-        { className: 'h-5 w-5 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center flex-shrink-0' },
-        React.createElement(Crown, { className: 'h-3 w-3 text-black' })
-      )
-    },
     {
       label: "Sign Out",
       href: "#sign-out",
