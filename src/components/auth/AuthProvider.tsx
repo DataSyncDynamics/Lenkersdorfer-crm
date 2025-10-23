@@ -67,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session)
       setUser(data.user)
 
+      // CRITICAL FIX: Force server-side session sync before API calls
+      console.log('[AuthProvider] Forcing router refresh to sync cookies...')
+      router.refresh()
+
       return { error: null }
     } catch (error) {
       console.error('[AuthProvider] Unexpected error during sign in:', error)

@@ -143,9 +143,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       return
     }
 
-    // User is authenticated - load reminders and set up interval
-    console.log('[NotificationContext] Session detected - loading reminders')
-    refreshReminders()
+    // User is authenticated - wait briefly for cookies to propagate, then load reminders
+    console.log('[NotificationContext] Session detected - waiting for cookie propagation...')
+
+    // CRITICAL FIX: Small delay to ensure router.refresh() completes and cookies propagate
+    const timeoutId = setTimeout(() => {
+      console.log('[NotificationContext] Loading reminders after cookie sync')
+      refreshReminders()
+    }, 300) // 300ms is sufficient for router.refresh() to complete
 
     // Set up refresh interval (only runs while this effect is active)
     const interval = setInterval(() => {
@@ -153,9 +158,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       refreshReminders()
     }, 60000) // Refresh every minute
 
-    // Clean up interval when session changes or component unmounts
+    // Clean up timeout and interval when session changes or component unmounts
     return () => {
-      console.log('[NotificationContext] Cleaning up interval')
+      console.log('[NotificationContext] Cleaning up timeout and interval')
+      clearTimeout(timeoutId)
       clearInterval(interval)
     }
   }, [session, loading]) // Re-run when session or loading state changes
