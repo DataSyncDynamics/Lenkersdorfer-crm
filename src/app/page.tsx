@@ -17,10 +17,6 @@ const ClientModal = dynamic(() => import('@/components/clients/ClientModal').the
   loading: () => null
 })
 
-const NotificationPanel = dynamic(() => import('@/components/notifications/NotificationPanel').then(mod => ({ default: mod.NotificationPanel })), {
-  ssr: false,
-  loading: () => null
-})
 
 import {
   DollarSign,
@@ -221,7 +217,6 @@ export default function AnalyticsDashboard() {
   const [showAllocationPanel, setShowAllocationPanel] = useState(false)
   const [selectedWatchForAllocation, setSelectedWatchForAllocation] = useState<string>('')
   const [selectedClientForView, setSelectedClientForView] = useState<string | null>(null)
-  const [showNotificationPanel, setShowNotificationPanel] = useState(false)
 
   // ⚠️ CRITICAL: Calculate analytics data BEFORE early return - useMemo is a HOOK
   const analytics = useMemo(() => {
@@ -490,7 +485,7 @@ export default function AnalyticsDashboard() {
   ]
 
   return (
-    <LenkersdorferSidebar onNotificationsClick={() => setShowNotificationPanel(true)}>
+    <LenkersdorferSidebar onNotificationsClick={() => router.push('/notifications')}>
       <div className="flex flex-1 flex-col bg-background">
         {/* Header with Alert Bell */}
         <div className="sticky top-0 z-10 bg-background md:static flex flex-row items-start md:items-center justify-between gap-4 p-4 md:p-6 lg:p-8">
@@ -504,7 +499,7 @@ export default function AnalyticsDashboard() {
             variant="ghost"
             size="icon"
             className="relative hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex-shrink-0"
-            onClick={() => setShowNotificationPanel(true)}
+            onClick={() => router.push('/notifications')}
             title={`${counts.total} notifications`}
           >
             <Bell className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
@@ -660,11 +655,6 @@ export default function AnalyticsDashboard() {
           />
         )}
 
-        {/* Notification Panel */}
-        <NotificationPanel
-          isOpen={showNotificationPanel}
-          onClose={() => setShowNotificationPanel(false)}
-        />
       </div>
     </LenkersdorferSidebar>
   )
